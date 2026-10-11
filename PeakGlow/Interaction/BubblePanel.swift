@@ -28,7 +28,7 @@ final class BubblePanelController: NSObject {
     }
 
     private func makePanel(notch: CGRect) -> NSPanel {
-        let size = CGSize(width: 328, height: 234)
+        let size = CGSize(width: 328, height: 258)
         let frame = CGRect(
             x: notch.midX - size.width / 2,
             y: notch.minY - size.height - 8,
@@ -54,6 +54,7 @@ final class BubblePanelController: NSObject {
             self?.hover.dismissNow()
         }).environmentObject(AppState.shared)
         let hosting = NSHostingView(rootView: view)
+        hosting.sizingOptions = []
         hosting.frame = NSRect(origin: .zero, size: size)
         if #available(macOS 26.0, *) {
             let glass = NSGlassEffectView(frame: hosting.frame)

@@ -21,7 +21,10 @@ final class SettingsWindowController {
         w.minSize = NSSize(width: 700, height: 540)
         w.toolbarStyle = .unified
         w.setFrameAutosaveName("PeakGlowSettings")
-        w.contentView = NSHostingView(rootView: SettingsView())
+        let hosting = NSHostingView(rootView: SettingsView())
+        // The window owns its bounds. Avoid repeated min/ideal/max content measurements.
+        hosting.sizingOptions = []
+        w.contentView = hosting
         w.center()
         w.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -45,7 +48,7 @@ struct SettingsView: View {
                 Label("Advanced", systemImage: "slider.horizontal.3").tag(SettingsPage.advanced)
             }
             .listStyle(.sidebar)
-            .navigationSplitViewColumnWidth(min: 170, ideal: 180, max: 220)
+            .navigationSplitViewColumnWidth(180)
         } detail: {
             Form {
                 switch selection ?? .appearance {
@@ -130,8 +133,8 @@ struct SettingsView: View {
                 }
             }
         }
-        .navigationSplitViewStyle(.balanced)
-        .frame(minWidth: 700, minHeight: 540)
+        .navigationSplitViewStyle(.prominentDetail)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .alert("Reset settings?", isPresented: $confirmReset) {
             Button("Cancel", role: .cancel) {}
             Button("Reset") {
@@ -218,8 +221,24 @@ private struct NativeSettingsSlider: View {
                 .tint(.accentColor)
                 .accessibilityLabel(title)
                 .accessibilityValue(formattedValue)
+                .modifier(NativeGlassControl())
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .contain)
+    }
+}
+
+
+/// Adds Apple's interactive glass surface while preserving the original control.
+struct NativeGlassControl: ViewModifier {
+    @ViewBuilder func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .glassEffect(.regular.interactive(), in: Capsule())
+        } else {
+            content
+        }
     }
 }

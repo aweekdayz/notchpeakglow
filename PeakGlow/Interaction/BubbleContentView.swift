@@ -69,6 +69,7 @@ struct BubbleContentView: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
+                .modifier(NativeGlassControl())
             }
 
             HStack {
@@ -88,7 +89,7 @@ struct BubbleContentView: View {
             }
         }
         .padding(20)
-        .frame(width: 328, height: 234)
+        .frame(width: 328, height: 258)
     }
 }
 
