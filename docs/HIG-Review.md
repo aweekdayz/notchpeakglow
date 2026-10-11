@@ -94,3 +94,12 @@ The user reports that the layout stutter persists in Build 12. Fixed layout spac
 A newly shown panel is attached to its window at zero opacity before final layout. A generation-guarded main-queue update and the first display-link tick prepare the attached hosting hierarchy before the fade advances. Dismissal invalidates queued preparation, preserving rapid reopen/reversal behavior. Reduce Motion skips the fade after layout. This removes an immediate-show-before-layout path; the cause of the user's visible stutter remains unconfirmed without runtime observation.
 
 Build 13 compiled successfully and retained the checked linked SDK metadata. Packaging signature verification passed. No application was launched or interactively tested.
+
+
+## Build 14 follow-up: selection typography and settings clarity
+
+The user confirms Build 13 resolved the panel layout stutter. Keep its measurement isolation and presentation sequencing. The user reports that the initially selected Appearance sidebar row retains bold text after navigating away. Build 14 uses stable CaseIterable page identities and explicitly derives label font weight from current selection (semibold selected, regular otherwise), retaining the native sidebar selection, focus and background. The typography report remains for user verification; no runtime reproduction was attempted.
+
+Advanced settings now group related controls under Rendering, Temperature alerts, and Load response. Unmarked native sliders expose current values through system help; numeric fields show their accepted ranges through help. Behavior explains hover/click/Escape and game-controller pause. Launch at login distinguishes enabled, requested-but-awaiting-approval, and disabled states; pending approval has a native action that opens System Settings Login Items. Returning to the app refreshes system status. These implement settings grouping, contextual help, feedback and selection guidance without replacing system controls.
+
+Build 14 compiled with the installed SDK and passed linked-SDK metadata validation and package signature verification. The app was not launched or interactively tested, at the user's request.
