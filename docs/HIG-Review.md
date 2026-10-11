@@ -103,3 +103,10 @@ The user confirms Build 13 resolved the panel layout stutter. Keep its measureme
 Advanced settings now group related controls under Rendering, Temperature alerts, and Load response. Unmarked native sliders expose current values through system help; numeric fields show their accepted ranges through help. Behavior explains hover/click/Escape and game-controller pause. Launch at login distinguishes enabled, requested-but-awaiting-approval, and disabled states; pending approval has a native action that opens System Settings Login Items. Returning to the app refreshes system status. These implement settings grouping, contextual help, feedback and selection guidance without replacing system controls.
 
 Build 14 compiled with the installed SDK and passed linked-SDK metadata validation and package signature verification. The app was not launched or interactively tested, at the user's request.
+
+
+## Build 15 follow-up: toolbar grouping
+
+The user supplied a cropped titlebar screenshot showing Power at the leading edge, with the sidebar toggle and icon-only Reset grouped near the middle and substantial unused trailing space. Build 15 adds the macOS 26 native flexible ToolbarSpacer before the primary action and explicitly uses title-and-icon labeling for Reset. Native sidebar navigation, toolbar backgrounds and glass rendering remain system-managed. Older macOS retains its existing toolbar spacing.
+
+Swift compilation, SDK metadata guard, diff whitespace check and preview signature verification passed. No app was launched or interactively tested; the resulting toolbar placement remains for user confirmation.

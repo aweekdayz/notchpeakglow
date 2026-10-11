@@ -154,8 +154,13 @@ struct SettingsView: View {
             .formStyle(.grouped)
             .navigationTitle((selection ?? .appearance).title)
             .toolbar {
+                if #available(macOS 26.0, *) {
+                    // Native flexible toolbar space separates navigation from actions.
+                    ToolbarSpacer(.flexible, placement: .primaryAction)
+                }
                 ToolbarItem(placement: .primaryAction) {
                     resetButton
+                        .labelStyle(.titleAndIcon)
                 }
             }
         }
