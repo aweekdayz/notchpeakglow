@@ -7,9 +7,9 @@ enum LoadLevel: Int {
 
     var label: String {
         switch self {
-        case .low: return "低"
-        case .medium: return "中"
-        case .high: return "高"
+        case .low: return "Low"
+        case .medium: return "Soft"
+        case .high: return "Boost"
         }
     }
 }
@@ -70,3 +70,4 @@ final class LoadLevelStateMachine {
         }
     }
 }
+

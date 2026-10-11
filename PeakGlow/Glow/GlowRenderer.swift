@@ -8,6 +8,7 @@ final class GlowRenderer {
     // 仅主线程访问
     var targetLevel: LoadLevel = .low   // low → intensity 0
     var headroom: Float = 1.0
+    var ambientEnabled = false
     var paused = false                  // 全屏/睡眠时
     /// Temperature warning fades into a steady warm tint.
     var overheat = false
@@ -60,13 +61,19 @@ final class GlowRenderer {
         isIdle = false
     }
 
+    /// Off and pauses always override the automatic low-load glow.
+    static func targetIntensity(level: LoadLevel, paused: Bool, ambient: Bool) -> Float {
+        if paused { return 0 }
+        return level == .low ? (ambient ? 0.55 : 0) : 1
+    }
+
     // MARK: - 渲染（主线程，Timer 驱动）
 
     func renderFrame(now: CFTimeInterval) {
         if lastRender != 0, now - lastRender < (1.0 / AppSettings.shared.frameRate) * 0.9 { return }
         let s = AppSettings.shared
 
-        let targetIntensity: Float = (paused || targetLevel == .low) ? 0 : 1
+        let targetIntensity = Self.targetIntensity(level: targetLevel, paused: paused, ambient: ambientEnabled)
         let targetMix: Float = targetLevel == .high ? 1 : 0
 
         let dt = Float(min(0.1, lastRender == 0 ? 0.033 : now - lastRender))

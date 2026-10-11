@@ -16,7 +16,7 @@ final class SettingsWindowController {
             contentRect: NSRect(x: 0, y: 0, width: 520, height: 620),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered, defer: false)
-        w.title = "PeakGlow 设置"
+        w.title = "PeakGlow Settings"
         w.isReleasedWhenClosed = false
         w.contentView = NSHostingView(rootView: SettingsView())
         w.center()
@@ -37,45 +37,46 @@ struct SettingsView: View {
         VStack(spacing: 0) {
             Form {
                 Section {
-                    LabeledContent("当前设备", value: MachineProfile.current.summary)
-                    Text("光晕随整机功耗变化。低负载时自动隐去。")
+                    LabeledContent("Device", value: MachineProfile.current.summary)
+                    Text("A subtle glow at low load, brighter as power rises.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
 
-                Section("外观") {
-                    slider("光晕范围", binding(\.glowScale), in: 0.4...1.6,
+                Section("Appearance") {
+                    Toggle("Show glow at low load", isOn: binding(\.ambientGlow))
+                    slider("Glow size", binding(\.glowScale), in: 0.4...1.6,
                            value: "\(Int(s.glowScale * 100))%")
-                    slider("亮度", binding(\.glowIntensity), in: 0.2...2,
+                    slider("Brightness", binding(\.glowIntensity), in: 0.2...2,
                            value: "\(Int(s.glowIntensity * 100))%")
-                    Text("柔光沿刘海边缘缓慢流动，高负载时过渡为冰蓝色。")
+                    Text("Soft light follows the notch. High load shifts to ice blue.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Button("使用柔和外观") {
+                    Button("Use Soft Appearance") {
                         s.resetAppearance()
                     }
                 }
 
-                Section("负载") {
-                    slider("柔光阈值", Binding(get: { s.mediumWatts },
+                Section("Load") {
+                    slider("Full glow threshold", Binding(get: { s.mediumWatts },
                         set: { s.mediumWatts = min($0, s.highWatts - 1) }),
                         in: 8...60, value: "\(Int(s.mediumWatts)) W")
-                    slider("增强阈值", Binding(get: { s.highWatts },
+                    slider("Boost threshold", Binding(get: { s.highWatts },
                         set: { s.highWatts = max($0, s.mediumWatts + 1) }),
                         in: 9...90, value: "\(Int(s.highWatts)) W")
-                    Button("使用此设备的建议阈值") {
+                    Button("Use Recommended Thresholds") {
                         s.mediumWatts = MachineProfile.current.suggestedMediumWatts
                         s.highWatts = MachineProfile.current.suggestedHighWatts
                     }
                 }
 
-                Section("行为") {
-                    Toggle("登录时启动", isOn: $loginEnabled)
+                Section("Behavior") {
+                    Toggle("Launch at login", isOn: $loginEnabled)
                         .onChange(of: loginEnabled) { _, enabled in
                             updateLogin(enabled)
                         }
-                    Toggle("温度偏高时提醒", isOn: binding(\.overheatAlertEnabled))
-                    slider("悬停展开延迟", binding(\.hoverDwell), in: 0.2...1.5,
+                    Toggle("Temperature alerts", isOn: binding(\.overheatAlertEnabled))
+                    slider("Hover delay", binding(\.hoverDwell), in: 0.2...1.5,
                            value: String(format: "%.1f s", s.hoverDwell))
                     if let loginError {
                         Text(loginError).font(.caption).foregroundStyle(.red)
@@ -83,24 +84,24 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    DisclosureGroup("高级设置", isExpanded: $showAdvanced) {
-                        slider("柔光透明度", binding(\.mediumAlpha), in: 0.2...0.8,
+                    DisclosureGroup("Advanced", isExpanded: $showAdvanced) {
+                        slider("Soft glow opacity", binding(\.mediumAlpha), in: 0.2...0.8,
                                value: "\(Int(s.mediumAlpha * 100))%")
-                        slider("呼吸频率", binding(\.pulseHz), in: 0.1...2,
+                        slider("Breathing rate", binding(\.pulseHz), in: 0.1...2,
                                value: String(format: "%.1f Hz", s.pulseHz))
-                        slider("HDR 增益", binding(\.hdrFactor), in: 1...8,
+                        slider("HDR gain", binding(\.hdrFactor), in: 1...8,
                                value: String(format: "%.1f×", s.hdrFactor))
-                        slider("温度提醒强度", binding(\.overheatGain), in: 0.5...8,
+                        slider("Alert brightness", binding(\.overheatGain), in: 0.5...8,
                                value: String(format: "%.1f×", s.overheatGain))
-                        slider("温度提醒范围", binding(\.overheatScale), in: 0.6...1.8,
+                        slider("Alert size", binding(\.overheatScale), in: 0.6...1.8,
                                value: "\(Int(s.overheatScale * 100))%")
-                        slider("帧率上限", binding(\.frameRate), in: 15...60,
+                        slider("Frame rate", binding(\.frameRate), in: 15...60,
                                value: "\(Int(s.frameRate)) fps")
-                        slider("滞回区间", binding(\.hysteresisWatts), in: 1...10,
+                        slider("Hysteresis", binding(\.hysteresisWatts), in: 1...10,
                                value: String(format: "%.1f W", s.hysteresisWatts))
-                        slider("切换保持时间", binding(\.holdOnSeconds), in: 0.5...10,
+                        slider("Transition delay", binding(\.holdOnSeconds), in: 0.5...10,
                                value: String(format: "%.1f s", s.holdOnSeconds))
-                        slider("采样周期", binding(\.sampleInterval), in: 0.2...3,
+                        slider("Sampling interval", binding(\.sampleInterval), in: 0.2...3,
                                value: String(format: "%.1f s", s.sampleInterval))
                     }
                 }
@@ -113,20 +114,20 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Button("恢复默认…") { confirmReset = true }
+                Button("Reset Settings…") { confirmReset = true }
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 14)
         }
         .frame(width: 520, height: 620)
-        .alert("恢复默认设置？", isPresented: $confirmReset) {
-            Button("取消", role: .cancel) {}
-            Button("恢复默认") {
+        .alert("Reset settings?", isPresented: $confirmReset) {
+            Button("Cancel", role: .cancel) {}
+            Button("Reset") {
                 s.resetAll()
                 AppState.shared.preview = .auto
             }
         } message: {
-            Text("恢复光晕外观和此设备的建议负载阈值。")
+            Text("Restore the default appearance and recommended load thresholds.")
         }
     }
 
@@ -154,9 +155,9 @@ struct SettingsView: View {
             if enabled { try SMAppService.mainApp.register() }
             else { try SMAppService.mainApp.unregister() }
             loginError = SMAppService.mainApp.status == .requiresApproval
-                ? "请在系统设置的登录项中允许 PeakGlow。" : nil
+                ? "Allow PeakGlow in System Settings → Login Items." : nil
         } catch {
-            loginError = "无法更新登录项：\(error.localizedDescription)"
+            loginError = "Could not update login item: \(error.localizedDescription)"
         }
         loginEnabled = SMAppService.mainApp.status == .enabled
     }

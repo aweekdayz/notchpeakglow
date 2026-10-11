@@ -12,7 +12,7 @@ enum FirstRunWindow {
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false)
-        panel.title = "欢迎使用 PeakGlow"
+        panel.title = "Welcome to PeakGlow"
         panel.titlebarAppearsTransparent = true
         panel.isReleasedWhenClosed = false
         panel.level = .floating
@@ -40,24 +40,24 @@ private struct FirstRunContentView: View {
                 .resizable()
                 .frame(width: 72, height: 72)
 
-            Text("一点柔光，感知负载。")
+            Text("A little light. A sense of load.")
                 .font(.title2.weight(.semibold))
 
             VStack(alignment: .leading, spacing: 10) {
                 Label {
-                    Text("安静地运行在后台，不占用 Dock 或菜单栏。")
+                    Text("Runs quietly in the background, without a Dock or menu bar icon.")
                 } icon: {
                     Image(systemName: "eye.slash")
                         .foregroundStyle(.secondary)
                 }
                 Label {
-                    Text("将指针停留在刘海上，即可查看功耗、预览光晕。")
+                    Text("Hover over the notch to see power usage and preview the glow.")
                 } icon: {
                     Image(systemName: "camera.metering.center")
                         .foregroundStyle(.secondary)
                 }
                 Label {
-                    Text("打开设置，调整柔光范围与负载阈值。")
+                    Text("Open Settings to adjust the glow and power thresholds.")
                 } icon: {
                     Image(systemName: "slider.horizontal.3")
                         .foregroundStyle(.secondary)
@@ -67,7 +67,7 @@ private struct FirstRunContentView: View {
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
 
-            Button("开始使用") {
+            Button("Get Started") {
                 onClose()
             }
             .keyboardShortcut(.defaultAction)

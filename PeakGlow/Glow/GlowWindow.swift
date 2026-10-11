@@ -54,7 +54,10 @@ final class GlowWindow {
     /// 淡出完成后 renderTick 检测 isIdle 自行停止（避免光晕冻结在屏幕上）。
     private func syncPauseState() {
         let effective = screenAsleep || (pausedByGamepad && AppSettings.shared.preview == .auto)
-        if let r = metalView?.renderer { r.paused = effective }
+        if let r = metalView?.renderer {
+            r.paused = effective
+            r.ambientEnabled = AppSettings.shared.preview == .auto && AppSettings.shared.ambientGlow
+        }
         metalView?.wake()   // 确保 Timer 在跑以完成淡出；已 idle 时下一帧即自停
     }
 

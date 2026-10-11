@@ -112,7 +112,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         switch AppSettings.shared.preview {
         case .auto:
             effective = lastAutoLevel
-            overheat = AppSettings.shared.overheatAlarm && effective != .low
+            overheat = AppSettings.shared.overheatAlarm
         case .overheat:
             effective = .high          // 蓝色呼吸基底 + 红闪
             overheat = true

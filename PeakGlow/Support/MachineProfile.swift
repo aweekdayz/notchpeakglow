@@ -95,7 +95,7 @@ struct MachineProfile {
 
     /// 简短描述（设置面板显示）
     var summary: String {
-        "\(productName) · \(chipName) \(coreCount)核"
+        "\(productName) · \(chipName) \(coreCount) cores"
     }
 
     // MARK: - 私有
@@ -129,3 +129,4 @@ struct MachineProfile {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
+

@@ -6,11 +6,11 @@ enum PreviewLevel: Int, CaseIterable {
 
     var label: String {
         switch self {
-        case .low: return "关闭"
-        case .medium: return "中"
-        case .high: return "高"
-        case .auto: return "自动"
-        case .overheat: return "降频"
+        case .low: return "Off"
+        case .medium: return "Soft"
+        case .high: return "Boost"
+        case .auto: return "Auto"
+        case .overheat: return "Warm"
         }
     }
 }
@@ -29,6 +29,7 @@ final class AppSettings: ObservableObject {
         static let holdOnSeconds = "holdOnSeconds"
         static let hysteresisWatts = "hysteresisWatts"
         static let sampleInterval = "sampleInterval"
+        static let ambientGlow = "ambientGlow"
         static let glowScale = "glowScale"
         static let glowIntensity = "glowIntensity"
         static let mediumAlpha = "mediumAlpha"
@@ -103,6 +104,11 @@ final class AppSettings: ObservableObject {
 
     // MARK: - 外观
     /// 光晕整体缩放（0.4–1.6，长宽等比）
+    var ambientGlow: Bool {
+        get { get(Key.ambientGlow, true) }
+        set { set(newValue, Key.ambientGlow) }
+    }
+
     var glowScale: Double {
         get { get(Key.glowScale, Defaults.glowScale) }
         set { set(Double(newValue), Key.glowScale) }
@@ -172,6 +178,7 @@ final class AppSettings: ObservableObject {
 
     /// Apply the new visual defaults without touching power thresholds or behavior.
     func resetAppearance() {
+        ambientGlow = true
         glowScale = Defaults.glowScale
         glowIntensity = Defaults.glowIntensity
         mediumAlpha = Defaults.mediumAlpha
