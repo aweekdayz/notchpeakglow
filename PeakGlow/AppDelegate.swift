@@ -26,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSLog("PeakGlow: machine tuned \(mp.summary) -> \(mp.suggestedMediumWatts)W/\(mp.suggestedHighWatts)W")
         }
 
+        installMainMenu()
         bubble = BubblePanelController(hover: hover)
         // 采样 → 状态机（仅整机功率信号；CPU% 仅作显示）
         var wattWindow: [Double] = []
@@ -33,10 +34,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self else { return }
             let state = AppState.shared
 
-            guard let w = powerSampler.readWatts(), w > 0 else { return }
-            // 气泡不可见时不触碰 @Published（隐藏的 SwiftUI 视图无需持续重渲染）
-            state.latestWatts = w
-            if state.bubbleVisible { state.watts = w }
+            let reading = powerSampler.readWatts()
+            state.recordPower(reading)
+            guard let w = reading, w.isFinite, w > 0 else {
+                wattWindow.removeAll()
+                stateMachine.discardPendingTransition()
+                return
+            }
             // 5 样本滑动平均（默认 0.5s 采样 = 2.5s 窗口），滤除瞬时尖峰
             wattWindow.append(w)
             if wattWindow.count > 5 { wattWindow.removeFirst() }
@@ -64,6 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // 手柄检测：连接任意手柄 → 暂停光晕（游戏中不打扰）
         gamepad.onGamepadChange = { [weak self] connected in
+            AppState.shared.gamepadConnected = connected
             self?.glow.setPaused(connected)
         }
 
@@ -99,6 +104,56 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsUpdate?.cancel()
         glow.shutdown()
         sampler.stop()
+    }
+
+    private func installMainMenu() {
+        let menu = NSMenu()
+        let appItem = NSMenuItem()
+        let appMenu = NSMenu(title: "PeakGlow")
+        appItem.submenu = appMenu
+        menu.addItem(appItem)
+        let settings = appMenu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+        settings.target = self
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Hide PeakGlow", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Quit PeakGlow", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+
+        let editItem = NSMenuItem()
+        let editMenu = NSMenu(title: "Edit")
+        editItem.submenu = editMenu
+        menu.addItem(editItem)
+        editMenu.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
+        let redo = editMenu.addItem(withTitle: "Redo", action: Selector(("redo:")), keyEquivalent: "z")
+        redo.keyEquivalentModifierMask = [.command, .shift]
+        editMenu.addItem(.separator())
+        editMenu.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        editMenu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        editMenu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+
+        let windowItem = NSMenuItem()
+        let windowMenu = NSMenu(title: "Window")
+        windowItem.submenu = windowMenu
+        menu.addItem(windowItem)
+        let controls = windowMenu.addItem(withTitle: "Show PeakGlow Controls", action: #selector(openControls), keyEquivalent: "")
+        controls.target = self
+        let close = windowMenu.addItem(withTitle: "Close Window", action: #selector(closeActiveWindow), keyEquivalent: "w")
+        close.target = self
+        NSApp.mainMenu = menu
+        NSApp.windowsMenu = windowMenu
+    }
+
+    @objc private func openSettings() {
+        hover.dismissNow()
+        SettingsWindowController.shared.show()
+    }
+
+    @objc private func openControls() { hover.openForInteraction() }
+
+    @objc private func closeActiveWindow() {
+        if bubble?.isKey == true { hover.dismissNow() }
+        else { NSApp.keyWindow?.performClose(nil) }
     }
 
     private func applySettings() {

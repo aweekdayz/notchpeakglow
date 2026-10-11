@@ -14,11 +14,25 @@ struct BubbleContentView: View {
         case .overheat: return "Warm preview"
         case .auto: break
         }
+        if app.gamepadConnected { return "Glow paused" }
         if app.overheatAlarm { return "Temperature elevated" }
+        if app.powerAvailability != .current { return "Load unavailable" }
         switch app.effectiveLevel {
         case .low: return "Low load"
         case .medium: return "Moderate load"
         case .high: return "High load"
+        }
+    }
+
+    private var powerText: String {
+        app.powerAvailability == .current ? String(format: "%.1f", app.watts) : "—"
+    }
+
+    private var powerDescription: String {
+        switch app.powerAvailability {
+        case .waiting: return "Waiting for power data"
+        case .current: return "System power"
+        case .unavailable: return "Power data unavailable"
         }
     }
 
@@ -29,9 +43,14 @@ struct BubbleContentView: View {
                     .font(.system(size: 13, weight: .semibold))
                 Spacer()
                 Menu {
+                    Button("Settings…") {
+                        SettingsWindowController.shared.show()
+                        onClose()
+                    }
+                    Divider()
                     Button("Quit PeakGlow") { NSApp.terminate(nil) }
                 } label: {
-                    Image(systemName: "ellipsis")
+                    Image(systemName: "ellipsis").frame(width: 28, height: 28)
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
@@ -42,14 +61,15 @@ struct BubbleContentView: View {
                 VStack(alignment: .leading, spacing: 5) {
                     Label(status, systemImage: app.overheatAlarm ? "thermometer.high" : "circle.fill")
                         .font(.callout)
+                        .fixedSize(horizontal: false, vertical: true)
                         .foregroundStyle(app.overheatAlarm ? Color.orange : Color.secondary)
-                    Text(app.preview == .auto ? "System power" : "Glow preview")
+                    Text(powerDescription)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text(app.watts > 0.5 ? String(format: "%.1f", app.watts) : "—")
+                    Text(powerText)
                         .font(.system(size: 30, weight: .medium))
                         .monospacedDigit()
                         .contentTransition(.numericText())
@@ -58,7 +78,9 @@ struct BubbleContentView: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
-                .accessibilityElement(children: .combine)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("System power")
+                .accessibilityValue(app.powerAvailability == .current ? "\(powerText) watts" : powerDescription)
             }
 
             VStack(alignment: .leading, spacing: 8) {
@@ -77,7 +99,7 @@ struct BubbleContentView: View {
             }
 
             HStack {
-                Text(app.preview == .auto ? "Adapts to system load" : "Choose Auto to resume")
+                Text(app.preview == .auto ? (app.gamepadConnected ? "Game controller connected" : "Adapts to system load") : "Choose Auto to resume")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -85,7 +107,7 @@ struct BubbleContentView: View {
                     SettingsWindowController.shared.show()
                     onClose()
                 } label: {
-                    Image(systemName: "gearshape")
+                    Image(systemName: "gearshape").frame(width: 28, height: 28)
                 }
                 .buttonStyle(.borderless)
                 .help("Settings…")

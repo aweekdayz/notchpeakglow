@@ -28,6 +28,12 @@ final class LoadLevelStateMachine {
         level = .low
     }
 
+    /// Missing data must not count toward a continuous transition dwell.
+    func discardPendingTransition() {
+        candidate = nil
+        candidateSince = nil
+    }
+
     /// - Parameter watts: 滑动平均整机功率（W）
     func update(watts: Double, settings: AppSettings = .shared) {
         let medium = settings.mediumWatts

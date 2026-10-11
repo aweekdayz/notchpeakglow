@@ -20,12 +20,18 @@ final class BubblePanelController: NSObject {
         super.init()
         hover.onShowBubble = { [weak self] in self?.show() }
         hover.onHideBubble = { [weak self] in self?.hide() }
+        hover.onEngageBubble = { [weak self] in
+            NSApp.activate(ignoringOtherApps: true)
+            self?.panel?.makeKeyAndOrderFront(nil)
+        }
         hover.bubbleFrameProvider = { [weak self] in self?.panel?.frame }
         if let screen = NotchedScreenFinder.find(), let notch = NotchedScreenFinder.notchRect(of: screen) {
             panel = makePanel(notch: notch)
             panel?.contentView?.layoutSubtreeIfNeeded()
         }
     }
+
+    var isKey: Bool { panel?.isKeyWindow == true }
 
     private func makePanel(notch: CGRect) -> NSPanel {
         let size = CGSize(width: 328, height: 258)
@@ -90,7 +96,7 @@ final class BubblePanelController: NSObject {
             p.alphaValue = 0
             p.setFrame(destination.offsetBy(dx: 0, dy: 4), display: false)
         }
-        AppState.shared.watts = AppState.shared.latestWatts
+        AppState.shared.refreshPower()
         AppState.shared.bubbleVisible = true
         p.orderFrontRegardless()
         animate(to: destination, alpha: 1, closing: false)

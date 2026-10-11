@@ -77,10 +77,13 @@ struct SettingsView: View {
                 Section("Load") {
                     slider("Full glow threshold", Binding(get: { s.mediumWatts },
                         set: { s.mediumWatts = min($0, s.highWatts - 1) }),
-                        in: 8...60, value: "\(Int(s.mediumWatts)) W")
+                        in: 8...60, value: "\(Int(s.mediumWatts)) W", step: 1, unit: "W")
                     slider("Boost threshold", Binding(get: { s.highWatts },
                         set: { s.highWatts = max($0, s.mediumWatts + 1) }),
-                        in: 9...90, value: "\(Int(s.highWatts)) W")
+                        in: 9...90, value: "\(Int(s.highWatts)) W", step: 1, unit: "W")
+                    Text("Auto uses a subtle glow below the full glow threshold. Boost begins at the higher threshold.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     Button {
                         s.mediumWatts = MachineProfile.current.suggestedMediumWatts
                         s.highWatts = MachineProfile.current.suggestedHighWatts
@@ -97,7 +100,7 @@ struct SettingsView: View {
                         }
                     Toggle("Temperature alerts", isOn: binding(\.overheatAlertEnabled))
                     slider("Hover delay", binding(\.hoverDwell), in: 0...0.8,
-                           value: String(format: "%.0f ms", s.hoverDwell * 1000))
+                           value: String(format: "%.0f ms", s.hoverDwell * 1000), step: 0.01, unit: "ms", scale: 1000)
                     if let loginError {
                         Text(loginError).font(.caption).foregroundStyle(.red)
                     }
@@ -108,21 +111,21 @@ struct SettingsView: View {
                         slider("Soft glow opacity", binding(\.mediumAlpha), in: 0.2...0.8,
                                value: "\(Int(s.mediumAlpha * 100))%")
                         slider("Breathing rate", binding(\.pulseHz), in: 0.1...2,
-                               value: String(format: "%.1f Hz", s.pulseHz))
+                               value: String(format: "%.1f Hz", s.pulseHz), step: 0.1, unit: "Hz")
                         slider("HDR gain", binding(\.hdrFactor), in: 1...8,
-                               value: String(format: "%.1f×", s.hdrFactor))
+                               value: String(format: "%.1f×", s.hdrFactor), step: 0.1, unit: "×", explanation: "Brightness above standard white on HDR displays. Available headroom depends on your display and brightness.")
                         slider("Alert brightness", binding(\.overheatGain), in: 0.5...8,
-                               value: String(format: "%.1f×", s.overheatGain))
+                               value: String(format: "%.1f×", s.overheatGain), step: 0.1, unit: "×")
                         slider("Alert size", binding(\.overheatScale), in: 0.6...1.8,
                                value: "\(Int(s.overheatScale * 100))%")
                         slider("Frame rate", binding(\.frameRate), in: 15...60,
-                               value: "\(Int(s.frameRate)) fps")
+                               value: "\(Int(s.frameRate)) fps", step: 1, unit: "fps")
                         slider("Hysteresis", binding(\.hysteresisWatts), in: 1...10,
-                               value: String(format: "%.1f W", s.hysteresisWatts))
+                               value: String(format: "%.1f W", s.hysteresisWatts), step: 0.1, unit: "W", explanation: "Power must fall this far below a threshold before the glow returns to a lower level.")
                         slider("Transition delay", binding(\.holdOnSeconds), in: 0.5...10,
-                               value: String(format: "%.1f s", s.holdOnSeconds))
+                               value: String(format: "%.1f s", s.holdOnSeconds), step: 0.1, unit: "s", explanation: "Power must stay above a threshold for this long before the glow increases. Decreases wait at least 1 second and 2 seconds longer than this setting.")
                         slider("Sampling interval", binding(\.sampleInterval), in: 0.2...3,
-                               value: String(format: "%.1f s", s.sampleInterval))
+                               value: String(format: "%.1f s", s.sampleInterval), step: 0.1, unit: "s", explanation: "Time between power readings. Shorter intervals refresh more often and use more resources.")
                     }
                 }
                 }
@@ -166,8 +169,11 @@ struct SettingsView: View {
     }
 
     private func slider(_ title: String, _ value: Binding<Double>,
-                        in range: ClosedRange<Double>, value text: String) -> some View {
-        NativeSettingsSlider(title: title, value: value, range: range, formattedValue: text)
+                        in range: ClosedRange<Double>, value text: String,
+                        step: Double? = nil, unit: String = "", scale: Double = 1,
+                        explanation: String? = nil) -> some View {
+        NativeSettingsSlider(title: title, value: value, range: range, formattedValue: text,
+                             step: step, unit: unit, scale: scale, explanation: explanation)
     }
 
     private func updateLogin(_ enabled: Bool) {
@@ -210,22 +216,59 @@ private struct NativeSettingsSlider: View {
     @Binding var value: Double
     let range: ClosedRange<Double>
     let formattedValue: String
+    let step: Double?
+    let unit: String
+    let scale: Double
+    let explanation: String?
+
+    private var numericValue: Binding<Double> {
+        Binding(get: { value * scale }, set: { input in
+            guard input.isFinite else { return }
+            let clamped = min(range.upperBound, max(range.lowerBound, input / scale))
+            let rounded = step.map { range.lowerBound + ((clamped - range.lowerBound) / $0).rounded() * $0 } ?? clamped
+            value = min(range.upperBound, max(range.lowerBound, rounded))
+        })
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(title)
                 Spacer()
-                Text(formattedValue)
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
+                if step != nil {
+                    TextField(title, value: numericValue,
+                              format: .number.precision(.fractionLength(0...1)))
+                        .textFieldStyle(.roundedBorder)
+                        .multilineTextAlignment(.trailing)
+                        .monospacedDigit()
+                        .frame(width: 64)
+                        .accessibilityLabel("\(title), numeric value")
+                        .accessibilityValue(formattedValue)
+                    Text(unit).foregroundStyle(.secondary)
+                } else {
+                    Text(formattedValue)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
             }
-            Slider(value: $value, in: range) { Text(title) }
+            Group {
+                if let step {
+                    Slider(value: $value, in: range, step: step) { Text(title) }
+                } else {
+                    Slider(value: $value, in: range) { Text(title) }
+                }
+            }
                 .labelsHidden()
                 .controlSize(.regular)
                 .tint(.accentColor)
                 .accessibilityLabel(title)
                 .accessibilityValue(formattedValue)
+            if let explanation {
+                Text(explanation)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .contain)

@@ -4,11 +4,15 @@ Reviewed: October 11, 2026. Baseline: preview Build 10.
 
 ## Scope and evidence
 
-The HIG spans six groups: Getting started, Foundations, Patterns, Components, Inputs, and Technologies. This review maps those groups to this macOS notch utility. It covers the relevant guidance retrieved from Apple's current HIG and inspects production source; it is not a claim to have read every cross-platform or technology-specific article. Some documentation pages return a JavaScript shell through direct retrieval; indexed Apple text supplied the accessible guidance. No application was launched or interactively tested for this review, at the user's request.
+The complete current HIG article reading is finished: Getting started 9/9, Foundations 18/18, Patterns 25/25, Components 64/64, Inputs 13/13 and Technologies 29/29, totaling 158 article bodies. The reading includes cross-platform considerations, technology-specific articles and the alternative content behind 162 tab options on 28 pages. Rendered official article bodies were read in the browser, rather than relying on search summaries. Article links were checked for omitted HIG pages and nested aliases; Spatial interactions redirects to Nearby interactions. Linked API documentation and embedded videos/audio are separate resources and were not fully reviewed. The per-article ledger is [HIG-Reading-Log.md](HIG-Reading-Log.md).
+
+The implementation observations below come from the earlier Build 10 source review, combined with this complete guidance reading. No application was launched or interactively tested, at the user's request. The baseline observations below are retained for context; the Build 11 implementation is recorded at the end.
 
 Apple recommendations and PeakGlow implementation proposals are distinct below. Items marked as gaps are source observations or design judgments, not measured runtime failures. The prior linked-SDK correction is implementation evidence, not a HIG certification.
 
-## Coverage
+## Product relevance after complete reading
+
+All articles were read. This table selects the topics that materially affect this macOS utility; topics not listed here are still covered in the reading ledger.
 
 | HIG group | Applicable topics | Source-level assessment |
 | --- | --- | --- |
@@ -55,8 +59,20 @@ Sources: [Accessibility](https://developer.apple.com/design/human-interface-guid
 
 Keep system Slider, Toggle, Picker, sidebar, toolbar, and glass button behavior. Do not add glass behind every row or draw a replacement thumb. Keep the custom glow as the distinctive content and the panel as its control surface. Reduce Motion branches already exist in the renderer, panel transition, and power-number animation. Do not replace native sidebar animation with additional competing animations. Frame pacing remains a user-observed issue; source inspection alone cannot establish smoothness.
 
+Liquid Glass belongs primarily to navigation and controls, while content should retain its own hierarchy. Native SwiftUI is the default implementation choice; use system AppKit integrations where macOS window or panel behavior requires them. Native appearance alone is insufficient without the expected focus, activation, menu and dismissal behavior. Typography explicitly states that macOS does not support Dynamic Type; use Mac system text styles and adaptable layout rather than promising iOS-style automatic text scaling. A power reading is a measurement, not task completion, so a native Gauge is more semantically appropriate than a ProgressView if a range display is needed. The Activity rings design is reserved for activity goals and must not be repurposed for power.
+
 Sources: [Materials](https://developer.apple.com/design/human-interface-guidelines/materials), [Motion](https://developer.apple.com/design/human-interface-guidelines/motion?changes=l_9_3), [Branding](https://developer.apple.com/design/human-interface-guidelines/branding).
+
+Additional sources: [Typography](https://developer.apple.com/design/human-interface-guidelines/typography), [Gauges](https://developer.apple.com/design/human-interface-guidelines/gauges), [Activity rings](https://developer.apple.com/design/human-interface-guidelines/activity-rings), [The menu bar](https://developer.apple.com/design/human-interface-guidelines/the-menu-bar), [Toolbars](https://developer.apple.com/design/human-interface-guidelines/toolbars), [Sidebars](https://developer.apple.com/design/human-interface-guidelines/sidebars), [Windows](https://developer.apple.com/design/human-interface-guidelines/windows).
 
 ## Delivery boundary
 
-This review changes no application behavior and creates no new app build. Build 10 remains the current preview. The user owns interactive testing; implementation work should include compilation and packaging, with explicit disclosure of unverified interaction behavior.
+Build 11 implements the following changes based on this review:
+
+- Standard app, Edit, and Window menus, including Settings (Command-Comma), Quit (Command-Q), Close (Command-W), and Show PeakGlow Controls. These commands are available while PeakGlow is active; no global shortcut is registered.
+- Hover opens a nonactivating preview. Clicking the notch/panel or using the Window command engages it for keyboard interaction; pointer departure then leaves it open. Escape, Close, and outside clicks dismiss it.
+- Waiting and unavailable power states replace cached numeric readings with a dash and explanatory text. A failed read clears the averaging window and pending load transition. Opening the panel checks cached reading age. Auto mode explains game-controller pause.
+- Native numeric TextFields and stepped native Sliders for load thresholds, hover delay, breathing rate, HDR/alert gain, frame rate, hysteresis, transition delay, and sampling interval. Numeric entry is range-clamped and uses the same underlying bindings as sliders. Advanced timing and HDR settings have inline explanations.
+- Larger icon targets and explicit power accessibility labels; existing system materials and Reduce Motion behavior are retained. No custom replacement control or sidebar animation was added.
+
+Compilation and linked-SDK metadata verification passed using the installed macOS SDK. A new preview package was produced. The app was not launched or interactively tested, as requested. Keyboard focus, control appearance, text wrapping, sidebar motion, and screen/Space transitions remain for user verification. Native icon export remains outside this build.
