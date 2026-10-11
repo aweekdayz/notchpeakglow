@@ -40,7 +40,7 @@ PeakGlow 是一款 macOS 菜单栏常驻小工具（好吧，其实它连菜单�
 - 控制面板在 macOS 26+ 使用系统 Liquid Glass；macOS 14/15 使用原生 popover 材质，自动适配浅色与深色外观。
 - 预览采用系统分段控件，退出收进更多菜单；设置采用原生分组表单，技术参数收进高级设置。
 - 遵循系统“减少动态效果”；HDR 增益限定在屏幕可用 headroom 内，Air 使用 SDR。
-- 已保存的个人参数保持不变。想体验新的默认外观，可在设置中选择“恢复默认…”。
+- 已保存的个人参数保持不变。想体验新的默认外观，可在设置中选择“使用柔和外观”，保留已有负载阈值。
 
 源码构建需要 Xcode 26+（保留 macOS 14 部署目标）及 Metal Toolchain。若缺少 Metal 编译器，可运行 `xcodebuild -downloadComponent MetalToolchain` 安装。
 

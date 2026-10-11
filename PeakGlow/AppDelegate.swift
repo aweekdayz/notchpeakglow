@@ -97,8 +97,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         sampler.stop()
     }
 
-    /// 预览优先，否则自动档位；过热预览 = 高档蓝呼吸 + 周期红闪
-    /// 真实过热（SMC Tp 温度 ≥96°C / thermalState critical）在 auto 与非关闭档下自动叠加红闪
+    /// Finder reopening a background-only app should offer a visible way back in.
+    func applicationShouldHandleReopen(_ sender: NSApplication,
+                                      hasVisibleWindows flag: Bool) -> Bool {
+        SettingsWindowController.shared.show()
+        return false
+    }
+
+    /// 预览优先，否则自动档位；温度预览叠加平滑暖色提醒
+    /// 真实过热（SMC Tp 温度 ≥96°C / thermalState critical）在非关闭档下叠加暖色提醒
     private func applyLevel() {
         var overheat = false
         let effective: LoadLevel

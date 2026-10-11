@@ -51,6 +51,9 @@ struct SettingsView: View {
                     Text("柔光沿刘海边缘缓慢流动，高负载时过渡为冰蓝色。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    Button("使用柔和外观") {
+                        s.resetAppearance()
+                    }
                 }
 
                 Section("负载") {

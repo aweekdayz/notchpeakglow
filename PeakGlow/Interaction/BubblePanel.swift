@@ -24,7 +24,7 @@ final class BubblePanelController: NSObject {
             width: size.width,
             height: size.height)
 
-        let p = NSPanel(
+        let p = BubbleControlPanel(
             contentRect: frame,
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
@@ -37,6 +37,7 @@ final class BubblePanelController: NSObject {
         p.isMovable = false
         p.hidesOnDeactivate = false
         p.acceptsMouseMovedEvents = true
+        p.becomesKeyOnlyIfNeeded = true
 
         let view = BubbleContentView(onClose: { [weak self] in
             self?.hover.dismissNow()
@@ -106,5 +107,11 @@ final class BubblePanelController: NSObject {
             panel.alphaValue = 1
         })
     }
+}
+
+/// Hover never takes focus; clicking a control can enable native keyboard navigation.
+private final class BubbleControlPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { false }
 }
 

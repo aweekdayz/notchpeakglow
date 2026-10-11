@@ -12,6 +12,7 @@ final class NotchHoverController {
     private var outsidePoll: Timer?
     private var outsideSince: Date?
     private var globalClickMonitor: Any?
+    private var escapeMonitor: Any?
     private var watchdogTimer: Timer?
     private var pendingReposition: Timer?
     private var bubbleVisible = false
@@ -199,6 +200,11 @@ final class NotchHoverController {
 
     private func installClickMonitor() {
         guard globalClickMonitor == nil else { return }
+        escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard event.keyCode == 53, self?.bubbleVisible == true else { return event }
+            self?.hideBubble()
+            return nil
+        }
         globalClickMonitor = NSEvent.addGlobalMonitorForEvents(
             matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
             // 点击了其他 App 的窗口 → 立即收起
@@ -207,6 +213,10 @@ final class NotchHoverController {
     }
 
     private func removeClickMonitor() {
+        if let monitor = escapeMonitor {
+            NSEvent.removeMonitor(monitor)
+            escapeMonitor = nil
+        }
         if let m = globalClickMonitor {
             NSEvent.removeMonitor(m)
             globalClickMonitor = nil
@@ -238,3 +248,4 @@ private final class HoverTargetView: NSView {
         controller?.mouseExitedNotch()
     }
 }
+

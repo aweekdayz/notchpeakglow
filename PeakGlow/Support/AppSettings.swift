@@ -170,12 +170,8 @@ final class AppSettings: ObservableObject {
 
     var preview: PreviewLevel { PreviewLevel(rawValue: previewLevelRaw) ?? .auto }
 
-    func resetAll() {
-        mediumWatts = Defaults.mediumWatts
-        highWatts = Defaults.highWatts
-        holdOnSeconds = Defaults.holdOnSeconds
-        hysteresisWatts = Defaults.hysteresisWatts
-        sampleInterval = Defaults.sampleInterval
+    /// Apply the new visual defaults without touching power thresholds or behavior.
+    func resetAppearance() {
         glowScale = Defaults.glowScale
         glowIntensity = Defaults.glowIntensity
         mediumAlpha = Defaults.mediumAlpha
@@ -184,6 +180,15 @@ final class AppSettings: ObservableObject {
         overheatGain = Defaults.overheatGain
         overheatScale = Defaults.overheatScale
         frameRate = Defaults.frameRate
+    }
+
+    func resetAll() {
+        mediumWatts = Defaults.mediumWatts
+        highWatts = Defaults.highWatts
+        holdOnSeconds = Defaults.holdOnSeconds
+        hysteresisWatts = Defaults.hysteresisWatts
+        sampleInterval = Defaults.sampleInterval
+        resetAppearance()
         hoverDwell = Defaults.hoverDwell
         previewLevelRaw = Defaults.previewLevel
         powerTuned = Defaults.powerTuned
