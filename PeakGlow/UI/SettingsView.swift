@@ -13,11 +13,14 @@ final class SettingsWindowController {
             return
         }
         let w = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 520, height: 620),
-            styleMask: [.titled, .closable, .miniaturizable],
+            contentRect: NSRect(x: 0, y: 0, width: 760, height: 560),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false)
         w.title = "PeakGlow Settings"
         w.isReleasedWhenClosed = false
+        w.minSize = NSSize(width: 700, height: 540)
+        w.toolbarStyle = .unified
+        w.setFrameAutosaveName("PeakGlowSettings")
         w.contentView = NSHostingView(rootView: SettingsView())
         w.center()
         w.makeKeyAndOrderFront(nil)
@@ -28,21 +31,31 @@ final class SettingsWindowController {
 
 struct SettingsView: View {
     @ObservedObject private var s = AppSettings.shared
-    @State private var showAdvanced = false
+    @State private var selection: SettingsPage? = .appearance
     @State private var loginEnabled = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
     @State private var confirmReset = false
 
     var body: some View {
-        VStack(spacing: 0) {
+        NavigationSplitView {
+            List(selection: $selection) {
+                Label("Appearance", systemImage: "sparkles").tag(SettingsPage.appearance)
+                Label("Power", systemImage: "bolt").tag(SettingsPage.power)
+                Label("Behavior", systemImage: "cursorarrow.motionlines").tag(SettingsPage.behavior)
+                Label("Advanced", systemImage: "slider.horizontal.3").tag(SettingsPage.advanced)
+            }
+            .listStyle(.sidebar)
+            .navigationSplitViewColumnWidth(min: 170, ideal: 180, max: 220)
+        } detail: {
             Form {
+                switch selection ?? .appearance {
+                case .appearance:
                 Section {
                     LabeledContent("Device", value: MachineProfile.current.summary)
                     Text("A subtle glow at low load, brighter as power rises.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
-
                 Section("Appearance") {
                     Toggle("Show glow at low load", isOn: binding(\.ambientGlow))
                     slider("Glow size", binding(\.glowScale), in: 0.4...1.6,
@@ -55,8 +68,9 @@ struct SettingsView: View {
                     Button("Use Soft Appearance") {
                         s.resetAppearance()
                     }
+                    .nativeGlassAction()
                 }
-
+                case .power:
                 Section("Load") {
                     slider("Full glow threshold", Binding(get: { s.mediumWatts },
                         set: { s.mediumWatts = min($0, s.highWatts - 1) }),
@@ -68,23 +82,24 @@ struct SettingsView: View {
                         s.mediumWatts = MachineProfile.current.suggestedMediumWatts
                         s.highWatts = MachineProfile.current.suggestedHighWatts
                     }
+                    .nativeGlassAction()
                 }
-
+                case .behavior:
                 Section("Behavior") {
                     Toggle("Launch at login", isOn: $loginEnabled)
                         .onChange(of: loginEnabled) { _, enabled in
                             updateLogin(enabled)
                         }
                     Toggle("Temperature alerts", isOn: binding(\.overheatAlertEnabled))
-                    slider("Hover delay", binding(\.hoverDwell), in: 0.2...1.5,
-                           value: String(format: "%.1f s", s.hoverDwell))
+                    slider("Hover delay", binding(\.hoverDwell), in: 0...0.8,
+                           value: String(format: "%.0f ms", s.hoverDwell * 1000))
                     if let loginError {
                         Text(loginError).font(.caption).foregroundStyle(.red)
                     }
                 }
-
+                case .advanced:
                 Section {
-                    DisclosureGroup("Advanced", isExpanded: $showAdvanced) {
+                    Group {
                         slider("Soft glow opacity", binding(\.mediumAlpha), in: 0.2...0.8,
                                value: "\(Int(s.mediumAlpha * 100))%")
                         slider("Breathing rate", binding(\.pulseHz), in: 0.1...2,
@@ -105,21 +120,18 @@ struct SettingsView: View {
                                value: String(format: "%.1f s", s.sampleInterval))
                     }
                 }
+                }
             }
             .formStyle(.grouped)
-
-            Divider()
-            HStack {
-                Text("PeakGlow")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button("Reset Settings…") { confirmReset = true }
+            .navigationTitle((selection ?? .appearance).title)
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    resetButton
+                }
             }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 14)
         }
-        .frame(width: 520, height: 620)
+        .navigationSplitViewStyle(.balanced)
+        .frame(minWidth: 700, minHeight: 540)
         .alert("Reset settings?", isPresented: $confirmReset) {
             Button("Cancel", role: .cancel) {}
             Button("Reset") {
@@ -128,6 +140,16 @@ struct SettingsView: View {
             }
         } message: {
             Text("Restore the default appearance and recommended load thresholds.")
+        }
+    }
+
+    @ViewBuilder private var resetButton: some View {
+        if #available(macOS 26.0, *) {
+            Button("Reset…", systemImage: "arrow.counterclockwise") { confirmReset = true }
+                .buttonStyle(.glass)
+                .help("Reset all settings")
+        } else {
+            Button("Reset…", systemImage: "arrow.counterclockwise") { confirmReset = true }
         }
     }
 
@@ -163,3 +185,22 @@ struct SettingsView: View {
     }
 }
 
+
+private enum SettingsPage: Hashable {
+    case appearance, power, behavior, advanced
+    var title: String {
+        switch self {
+        case .appearance: "Appearance"
+        case .power: "Power"
+        case .behavior: "Behavior"
+        case .advanced: "Advanced"
+        }
+    }
+}
+
+private extension View {
+    @ViewBuilder func nativeGlassAction() -> some View {
+        if #available(macOS 26.0, *) { self.buttonStyle(.glass) }
+        else { self.buttonStyle(.bordered) }
+    }
+}

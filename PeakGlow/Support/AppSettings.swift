@@ -22,6 +22,16 @@ final class AppSettings: ObservableObject {
 
     private let d = UserDefaults.standard
 
+    private init() {
+        // Migrate the previous factory delay once; preserve custom delays.
+        if !d.bool(forKey: "responsiveHoverV1") {
+            if let delay = d.object(forKey: "hoverDwell") as? Double, abs(delay - 0.3) < 0.001 {
+                d.set(Defaults.hoverDwell, forKey: "hoverDwell")
+            }
+            d.set(true, forKey: "responsiveHoverV1")
+        }
+    }
+
     // MARK: - Keys
     private enum Key {
         static let mediumWatts = "mediumWatts"
@@ -63,7 +73,7 @@ final class AppSettings: ObservableObject {
         static let overheatScale = 1.0
         // Only renders while visible; 30 fps keeps transitions smooth.
         static let frameRate = 30.0
-        static let hoverDwell = 0.3
+        static let hoverDwell = 0.08
         static let previewLevel = PreviewLevel.auto.rawValue
         static let powerTuned = false
         static let firstRunDone = false

@@ -14,6 +14,10 @@ final class BubblePanelController: NSObject {
         hover.onShowBubble = { [weak self] in self?.show() }
         hover.onHideBubble = { [weak self] in self?.hide() }
         hover.bubbleFrameProvider = { [weak self] in self?.panel?.frame }
+        if let screen = NotchedScreenFinder.find(), let notch = NotchedScreenFinder.notchRect(of: screen) {
+            panel = makePanel(notch: notch)
+            panel?.contentView?.layoutSubtreeIfNeeded()
+        }
     }
 
     private func makePanel(notch: CGRect) -> NSPanel {
@@ -80,13 +84,14 @@ final class BubblePanelController: NSObject {
                                  y: notch.minY - p.frame.height - 8))
         let animate = !p.isVisible && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         p.alphaValue = animate ? 0 : 1
+        AppState.shared.watts = AppState.shared.latestWatts
         AppState.shared.bubbleVisible = true
         p.orderFrontRegardless()
         if animate {
             let destination = p.frame
-            p.setFrameOrigin(CGPoint(x: destination.minX, y: destination.minY + 6))
+            p.setFrameOrigin(CGPoint(x: destination.minX, y: destination.minY + 3))
             NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.20
+                context.duration = 0.10
                 context.timingFunction = CAMediaTimingFunction(name: .easeOut)
                 p.animator().setFrame(destination, display: true)
                 p.animator().alphaValue = 1
@@ -99,7 +104,7 @@ final class BubblePanelController: NSObject {
         guard let panel else { return }
         AppState.shared.bubbleVisible = false
         NSAnimationContext.runAnimationGroup({ ctx in
-            ctx.duration = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0 : 0.15
+            ctx.duration = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0 : 0.08
             panel.animator().alphaValue = 0
         }, completionHandler: { [weak self] in
             guard let self, gen == self.generation else { return }

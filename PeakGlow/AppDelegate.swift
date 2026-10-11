@@ -33,6 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             guard let w = powerSampler.readWatts(), w > 0 else { return }
             // 气泡不可见时不触碰 @Published（隐藏的 SwiftUI 视图无需持续重渲染）
+            state.latestWatts = w
             if state.bubbleVisible { state.watts = w }
             // 5 样本滑动平均（默认 0.5s 采样 = 2.5s 窗口），滤除瞬时尖峰
             wattWindow.append(w)
