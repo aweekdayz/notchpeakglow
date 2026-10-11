@@ -2,178 +2,160 @@ import AppKit
 import SwiftUI
 import ServiceManagement
 
-/// 独立设置窗口（单例）
 final class SettingsWindowController {
     static let shared = SettingsWindowController()
-
-    private var panel: NSPanel?
+    private var window: NSWindow?
 
     func show() {
-        if let panel {
-            panel.makeKeyAndOrderFront(nil)
+        if let window {
+            window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             return
         }
-        let p = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 460, height: 520),
-            styleMask: [.titled, .closable],
-            backing: .buffered,
-            defer: false)
-        p.title = "PeakGlow 设置"
-        p.isReleasedWhenClosed = false
-        p.level = .floating
-        p.contentView = NSHostingView(rootView: SettingsView())
-        p.center()
-        p.makeKeyAndOrderFront(nil)
+        let w = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 620),
+            styleMask: [.titled, .closable, .miniaturizable],
+            backing: .buffered, defer: false)
+        w.title = "PeakGlow 设置"
+        w.isReleasedWhenClosed = false
+        w.contentView = NSHostingView(rootView: SettingsView())
+        w.center()
+        w.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        panel = p
+        window = w
     }
 }
 
 struct SettingsView: View {
-    @ObservedObject private var app = AppState.shared
-    private let s = AppSettings.shared
+    @ObservedObject private var s = AppSettings.shared
+    @State private var showAdvanced = false
+    @State private var loginEnabled = SMAppService.mainApp.status == .enabled
+    @State private var loginError: String?
+    @State private var confirmReset = false
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                // 负载
-                GroupBox("负载（整机功率）") {
-                    Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 10) {
-                        sliderRow("中档阈值", mediumW, range: 8...50, format: "%.0fW")
-                        sliderRow("高档阈值", highW, range: 20...90, format: "%.0fW")
-                        sliderRow("滞回区间", hyst, range: 1...10, format: "%.0fW")
-                        sliderRow("切换保持时间", hold, range: 0.5...10, format: "%.1fs")
-                        sliderRow("采样周期", interval, range: 0.2...3, format: "%.1fs")
+        VStack(spacing: 0) {
+            Form {
+                Section {
+                    LabeledContent("当前设备", value: MachineProfile.current.summary)
+                    Text("光晕随整机功耗变化。低负载时自动隐去。")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("外观") {
+                    slider("光晕范围", binding(\.glowScale), in: 0.4...1.6,
+                           value: "\(Int(s.glowScale * 100))%")
+                    slider("亮度", binding(\.glowIntensity), in: 0.2...2,
+                           value: "\(Int(s.glowIntensity * 100))%")
+                    Text("柔光沿刘海边缘缓慢流动，高负载时过渡为冰蓝色。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("负载") {
+                    slider("柔光阈值", Binding(get: { s.mediumWatts },
+                        set: { s.mediumWatts = min($0, s.highWatts - 1) }),
+                        in: 8...60, value: "\(Int(s.mediumWatts)) W")
+                    slider("增强阈值", Binding(get: { s.highWatts },
+                        set: { s.highWatts = max($0, s.mediumWatts + 1) }),
+                        in: 9...90, value: "\(Int(s.highWatts)) W")
+                    Button("使用此设备的建议阈值") {
+                        s.mediumWatts = MachineProfile.current.suggestedMediumWatts
+                        s.highWatts = MachineProfile.current.suggestedHighWatts
                     }
-                    .padding(8)
-                    HStack(spacing: 6) {
-                        Image(systemName: "chip")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text("\(MachineProfile.current.summary) · 建议 \(Int(MachineProfile.current.suggestedMediumWatts))W/\(Int(MachineProfile.current.suggestedHighWatts))W")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                        Spacer()
-                        Button("应用建议值") {
-                            s.mediumWatts = MachineProfile.current.suggestedMediumWatts
-                            s.highWatts = MachineProfile.current.suggestedHighWatts
+                }
+
+                Section("行为") {
+                    Toggle("登录时启动", isOn: $loginEnabled)
+                        .onChange(of: loginEnabled) { _, enabled in
+                            updateLogin(enabled)
                         }
-                        .controlSize(.small)
+                    Toggle("温度偏高时提醒", isOn: binding(\.overheatAlertEnabled))
+                    slider("悬停展开延迟", binding(\.hoverDwell), in: 0.2...1.5,
+                           value: String(format: "%.1f s", s.hoverDwell))
+                    if let loginError {
+                        Text(loginError).font(.caption).foregroundStyle(.red)
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.bottom, 8)
                 }
 
-                // 外观
-                GroupBox("外观") {
-                    Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 10) {
-                        sliderRow("光晕大小", scaleB, range: 0.4...1.6, format: "%.0f%%")
-                        sliderRow("光晕强度", intensity, range: 0.2...2, format: "%.1f×")
-                        sliderRow("中档透明度", alpha, range: 0.2...0.8, format: "%.0f%%")
-                        sliderRow("呼吸频率", pulse, range: 0.2...2, format: "%.1fHz")
-                        sliderRow("HDR 强度系数", hdr, range: 1...8, format: "%.1f×")
-                        sliderRow("过热红光增益", redGainB, range: 0.5...8.0, format: "%.2f×")
-                        sliderRow("过热红光大小", redScaleB, range: 0.6...1.8, format: "%.2f×")
-                        sliderRow("帧率上限", fps, range: 15...60, format: "%.0ffps")
+                Section {
+                    DisclosureGroup("高级设置", isExpanded: $showAdvanced) {
+                        slider("柔光透明度", binding(\.mediumAlpha), in: 0.2...0.8,
+                               value: "\(Int(s.mediumAlpha * 100))%")
+                        slider("呼吸频率", binding(\.pulseHz), in: 0.1...2,
+                               value: String(format: "%.1f Hz", s.pulseHz))
+                        slider("HDR 增益", binding(\.hdrFactor), in: 1...8,
+                               value: String(format: "%.1f×", s.hdrFactor))
+                        slider("温度提醒强度", binding(\.overheatGain), in: 0.5...8,
+                               value: String(format: "%.1f×", s.overheatGain))
+                        slider("温度提醒范围", binding(\.overheatScale), in: 0.6...1.8,
+                               value: "\(Int(s.overheatScale * 100))%")
+                        slider("帧率上限", binding(\.frameRate), in: 15...60,
+                               value: "\(Int(s.frameRate)) fps")
+                        slider("滞回区间", binding(\.hysteresisWatts), in: 1...10,
+                               value: String(format: "%.1f W", s.hysteresisWatts))
+                        slider("切换保持时间", binding(\.holdOnSeconds), in: 0.5...10,
+                               value: String(format: "%.1f s", s.holdOnSeconds))
+                        slider("采样周期", binding(\.sampleInterval), in: 0.2...3,
+                               value: String(format: "%.1f s", s.sampleInterval))
                     }
-                    .padding(8)
-                }
-
-                // 行为
-                GroupBox("行为") {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Toggle("过热降频提醒（温度过高时红光闪烁）", isOn: overheatAlert)
-                        sliderRow("悬停驻留时长", dwell, range: 0.2...1.5, format: "%.1fs")
-                        Toggle("登录时启动", isOn: launchAtLogin)
-                    }
-                    .padding(8)
-                }
-
-
-                HStack {
-                    Spacer()
-                    Button("恢复默认") { s.resetAll() }
                 }
             }
-            .padding(16)
+            .formStyle(.grouped)
+
+            Divider()
+            HStack {
+                Text("PeakGlow")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button("恢复默认…") { confirmReset = true }
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 14)
         }
-        .frame(width: 460, height: 520)
+        .frame(width: 520, height: 620)
+        .alert("恢复默认设置？", isPresented: $confirmReset) {
+            Button("取消", role: .cancel) {}
+            Button("恢复默认") {
+                s.resetAll()
+                AppState.shared.preview = .auto
+            }
+        } message: {
+            Text("恢复光晕外观和此设备的建议负载阈值。")
+        }
     }
 
-    // MARK: - 绑定
-
-    private var mediumW: Binding<Double> {
-        Binding(get: { s.mediumWatts }, set: { s.mediumWatts = $0 })
-    }
-    private var highW: Binding<Double> {
-        Binding(get: { s.highWatts }, set: { s.highWatts = $0 })
-    }
-    private var hyst: Binding<Double> {
-        Binding(get: { s.hysteresisWatts }, set: { s.hysteresisWatts = $0 })
-    }
-    private var hold: Binding<Double> {
-        Binding(get: { s.holdOnSeconds }, set: { s.holdOnSeconds = $0 })
-    }
-    private var interval: Binding<Double> {
-        Binding(get: { s.sampleInterval }, set: { s.sampleInterval = $0 })
-    }
-    private var scaleB: Binding<Double> {
-        Binding(get: { s.glowScale }, set: { s.glowScale = $0 })
-    }
-    private var intensity: Binding<Double> {
-        Binding(get: { s.glowIntensity }, set: { s.glowIntensity = $0 })
-    }
-    private var alpha: Binding<Double> {
-        Binding(get: { s.mediumAlpha }, set: { s.mediumAlpha = $0 })
-    }
-    private var pulse: Binding<Double> {
-        Binding(get: { s.pulseHz }, set: { s.pulseHz = $0 })
-    }
-    private var hdr: Binding<Double> {
-        Binding(get: { s.hdrFactor }, set: { s.hdrFactor = $0 })
-    }
-    private var redGainB: Binding<Double> {
-        Binding(get: { s.overheatGain }, set: { s.overheatGain = $0 })
-    }
-    private var redScaleB: Binding<Double> {
-        Binding(get: { s.overheatScale }, set: { s.overheatScale = $0 })
-    }
-    private var fps: Binding<Double> {
-        Binding(get: { s.frameRate }, set: { s.frameRate = $0 })
-    }
-    private var dwell: Binding<Double> {
-        Binding(get: { s.hoverDwell }, set: { s.hoverDwell = $0 })
-    }
-    private var overheatAlert: Binding<Bool> {
-        Binding(get: { s.overheatAlertEnabled }, set: { s.overheatAlertEnabled = $0 })
-    }
-    private var launchAtLogin: Binding<Bool> {
-        Binding(get: { SMAppService.mainApp.status == .enabled },
-                set: { on in
-                    do {
-                        if on {
-                            try SMAppService.mainApp.register()
-                        } else {
-                            try SMAppService.mainApp.unregister()
-                        }
-                    } catch {
-                        NSLog("PeakGlow: SMAppService error \(error)")
-                    }
-                })
+    private func binding<T>(_ keyPath: ReferenceWritableKeyPath<AppSettings, T>) -> Binding<T> {
+        Binding(get: { s[keyPath: keyPath] }, set: { s[keyPath: keyPath] = $0 })
     }
 
-    private func sliderRow(_ title: String, _ value: Binding<Double>,
-                           range: ClosedRange<Double>, format: String) -> some View {
-        GridRow {
+    private func slider(_ title: String, _ value: Binding<Double>,
+                        in range: ClosedRange<Double>, value text: String) -> some View {
+        LabeledContent {
+            HStack(spacing: 12) {
+                Slider(value: value, in: range).frame(minWidth: 120)
+                    .accessibilityLabel(title)
+                Text(text).monospacedDigit().foregroundStyle(.secondary)
+                    .frame(width: 64, alignment: .trailing)
+            }
+        } label: {
             Text(title)
-            Slider(value: value, in: range)
-            Text(String(format: format, value.wrappedValue))
-                .monospacedDigit()
-                .frame(width: 52, alignment: .trailing)
-                .foregroundStyle(.secondary)
         }
+    }
+
+    private func updateLogin(_ enabled: Bool) {
+        guard enabled != (SMAppService.mainApp.status == .enabled) else { return }
+        do {
+            if enabled { try SMAppService.mainApp.register() }
+            else { try SMAppService.mainApp.unregister() }
+            loginError = SMAppService.mainApp.status == .requiresApproval
+                ? "请在系统设置的登录项中允许 PeakGlow。" : nil
+        } catch {
+            loginError = "无法更新登录项：\(error.localizedDescription)"
+        }
+        loginEnabled = SMAppService.mainApp.status == .enabled
     }
 }
+

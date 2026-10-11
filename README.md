@@ -15,7 +15,7 @@ PeakGlow 是一款 macOS 菜单栏常驻小工具（好吧，其实它连菜单�
 | 低 | 无任何视觉提示（零渲染、零开销） |
 | 中 | 刘海周围缓慢流动的彩虹光晕（Apple Intelligence 极光风，带 HDR） |
 | 高 | 鲜艳蓝色光晕 + HDR 峰值亮度 + 0.5Hz 呼吸脉冲 |
-| 过热 | 鲜艳蓝色光晕 + 随机红色闪光 + HDR 峰值亮度 + 0.5Hz 呼吸脉冲 |
+| 过热 | 平滑过渡为暖色柔光，保留负载提示 |
 
 <p align="center"><sub>（此处预留效果图）</sub></p>
 
@@ -34,6 +34,16 @@ PeakGlow 是一款 macOS 菜单栏常驻小工具（好吧，其实它连菜单�
 - **游戏友好** —— 检测到手柄自动停止渲染；光晕窗口 `ignoresMouseEvents` 全穿透、`sharingType = .none` **不出现在截图与录屏中**
 - **省电** —— 低负载时渲染完全停止，空闲自身 CPU 占用 ≈ 0
 
+## 原生视觉更新
+
+- 光晕沿真实刘海轮廓扩散，以青、紫、粉色柔光带缓慢交融；高负载过渡为冰蓝色，温度提醒使用持续暖色。
+- 控制面板在 macOS 26+ 使用系统 Liquid Glass；macOS 14/15 使用原生 popover 材质，自动适配浅色与深色外观。
+- 预览采用系统分段控件，退出收进更多菜单；设置采用原生分组表单，技术参数收进高级设置。
+- 遵循系统“减少动态效果”；HDR 增益限定在屏幕可用 headroom 内，Air 使用 SDR。
+- 已保存的个人参数保持不变。想体验新的默认外观，可在设置中选择“恢复默认…”。
+
+源码构建需要 Xcode 26+（保留 macOS 14 部署目标）及 Metal Toolchain。若缺少 Metal 编译器，可运行 `xcodebuild -downloadComponent MetalToolchain` 安装。
+
 ## 系统要求
 
 - MacBook（带刘海的内建显示器）
@@ -44,8 +54,8 @@ PeakGlow 是一款 macOS 菜单栏常驻小工具（好吧，其实它连菜单�
 ## 构建与安装
 
 ```bash
-git clone https://github.com/yourname/PeakGlow.git
-cd PeakGlow
+git clone https://github.com/aweekdayz/notchpeakglow.git
+cd notchpeakglow
 xcodegen generate          # 需要: brew install xcodegen
 open PeakGlow.xcodeproj    # Xcode 中 ⌘R 运行，或：
 xcodebuild -project PeakGlow.xcodeproj -scheme PeakGlow -configuration Release build
@@ -101,3 +111,4 @@ SMC PSTR (整机功率 W)
 ## License
 
 MIT
+

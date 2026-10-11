@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var bubble: BubblePanelController?
 
     private var lastAutoLevel: LoadLevel = .low
+    private var samplingInterval = AppSettings.shared.sampleInterval
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // 机型自动调优：仅首次启动写入建议阈值（不覆盖手动调整）
@@ -50,7 +51,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil, queue: .main) { [weak self] _ in
             self?.glow.reposition()
             self?.applyLevel()
-            self?.sampler.start(interval: AppSettings.shared.sampleInterval)
+            guard let self else { return }
+            let interval = AppSettings.shared.sampleInterval
+            if self.samplingInterval != interval {
+                self.samplingInterval = interval
+                self.sampler.start(interval: interval)
+            }
         }
 
         // 手柄检测：连接任意手柄 → 暂停光晕（游戏中不打扰）
@@ -69,11 +75,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let ws = NSWorkspace.shared.notificationCenter
         ws.addObserver(forName: NSWorkspace.screensDidSleepNotification,
                        object: nil, queue: .main) { [weak self] _ in
-            self?.glow.setPaused(true)
+            self?.glow.setScreenAsleep(true)
         }
         ws.addObserver(forName: NSWorkspace.screensDidWakeNotification,
                        object: nil, queue: .main) { [weak self] _ in
-            self?.glow.setPaused(false)
+            self?.glow.setScreenAsleep(false)
         }
 
         glow.start()
@@ -114,3 +120,4 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         glow.setLevel(effective)
     }
 }
+

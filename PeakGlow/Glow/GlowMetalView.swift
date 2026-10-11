@@ -102,10 +102,11 @@ final class GlowMetalView: NSView {
         guard let winFrame = window?.frame else { return }
         let scale = metalLayer.contentsScale
         let x = (notchRectGlobal.midX - winFrame.minX) * scale
-        // 中心上移半个刘海高度（光晕锚定屏幕顶边，围绕刘海下半与两侧）
+        // Preserve physical notch geometry; the shader lights its outer contour.
         let y = (winFrame.maxY - notchRectGlobal.midY) * scale
-            - notchRectGlobal.height * 0.5 * scale
         renderer?.notchCenterPixels = CGPoint(x: x, y: y)
+        renderer?.notchSizePixels = CGSize(width: notchRectGlobal.width * scale,
+                                          height: notchRectGlobal.height * scale)
     }
 
     private var lastNotchRect: CGRect?
@@ -117,3 +118,4 @@ final class GlowMetalView: NSView {
         }
     }
 }
+

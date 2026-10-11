@@ -17,7 +17,7 @@ final class BubblePanelController: NSObject {
     }
 
     private func makePanel(notch: CGRect) -> NSPanel {
-        let size = CGSize(width: 320, height: 210)
+        let size = CGSize(width: 328, height: 234)
         let frame = CGRect(
             x: notch.midX - size.width / 2,
             y: notch.minY - size.height - 8,
@@ -43,7 +43,23 @@ final class BubblePanelController: NSObject {
         }).environmentObject(AppState.shared)
         let hosting = NSHostingView(rootView: view)
         hosting.frame = NSRect(origin: .zero, size: size)
-        p.contentView = hosting
+        if #available(macOS 26.0, *) {
+            let glass = NSGlassEffectView(frame: hosting.frame)
+            glass.cornerRadius = 24
+            glass.contentView = hosting
+            p.contentView = glass
+        } else {
+            let material = NSVisualEffectView(frame: hosting.frame)
+            material.material = .popover
+            material.blendingMode = .behindWindow
+            material.state = .active
+            material.wantsLayer = true
+            material.layer?.cornerRadius = 20
+            material.layer?.masksToBounds = true
+            hosting.autoresizingMask = [.width, .height]
+            material.addSubview(hosting)
+            p.contentView = material
+        }
         return p
     }
 
@@ -61,9 +77,20 @@ final class BubblePanelController: NSObject {
         }
         p.setFrameOrigin(CGPoint(x: notch.midX - p.frame.width / 2,
                                  y: notch.minY - p.frame.height - 8))
-        p.alphaValue = 1
+        let animate = !p.isVisible && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        p.alphaValue = animate ? 0 : 1
         AppState.shared.bubbleVisible = true
         p.orderFrontRegardless()
+        if animate {
+            let destination = p.frame
+            p.setFrameOrigin(CGPoint(x: destination.minX, y: destination.minY + 6))
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.20
+                context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                p.animator().setFrame(destination, display: true)
+                p.animator().alphaValue = 1
+            }
+        }
     }
 
     func hide() {
@@ -71,7 +98,7 @@ final class BubblePanelController: NSObject {
         guard let panel else { return }
         AppState.shared.bubbleVisible = false
         NSAnimationContext.runAnimationGroup({ ctx in
-            ctx.duration = 0.15
+            ctx.duration = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0 : 0.15
             panel.animator().alphaValue = 0
         }, completionHandler: { [weak self] in
             guard let self, gen == self.generation else { return }
@@ -80,3 +107,4 @@ final class BubblePanelController: NSObject {
         })
     }
 }
+

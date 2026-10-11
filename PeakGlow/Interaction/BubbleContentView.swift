@@ -1,120 +1,89 @@
 import SwiftUI
 
+/// A compact system-style control surface. Material lives on the AppKit panel.
 struct BubbleContentView: View {
     var onClose: () -> Void
     @EnvironmentObject var app: AppState
 
-    private var levelColor: Color {
+    private var status: String {
+        if app.overheatAlarm { return "温度偏高" }
         switch app.effectiveLevel {
-        case .low: return .green
-        case .medium: return .orange
-        case .high: return .blue
+        case .low: return "运行平稳"
+        case .medium: return "负载上升"
+        case .high: return "高负载"
         }
     }
 
     var body: some View {
-        VStack(spacing: 14) {
-            // 状态行
-            HStack(spacing: 10) {
-                Circle()
-                    .fill(app.overheatAlarm ? Color.red : levelColor)
-                    .frame(width: 10, height: 10)
-                if app.overheatAlarm {
-                    Text("过热降频")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white)
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.orange)
-                } else {
-                    Text("\(app.effectiveLevel.label)负载")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white)
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                Label("PeakGlow", systemImage: "waveform.path")
+                    .font(.system(size: 13, weight: .semibold))
+                Spacer()
+                Menu {
+                    Button("退出 PeakGlow") { NSApp.terminate(nil) }
+                } label: {
+                    Image(systemName: "ellipsis")
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .accessibilityLabel("更多操作")
+            }
+
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Label(status, systemImage: app.overheatAlarm ? "thermometer.high" : "circle.fill")
+                        .font(.callout)
+                        .foregroundStyle(app.overheatAlarm ? Color.orange : Color.secondary)
+                    Text(app.preview == .auto ? "整机功耗" : "正在预览光晕")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Text(app.watts > 0.5 ? String(format: "%.1f W", app.watts) : "— W")
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(.white.opacity(0.92))
-            }
-
-            Divider().overlay(Color.white.opacity(0.12))
-
-            // 预览
-            VStack(alignment: .leading, spacing: 8) {
-                Text("预览效果")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.5))
-                HStack(spacing: 8) {
-                    ForEach(PreviewLevel.allCases, id: \.rawValue) { p in
-                        PreviewButton(level: p)
-                    }
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(app.watts > 0.5 ? String(format: "%.1f", app.watts) : "—")
+                        .font(.system(size: 30, weight: .medium))
+                        .monospacedDigit()
+                    Text("W")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
                 }
+                .accessibilityElement(children: .combine)
             }
 
-            Divider().overlay(Color.white.opacity(0.12))
+            VStack(alignment: .leading, spacing: 8) {
+                Text("光晕")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Picker("光晕模式", selection: $app.preview) {
+                    Text("自动").tag(PreviewLevel.auto)
+                    Text("关闭").tag(PreviewLevel.low)
+                    Text("柔光").tag(PreviewLevel.medium)
+                    Text("增强").tag(PreviewLevel.high)
+                    Text("温度").tag(PreviewLevel.overheat)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            }
 
-            // 设置 + 退出
-            HStack(spacing: 8) {
+            HStack {
+                Text(app.preview == .auto ? "随负载自动变化" : "选择自动以恢复监测")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
                 Button {
                     SettingsWindowController.shared.show()
                     onClose()
                 } label: {
-                    Label("设置…", systemImage: "gearshape")
-                        .font(.system(size: 13))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 34)
-                        .contentShape(Rectangle())
+                    Image(systemName: "gearshape")
                 }
-                .buttonStyle(.plain)
-                .background(Color.white.opacity(0.1), in: RoundedRectangle(cornerRadius: 9))
-                .foregroundStyle(.white)
-
-                Button {
-                    NSApp.terminate(nil)
-                } label: {
-                    Label("退出", systemImage: "power")
-                        .font(.system(size: 13))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 34)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .background(Color.red.opacity(0.35), in: RoundedRectangle(cornerRadius: 9))
-                .foregroundStyle(.white)
+                .buttonStyle(.borderless)
+                .help("设置…")
+                .accessibilityLabel("打开设置")
             }
         }
-        .padding(18)
-        .frame(width: 320, height: 210)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color.black.opacity(0.88))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.1))))
+        .padding(20)
+        .frame(width: 328, height: 234)
     }
 }
 
-private struct PreviewButton: View {
-    let level: PreviewLevel
-    @EnvironmentObject var app: AppState
-
-    var body: some View {
-        let selected: Bool = app.preview == level
-        return Button {
-            app.preview = level
-        } label: {
-            Text(level.label)
-                .font(.system(size: 13, weight: .medium))
-                .frame(maxWidth: .infinity)
-                .frame(height: 30)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .background(
-            selected ? Color.white.opacity(0.22) : Color.white.opacity(0.08),
-            in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.white.opacity(0.15)))
-        .foregroundStyle(.white)
-    }
-}
