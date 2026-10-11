@@ -124,3 +124,12 @@ Build 16 compiled and passed SDK metadata and package signature validation. No a
 The user confirms Build 16 did not resolve the first-open black-text report. Source inspection shows an initial List selection but no initial sidebar focus declaration. Build 17 binds the native List to FocusState and supplies defaultFocus at the split-view root with automatic priority. This initializes focus while leaving user-directed navigation to the system. All manual sidebar font-weight overrides are removed; NavigationLink and Label use the system's typography and selection colors. Selection and keyboard focus are distinct; focus is a candidate cause, not a runtime diagnosis.
 
 Primary API reference: [defaultFocus](https://developer.apple.com/documentation/swiftui/view/defaultfocus(_:_:priority:)), [FocusState](https://developer.apple.com/documentation/swiftui/focusstate/). Build 17 compiled successfully, passed linked SDK metadata and signature verification, and was packaged without launching the application. First-open selection color and keyboard focus remain for user verification.
+
+
+## Build 18 follow-up: mounted selection and leading navigation
+
+The user reports Build 17 still has initial selected-text inconsistency and supplies a crop identifying the sidebar toggle as too far right. Build 18 removes the automatically positioned sidebar toolbar item and supplies a native SwiftUI Button in navigation placement, bound to NavigationSplitView column visibility. Reset remains a separate trailing primary action with native flexible spacing.
+
+Initial selection now starts nil and is set to Appearance once through the mounted view task, with initial sidebar focus requested at the same point. A newly created Settings window stays transparent until that update and its following layout pass finish, avoiding exposure of the unselected intermediate frame. Subsequent Settings openings preserve page/focus state. The native Label/NavigationLink controls retain system font and color ownership. This targets initial selection publication rather than hardcoding a selected foreground or cycling selection after presentation. The runtime cause remains unconfirmed; the user owns interactive verification.
+
+Build 18 compiled and passed linked SDK metadata, diff whitespace and signature validation. No app was launched or interactively tested. Verify first-open selection color, toolbar navigation placement and sidebar collapse/expand.

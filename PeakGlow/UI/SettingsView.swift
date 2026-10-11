@@ -22,7 +22,17 @@ final class SettingsWindowController {
         w.minSize = NSSize(width: 700, height: 540)
         w.toolbarStyle = .unified
         w.setFrameAutosaveName("PeakGlowSettings")
-        let hosting = NSHostingView(rootView: SettingsView())
+        w.alphaValue = 0
+        let hosting = NSHostingView(rootView: SettingsView(onReady: { [weak w] in
+            // Publish initial selection after mounting, then reveal its settled layout.
+            DispatchQueue.main.async { [weak w] in
+                guard let w else { return }
+                w.contentView?.needsLayout = true
+                w.contentView?.layoutSubtreeIfNeeded()
+                w.contentView?.displayIfNeeded()
+                w.alphaValue = 1
+            }
+        }))
         // The window owns its bounds. Avoid repeated min/ideal/max content measurements.
         hosting.sizingOptions = []
         w.contentView = hosting
@@ -33,8 +43,11 @@ final class SettingsWindowController {
 }
 
 struct SettingsView: View {
+    var onReady: () -> Void = {}
     @ObservedObject private var s = AppSettings.shared
-    @State private var selection: SettingsPage? = .appearance
+    @State private var selection: SettingsPage?
+    @State private var initializedSelection = false
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @FocusState private var sidebarFocused: Bool
     @State private var loginEnabled = Self.loginRequested
     @State private var loginNeedsApproval = SMAppService.mainApp.status == .requiresApproval
@@ -42,7 +55,7 @@ struct SettingsView: View {
     @State private var confirmReset = false
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             List(selection: $selection) {
                 ForEach(SettingsPage.allCases) { page in
                     NavigationLink(value: page) {
@@ -152,16 +165,34 @@ struct SettingsView: View {
             }
             .formStyle(.grouped)
             .navigationTitle((selection ?? .appearance).title)
-            .toolbar {
-                if #available(macOS 26.0, *) {
-                    // Native flexible toolbar space separates navigation from actions.
-                    ToolbarSpacer(.flexible, placement: .primaryAction)
+        }
+        .toolbar(removing: .sidebarToggle)
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Button {
+                    withAnimation {
+                        columnVisibility = columnVisibility == .detailOnly ? .all : .detailOnly
+                    }
+                } label: {
+                    Label("Toggle Sidebar", systemImage: "sidebar.left")
                 }
-                ToolbarItem(placement: .primaryAction) {
-                    resetButton
-                        .labelStyle(.titleAndIcon)
-                }
+                .labelStyle(.iconOnly)
+                .help(columnVisibility == .detailOnly ? "Show sidebar" : "Hide sidebar")
+                .accessibilityLabel(columnVisibility == .detailOnly ? "Show sidebar" : "Hide sidebar")
             }
+            if #available(macOS 26.0, *) {
+                ToolbarSpacer(.flexible, placement: .primaryAction)
+            }
+            ToolbarItem(placement: .primaryAction) {
+                resetButton.labelStyle(.titleAndIcon)
+            }
+        }
+        .task {
+            guard !initializedSelection else { return }
+            initializedSelection = true
+            selection = .appearance
+            sidebarFocused = true
+            onReady()
         }
         // Selection does not imply keyboard focus. Initialize the native sidebar
         // as the focus target without overriding later user-directed navigation.
