@@ -9,8 +9,6 @@ final class BubblePanelController: NSObject {
     private var motionLink: CADisplayLink?
     private var motionStarted: CFTimeInterval = 0
     private var motionDuration: CFTimeInterval = 0.18
-    private var motionStartFrame = CGRect.zero
-    private var motionEndFrame = CGRect.zero
     private var motionStartAlpha: CGFloat = 0
     private var motionEndAlpha: CGFloat = 1
     private var closing = false
@@ -62,6 +60,7 @@ final class BubblePanelController: NSObject {
         let hosting = NSHostingView(rootView: view)
         hosting.sizingOptions = []
         hosting.frame = NSRect(origin: .zero, size: size)
+        hosting.autoresizingMask = [.width, .height]
         if #available(macOS 26.0, *) {
             let glass = NSGlassEffectView(frame: hosting.frame)
             glass.cornerRadius = 24
@@ -94,9 +93,12 @@ final class BubblePanelController: NSObject {
                                  width: p.frame.width, height: p.frame.height)
         if !p.isVisible {
             p.alphaValue = 0
-            p.setFrame(destination.offsetBy(dx: 0, dy: 4), display: false)
+            p.setFrame(destination, display: false)
         }
-        AppState.shared.refreshPower()
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) { AppState.shared.refreshPower() }
+        p.contentView?.layoutSubtreeIfNeeded()
         AppState.shared.bubbleVisible = true
         p.orderFrontRegardless()
         animate(to: destination, alpha: 1, closing: false)
@@ -105,7 +107,7 @@ final class BubblePanelController: NSObject {
     func hide() {
         guard let panel else { return }
         AppState.shared.bubbleVisible = false
-        animate(to: panel.frame.offsetBy(dx: 0, dy: 3), alpha: 0, closing: true)
+        animate(to: panel.frame, alpha: 0, closing: true)
     }
 
     private func animate(to frame: CGRect, alpha: CGFloat, closing: Bool) {
@@ -113,8 +115,8 @@ final class BubblePanelController: NSObject {
         motionLink = nil
         guard let panel else { return }
         self.closing = closing
-        motionStartFrame = panel.frame
-        motionEndFrame = frame
+        // Keep the control surface anchored; entrance motion must not move its contents.
+        if panel.frame != frame { panel.setFrame(frame, display: true) }
         motionStartAlpha = panel.alphaValue
         motionEndAlpha = alpha
         if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
@@ -135,8 +137,6 @@ final class BubblePanelController: NSObject {
         guard let panel else { link.invalidate(); motionLink = nil; return }
         let fraction = min(1, max(0, (CACurrentMediaTime() - motionStarted) / motionDuration))
         let eased = CGFloat(PanelMotion.progress(fraction))
-        let y = motionStartFrame.minY + (motionEndFrame.minY - motionStartFrame.minY) * eased
-        panel.setFrameOrigin(CGPoint(x: motionEndFrame.minX, y: y))
         panel.alphaValue = motionStartAlpha + (motionEndAlpha - motionStartAlpha) * eased
         if fraction >= 1 {
             link.invalidate()

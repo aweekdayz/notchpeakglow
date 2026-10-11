@@ -76,3 +76,12 @@ Build 11 implements the following changes based on this review:
 - Larger icon targets and explicit power accessibility labels; existing system materials and Reduce Motion behavior are retained. No custom replacement control or sidebar animation was added.
 
 Compilation and linked-SDK metadata verification passed using the installed macOS SDK. A new preview package was produced. The app was not launched or interactively tested, as requested. Keyboard focus, control appearance, text wrapping, sidebar motion, and screen/Space transitions remain for user verification. Native icon export remains outside this build.
+
+
+## Build 12 follow-up: slider semantics and stable panel layout
+
+Apple's macOS slider guidance supports both marked and unmarked tracks. Tick marks should improve clarity and locating values; text fields can provide exact entry. Build 11 incorrectly coupled numeric-entry precision to the stepped Slider initializer, generating dense tick marks. Build 12 uses unmarked native SwiftUI Sliders and retains exact native numeric fields. Frame rate remains integer-valued without drawing a mark for every frame. No custom slider or thumb is introduced.
+
+The panel now reserves separate measurement and two-line status regions, gives the native More menu a stable footprint, and aligns content from the top. Cached measurement refresh disables first-presentation number animation. The hosting view follows its panel bounds. Entrance/exit animate opacity at the anchored final position rather than moving the panel. These address source-level causes of perceived layout shifts; they are not a runtime confirmation that the reported stutter is resolved.
+
+Build 12 Swift compilation and SDK metadata verification passed. The user retains interactive verification; no application was launched.

@@ -37,7 +37,7 @@ struct BubbleContentView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Label("PeakGlow", systemImage: "waveform.path")
                     .font(.system(size: 13, weight: .semibold))
@@ -53,21 +53,24 @@ struct BubbleContentView: View {
                     Image(systemName: "ellipsis").frame(width: 28, height: 28)
                 }
                 .menuStyle(.borderlessButton)
-                .fixedSize()
+                .frame(width: 36, height: 28)
                 .accessibilityLabel("More actions")
             }
 
-            HStack(alignment: .center) {
+            HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 5) {
                     Label(status, systemImage: app.overheatAlarm ? "thermometer.high" : "circle.fill")
                         .font(.callout)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(2)
+                        .frame(maxWidth: .infinity, minHeight: 34, alignment: .leading)
                         .foregroundStyle(app.overheatAlarm ? Color.orange : Color.secondary)
                     Text(powerDescription)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .frame(maxWidth: .infinity, minHeight: 28, alignment: .topLeading)
                 }
-                Spacer()
+                .frame(maxWidth: .infinity, alignment: .leading)
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(powerText)
                         .font(.system(size: 30, weight: .medium))
@@ -78,10 +81,13 @@ struct BubbleContentView: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
+                .frame(width: 100, alignment: .trailing)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("System power")
                 .accessibilityValue(app.powerAvailability == .current ? "\(powerText) watts" : powerDescription)
             }
+
+            .frame(height: 72)
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("Glow")
@@ -102,7 +108,8 @@ struct BubbleContentView: View {
                 Text(app.preview == .auto ? (app.gamepadConnected ? "Game controller connected" : "Adapts to system load") : "Choose Auto to resume")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Spacer()
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 Button {
                     SettingsWindowController.shared.show()
                     onClose()
@@ -113,7 +120,9 @@ struct BubbleContentView: View {
                 .help("Settings…")
                 .accessibilityLabel("Open Settings")
             }
+            .frame(height: 28)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(20)
         .frame(width: 328, height: 258)
     }

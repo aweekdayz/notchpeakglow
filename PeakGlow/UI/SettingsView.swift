@@ -221,6 +221,14 @@ private struct NativeSettingsSlider: View {
     let scale: Double
     let explanation: String?
 
+    private var sliderValue: Binding<Double> {
+        Binding(get: { value }, set: { input in
+            guard input.isFinite else { return }
+            let adjusted = unit == "fps" ? input.rounded() : input
+            value = min(range.upperBound, max(range.lowerBound, adjusted))
+        })
+    }
+
     private var numericValue: Binding<Double> {
         Binding(get: { value * scale }, set: { input in
             guard input.isFinite else { return }
@@ -251,13 +259,9 @@ private struct NativeSettingsSlider: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            Group {
-                if let step {
-                    Slider(value: $value, in: range, step: step) { Text(title) }
-                } else {
-                    Slider(value: $value, in: range) { Text(title) }
-                }
-            }
+            // Entry precision is not a set of meaningful visual stops.
+            // Keep the system's unmarked track; numeric entry supplies precision.
+            Slider(value: sliderValue, in: range) { Text(title) }
                 .labelsHidden()
                 .controlSize(.regular)
                 .tint(.accentColor)
