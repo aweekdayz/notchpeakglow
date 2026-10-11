@@ -7,9 +7,10 @@ final class SettingsWindowController {
     private var window: NSWindow?
 
     func show() {
+        // Establish active-app appearance before the initially selected row is rendered.
+        NSApp.activate(ignoringOtherApps: true)
         if let window {
             window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
             return
         }
         let w = NSWindow(
@@ -27,7 +28,6 @@ final class SettingsWindowController {
         w.contentView = hosting
         w.center()
         w.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
         window = w
     }
 }
@@ -44,11 +44,13 @@ struct SettingsView: View {
         NavigationSplitView {
             List(selection: $selection) {
                 ForEach(SettingsPage.allCases) { page in
-                    Label {
-                        Text(page.title)
-                            .fontWeight(selection == page ? .semibold : .regular)
-                    } icon: {
-                        Image(systemName: page.symbol)
+                    NavigationLink(value: page) {
+                        Label {
+                            Text(page.title)
+                                .fontWeight(selection == page ? .semibold : .regular)
+                        } icon: {
+                            Image(systemName: page.symbol)
+                        }
                     }
                     .tag(page)
                 }

@@ -110,3 +110,10 @@ Build 14 compiled with the installed SDK and passed linked-SDK metadata validati
 The user supplied a cropped titlebar screenshot showing Power at the leading edge, with the sidebar toggle and icon-only Reset grouped near the middle and substantial unused trailing space. Build 15 adds the macOS 26 native flexible ToolbarSpacer before the primary action and explicitly uses title-and-icon labeling for Reset. Native sidebar navigation, toolbar backgrounds and glass rendering remain system-managed. Older macOS retains its existing toolbar spacing.
 
 Swift compilation, SDK metadata guard, diff whitespace check and preview signature verification passed. No app was launched or interactively tested; the resulting toolbar placement remains for user confirmation.
+
+
+## Build 16 follow-up: initial sidebar selection colors
+
+The user reports the initially selected Appearance row starts with black text, while subsequent selections use white. Build 16 replaces plain selectable Label rows with value-based native NavigationLink rows inside the existing selection-bound sidebar List. The system owns selected foreground and background colors; selection-derived weight is retained. Settings activates the accessory app before constructing/showing the window, rather than after ordering it front, addressing initial active/inactive rendering differences. Neither source change establishes the runtime cause or resolution without observation.
+
+Build 16 compiled and passed SDK metadata and package signature validation. No application was launched or interactively tested. First-open selected color, keyboard navigation, and inactive-window selection appearance remain for user confirmation.
