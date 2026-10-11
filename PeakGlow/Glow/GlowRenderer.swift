@@ -2,11 +2,11 @@ import AppKit
 import Metal
 import QuartzCore
 
-/// Metal 渲染器：Timer 主线程驱动（单线程访问，无锁），
+/// Metal 渲染器：CADisplayLink 主线程驱动（单线程访问，无锁），
 /// 档位间平滑过渡
 final class GlowRenderer {
     // 仅主线程访问
-    var targetLevel: LoadLevel = .low   // low → intensity 0
+    var targetLevel: LoadLevel = .low   // Auto may retain a subtle ambient glow.
     var headroom: Float = 1.0
     var ambientEnabled = false
     var paused = false                  // 全屏/睡眠时
@@ -26,6 +26,9 @@ final class GlowRenderer {
     private var lastRender: CFTimeInterval = 0
     private var animationTime: Float = 0
 
+    private var smoothedBrightness: Float?
+    private var smoothedScale: Float?
+    private var smoothedOpacity: Float?
     private var warningMix: Float = 0          // 温度暖色过渡 0..1
 
     /// notch 中心（像素），由主线程设置
@@ -83,6 +86,13 @@ final class GlowRenderer {
         intensity += (targetIntensity - intensity) * fade
         modeMix += (targetMix - modeMix) * (reduceMotion ? 1 : 1 - exp(-dt * 3))
         warningMix += ((overheat ? Float(1) : 0) - warningMix) * (reduceMotion ? 1 : 1 - exp(-dt * 2))
+        let parameterFade: Float = reduceMotion ? 1 : 1 - exp(-dt * 18)
+        let brightness = Float(s.glowIntensity)
+        let scale = Float(s.glowScale)
+        let opacity = Float(s.mediumAlpha)
+        smoothedBrightness = (smoothedBrightness ?? brightness) + (brightness - (smoothedBrightness ?? brightness)) * parameterFade
+        smoothedScale = (smoothedScale ?? scale) + (scale - (smoothedScale ?? scale)) * parameterFade
+        smoothedOpacity = (smoothedOpacity ?? opacity) + (opacity - (smoothedOpacity ?? opacity)) * parameterFade
         if !reduceMotion { animationTime += dt }
         lastRender = now
 
@@ -105,13 +115,13 @@ final class GlowRenderer {
             resolution: SIMD2<Float>(Float(drawableSize.width), Float(drawableSize.height)),
             notchCenter: SIMD2<Float>(Float(notchCenterPixels.x), Float(notchCenterPixels.y)),
             notchSize: SIMD2<Float>(Float(notchSizePixels.width), Float(notchSizePixels.height)),
-            time: reduceMotion ? 0 : animationTime,
-            intensity: intensity * Float(s.glowIntensity),
+            time: animationTime,
+            intensity: intensity * (smoothedBrightness ?? brightness),
             modeMix: modeMix,
             hdrBoost: baseBoost,
             pulseHz: Float(s.pulseHz),
-            glowScale: Float(s.glowScale) * Float(layer.contentsScale),
-            mediumAlpha: Float(s.mediumAlpha),
+            glowScale: (smoothedScale ?? scale) * Float(layer.contentsScale),
+            mediumAlpha: smoothedOpacity ?? opacity,
             warningMix: warningMix,
             redGain: overheatGain,
             redScale: Float(s.overheatScale))

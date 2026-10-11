@@ -6,7 +6,14 @@ final class BubblePanelController: NSObject {
     private var panel: NSPanel?
     private let hover: NotchHoverController
     /// 代数令牌：防止旧隐藏动画的 completion 关掉新弹出的气泡
-    private var generation = 0
+    private var motionLink: CADisplayLink?
+    private var motionStarted: CFTimeInterval = 0
+    private var motionDuration: CFTimeInterval = 0.18
+    private var motionStartFrame = CGRect.zero
+    private var motionEndFrame = CGRect.zero
+    private var motionStartAlpha: CGFloat = 0
+    private var motionEndAlpha: CGFloat = 1
+    private var closing = false
 
     init(hover: NotchHoverController) {
         self.hover = hover
@@ -72,46 +79,65 @@ final class BubblePanelController: NSObject {
         guard let screen = NotchedScreenFinder.find(),
               let notch = NotchedScreenFinder.notchRect(of: screen) else { return }
 
-        generation += 1
         let p: NSPanel
-        if let panel {
-            p = panel
-        } else {
-            p = makePanel(notch: notch)
-            panel = p
+        if let panel { p = panel }
+        else { p = makePanel(notch: notch); panel = p }
+        let destination = CGRect(x: notch.midX - p.frame.width / 2,
+                                 y: notch.minY - p.frame.height - 8,
+                                 width: p.frame.width, height: p.frame.height)
+        if !p.isVisible {
+            p.alphaValue = 0
+            p.setFrame(destination.offsetBy(dx: 0, dy: 4), display: false)
         }
-        p.setFrameOrigin(CGPoint(x: notch.midX - p.frame.width / 2,
-                                 y: notch.minY - p.frame.height - 8))
-        let animate = !p.isVisible && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        p.alphaValue = animate ? 0 : 1
         AppState.shared.watts = AppState.shared.latestWatts
         AppState.shared.bubbleVisible = true
         p.orderFrontRegardless()
-        if animate {
-            let destination = p.frame
-            p.setFrameOrigin(CGPoint(x: destination.minX, y: destination.minY + 3))
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.10
-                context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-                p.animator().setFrame(destination, display: true)
-                p.animator().alphaValue = 1
-            }
-        }
+        animate(to: destination, alpha: 1, closing: false)
     }
 
     func hide() {
-        let gen = generation
         guard let panel else { return }
         AppState.shared.bubbleVisible = false
-        NSAnimationContext.runAnimationGroup({ ctx in
-            ctx.duration = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0 : 0.08
-            panel.animator().alphaValue = 0
-        }, completionHandler: { [weak self] in
-            guard let self, gen == self.generation else { return }
-            panel.orderOut(nil)
-            panel.alphaValue = 1
-        })
+        animate(to: panel.frame.offsetBy(dx: 0, dy: 3), alpha: 0, closing: true)
     }
+
+    private func animate(to frame: CGRect, alpha: CGFloat, closing: Bool) {
+        motionLink?.invalidate()
+        motionLink = nil
+        guard let panel else { return }
+        self.closing = closing
+        motionStartFrame = panel.frame
+        motionEndFrame = frame
+        motionStartAlpha = panel.alphaValue
+        motionEndAlpha = alpha
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            panel.setFrame(frame, display: true)
+            panel.alphaValue = alpha
+            if closing { panel.orderOut(nil) }
+            return
+        }
+        motionStarted = CACurrentMediaTime()
+        motionDuration = closing ? 0.12 : 0.18
+        guard let view = panel.contentView else { return }
+        let link = view.displayLink(target: self, selector: #selector(animateFrame(_:)))
+        link.add(to: .main, forMode: .common)
+        motionLink = link
+    }
+
+    @objc private func animateFrame(_ link: CADisplayLink) {
+        guard let panel else { link.invalidate(); motionLink = nil; return }
+        let fraction = min(1, max(0, (CACurrentMediaTime() - motionStarted) / motionDuration))
+        let eased = CGFloat(PanelMotion.progress(fraction))
+        let y = motionStartFrame.minY + (motionEndFrame.minY - motionStartFrame.minY) * eased
+        panel.setFrameOrigin(CGPoint(x: motionEndFrame.minX, y: y))
+        panel.alphaValue = motionStartAlpha + (motionEndAlpha - motionStartAlpha) * eased
+        if fraction >= 1 {
+            link.invalidate()
+            motionLink = nil
+            if closing { panel.orderOut(nil) }
+        }
+    }
+
 }
 
 /// Hover never takes focus; clicking a control can enable native keyboard navigation.
@@ -120,3 +146,11 @@ private final class BubbleControlPanel: NSPanel {
     override var canBecomeMain: Bool { false }
 }
 
+
+/// A bounded ease-out curve; reversing starts from the current visible state.
+enum PanelMotion {
+    static func progress(_ fraction: Double) -> Double {
+        let x = min(1, max(0, fraction))
+        return 1 - pow(1 - x, 3)
+    }
+}

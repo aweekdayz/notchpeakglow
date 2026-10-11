@@ -159,16 +159,7 @@ struct SettingsView: View {
 
     private func slider(_ title: String, _ value: Binding<Double>,
                         in range: ClosedRange<Double>, value text: String) -> some View {
-        LabeledContent {
-            HStack(spacing: 12) {
-                Slider(value: value, in: range).frame(minWidth: 120)
-                    .accessibilityLabel(title)
-                Text(text).monospacedDigit().foregroundStyle(.secondary)
-                    .frame(width: 64, alignment: .trailing)
-            }
-        } label: {
-            Text(title)
-        }
+        NativeSettingsSlider(title: title, value: value, range: range, formattedValue: text)
     }
 
     private func updateLogin(_ enabled: Bool) {
@@ -202,5 +193,33 @@ private extension View {
     @ViewBuilder func nativeGlassAction() -> some View {
         if #available(macOS 26.0, *) { self.buttonStyle(.glass) }
         else { self.buttonStyle(.bordered) }
+    }
+}
+
+/// Keeps the system slider intact, including its thumb, tracking, and keyboard behavior.
+private struct NativeSettingsSlider: View {
+    let title: String
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    let formattedValue: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(title)
+                Spacer()
+                Text(formattedValue)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+            }
+            Slider(value: $value, in: range) { Text(title) }
+                .labelsHidden()
+                .controlSize(.regular)
+                .tint(.accentColor)
+                .accessibilityLabel(title)
+                .accessibilityValue(formattedValue)
+        }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .contain)
     }
 }

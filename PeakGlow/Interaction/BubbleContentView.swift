@@ -4,6 +4,7 @@ import SwiftUI
 struct BubbleContentView: View {
     var onClose: () -> Void
     @EnvironmentObject var app: AppState
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var status: String {
         if app.preview == .low { return "Glow off" }
@@ -46,6 +47,8 @@ struct BubbleContentView: View {
                     Text(app.watts > 0.5 ? String(format: "%.1f", app.watts) : "—")
                         .font(.system(size: 30, weight: .medium))
                         .monospacedDigit()
+                        .contentTransition(.numericText())
+                        .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: app.watts)
                     Text("W")
                         .font(.callout)
                         .foregroundStyle(.secondary)

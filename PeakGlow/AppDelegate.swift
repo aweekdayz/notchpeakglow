@@ -13,6 +13,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var lastAutoLevel: LoadLevel = .low
     private var samplingInterval = AppSettings.shared.sampleInterval
+    private var settingsUpdate: DispatchWorkItem?
+    private var glowGeometry = SIMD2<Double>(AppSettings.shared.glowScale, AppSettings.shared.overheatScale)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // 机型自动调优：仅首次启动写入建议阈值（不覆盖手动调整）
@@ -50,14 +52,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.addObserver(
             forName: AppSettings.changedNotification,
             object: nil, queue: .main) { [weak self] _ in
-            self?.glow.reposition()
-            self?.applyLevel()
-            guard let self else { return }
-            let interval = AppSettings.shared.sampleInterval
-            if self.samplingInterval != interval {
-                self.samplingInterval = interval
-                self.sampler.start(interval: interval)
+            guard let self, self.settingsUpdate == nil else { return }
+            let update = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+                self.settingsUpdate = nil
+                self.applySettings()
             }
+            self.settingsUpdate = update
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0 / 60.0, execute: update)
         }
 
         // 手柄检测：连接任意手柄 → 暂停光晕（游戏中不打扰）
@@ -94,8 +96,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        settingsUpdate?.cancel()
         glow.shutdown()
         sampler.stop()
+    }
+
+    private func applySettings() {
+        let s = AppSettings.shared
+        let geometry = SIMD2<Double>(s.glowScale, s.overheatScale)
+        if geometry != glowGeometry {
+            glowGeometry = geometry
+            glow.reposition()
+        }
+        applyLevel()
+        if samplingInterval != s.sampleInterval {
+            samplingInterval = s.sampleInterval
+            sampler.start(interval: samplingInterval)
+        }
     }
 
     /// Finder reopening a background-only app should offer a visible way back in.
