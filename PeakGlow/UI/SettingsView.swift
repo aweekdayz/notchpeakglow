@@ -68,8 +68,8 @@ struct SettingsView: View {
                     Text("Soft light follows the notch. High load shifts to ice blue.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Button("Use Soft Appearance") {
-                        s.resetAppearance()
+                    Button { s.resetAppearance() } label: {
+                        Text("Use Soft Appearance").foregroundStyle(.primary)
                     }
                     .nativeGlassAction()
                 }
@@ -81,9 +81,11 @@ struct SettingsView: View {
                     slider("Boost threshold", Binding(get: { s.highWatts },
                         set: { s.highWatts = max($0, s.mediumWatts + 1) }),
                         in: 9...90, value: "\(Int(s.highWatts)) W")
-                    Button("Use Recommended Thresholds") {
+                    Button {
                         s.mediumWatts = MachineProfile.current.suggestedMediumWatts
                         s.highWatts = MachineProfile.current.suggestedHighWatts
+                    } label: {
+                        Text("Use Recommended Thresholds").foregroundStyle(.primary)
                     }
                     .nativeGlassAction()
                 }
@@ -148,8 +150,11 @@ struct SettingsView: View {
 
     @ViewBuilder private var resetButton: some View {
         if #available(macOS 26.0, *) {
-            Button("Reset…", systemImage: "arrow.counterclockwise") { confirmReset = true }
-                .buttonStyle(.glass)
+            Button { confirmReset = true } label: {
+                Label("Reset…", systemImage: "arrow.counterclockwise")
+                    .foregroundStyle(.primary)
+            }
+                .nativeGlassAction()
                 .help("Reset all settings")
         } else {
             Button("Reset…", systemImage: "arrow.counterclockwise") { confirmReset = true }
@@ -194,7 +199,19 @@ private enum SettingsPage: Hashable {
 
 private extension View {
     @ViewBuilder func nativeGlassAction() -> some View {
-        if #available(macOS 26.0, *) { self.buttonStyle(.glass) }
+        if #available(macOS 26.0, *) {
+            self
+                .buttonStyle(.plain)
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background {
+                    Capsule()
+                        .fill(.clear)
+                        .glassEffect(.regular.interactive())
+                        .allowsHitTesting(false)
+                }
+        }
         else { self.buttonStyle(.bordered) }
     }
 }
@@ -236,7 +253,12 @@ struct NativeGlassControl: ViewModifier {
             content
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
-                .glassEffect(.regular.interactive(), in: Capsule())
+                .background {
+                    Capsule()
+                        .fill(.clear)
+                        .glassEffect(.regular.interactive())
+                        .allowsHitTesting(false)
+                }
         } else {
             content
         }
