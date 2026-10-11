@@ -35,6 +35,7 @@ final class SettingsWindowController {
 struct SettingsView: View {
     @ObservedObject private var s = AppSettings.shared
     @State private var selection: SettingsPage? = .appearance
+    @FocusState private var sidebarFocused: Bool
     @State private var loginEnabled = Self.loginRequested
     @State private var loginNeedsApproval = SMAppService.mainApp.status == .requiresApproval
     @State private var loginError: String?
@@ -45,17 +46,13 @@ struct SettingsView: View {
             List(selection: $selection) {
                 ForEach(SettingsPage.allCases) { page in
                     NavigationLink(value: page) {
-                        Label {
-                            Text(page.title)
-                                .fontWeight(selection == page ? .semibold : .regular)
-                        } icon: {
-                            Image(systemName: page.symbol)
-                        }
+                        Label(page.title, systemImage: page.symbol)
                     }
                     .tag(page)
                 }
             }
             .listStyle(.sidebar)
+            .focused($sidebarFocused)
             .navigationSplitViewColumnWidth(180)
         } detail: {
             Form {
@@ -166,6 +163,9 @@ struct SettingsView: View {
                 }
             }
         }
+        // Selection does not imply keyboard focus. Initialize the native sidebar
+        // as the focus target without overriding later user-directed navigation.
+        .defaultFocus($sidebarFocused, true)
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             refreshLoginStatus()
         }

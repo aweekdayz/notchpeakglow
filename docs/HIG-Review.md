@@ -117,3 +117,10 @@ Swift compilation, SDK metadata guard, diff whitespace check and preview signatu
 The user reports the initially selected Appearance row starts with black text, while subsequent selections use white. Build 16 replaces plain selectable Label rows with value-based native NavigationLink rows inside the existing selection-bound sidebar List. The system owns selected foreground and background colors; selection-derived weight is retained. Settings activates the accessory app before constructing/showing the window, rather than after ordering it front, addressing initial active/inactive rendering differences. Neither source change establishes the runtime cause or resolution without observation.
 
 Build 16 compiled and passed SDK metadata and package signature validation. No application was launched or interactively tested. First-open selected color, keyboard navigation, and inactive-window selection appearance remain for user confirmation.
+
+
+## Build 17 follow-up: selection versus keyboard focus
+
+The user confirms Build 16 did not resolve the first-open black-text report. Source inspection shows an initial List selection but no initial sidebar focus declaration. Build 17 binds the native List to FocusState and supplies defaultFocus at the split-view root with automatic priority. This initializes focus while leaving user-directed navigation to the system. All manual sidebar font-weight overrides are removed; NavigationLink and Label use the system's typography and selection colors. Selection and keyboard focus are distinct; focus is a candidate cause, not a runtime diagnosis.
+
+Primary API reference: [defaultFocus](https://developer.apple.com/documentation/swiftui/view/defaultfocus(_:_:priority:)), [FocusState](https://developer.apple.com/documentation/swiftui/focusstate/). Build 17 compiled successfully, passed linked SDK metadata and signature verification, and was packaged without launching the application. First-open selection color and keyboard focus remain for user verification.
