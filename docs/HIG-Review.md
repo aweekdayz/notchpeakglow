@@ -133,3 +133,10 @@ The user reports Build 17 still has initial selected-text inconsistency and supp
 Initial selection now starts nil and is set to Appearance once through the mounted view task, with initial sidebar focus requested at the same point. A newly created Settings window stays transparent until that update and its following layout pass finish, avoiding exposure of the unselected intermediate frame. Subsequent Settings openings preserve page/focus state. The native Label/NavigationLink controls retain system font and color ownership. This targets initial selection publication rather than hardcoding a selected foreground or cycling selection after presentation. The runtime cause remains unconfirmed; the user owns interactive verification.
 
 Build 18 compiled and passed linked SDK metadata, diff whitespace and signature validation. No app was launched or interactively tested. Verify first-open selection color, toolbar navigation placement and sidebar collapse/expand.
+
+
+## Build 19 follow-up: sidebar toolbar ownership
+
+The user confirms Build 18 resolves Appearance's initial selection issue; preserve its initialization path. The user explicitly requests that Reset not move, while the sidebar toggle remains too far right. Build 19 declares the expanded sidebar's native navigation toolbar item on the sidebar List instead of the split-view root. When the sidebar is hidden, the same native action is supplied at the root so reopening remains accessible. Conditions are mutually exclusive. Reset placement, flexible spacing and labeling are unchanged.
+
+Compilation, SDK metadata, diff whitespace and packaging signature verification passed. No app was launched; expanded/collapsed toggle position remains for user verification.

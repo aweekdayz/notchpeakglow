@@ -67,6 +67,11 @@ struct SettingsView: View {
             .listStyle(.sidebar)
             .focused($sidebarFocused)
             .navigationSplitViewColumnWidth(180)
+            .toolbar {
+                if columnVisibility != .detailOnly {
+                    ToolbarItem(placement: .navigation) { sidebarToggle }
+                }
+            }
         } detail: {
             Form {
                 switch selection ?? .appearance {
@@ -168,17 +173,8 @@ struct SettingsView: View {
         }
         .toolbar(removing: .sidebarToggle)
         .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Button {
-                    withAnimation {
-                        columnVisibility = columnVisibility == .detailOnly ? .all : .detailOnly
-                    }
-                } label: {
-                    Label("Toggle Sidebar", systemImage: "sidebar.left")
-                }
-                .labelStyle(.iconOnly)
-                .help(columnVisibility == .detailOnly ? "Show sidebar" : "Hide sidebar")
-                .accessibilityLabel(columnVisibility == .detailOnly ? "Show sidebar" : "Hide sidebar")
+            if columnVisibility == .detailOnly {
+                ToolbarItem(placement: .navigation) { sidebarToggle }
             }
             if #available(macOS 26.0, *) {
                 ToolbarSpacer(.flexible, placement: .primaryAction)
@@ -211,6 +207,19 @@ struct SettingsView: View {
         } message: {
             Text("Restore the default appearance and recommended load thresholds.")
         }
+    }
+
+    private var sidebarToggle: some View {
+        Button {
+            withAnimation {
+                columnVisibility = columnVisibility == .detailOnly ? .all : .detailOnly
+            }
+        } label: {
+            Label("Toggle Sidebar", systemImage: "sidebar.left")
+        }
+        .labelStyle(.iconOnly)
+        .help(columnVisibility == .detailOnly ? "Show sidebar" : "Hide sidebar")
+        .accessibilityLabel(columnVisibility == .detailOnly ? "Show sidebar" : "Hide sidebar")
     }
 
     @ViewBuilder private var resetButton: some View {
