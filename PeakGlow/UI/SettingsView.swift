@@ -199,19 +199,7 @@ private enum SettingsPage: Hashable {
 
 private extension View {
     @ViewBuilder func nativeGlassAction() -> some View {
-        if #available(macOS 26.0, *) {
-            self
-                .buttonStyle(.plain)
-                .foregroundStyle(.primary)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background {
-                    Capsule()
-                        .fill(.clear)
-                        .glassEffect(.regular.interactive())
-                        .allowsHitTesting(false)
-                }
-        }
+        if #available(macOS 26.0, *) { self.buttonStyle(.glass) }
         else { self.buttonStyle(.bordered) }
     }
 }
@@ -238,29 +226,8 @@ private struct NativeSettingsSlider: View {
                 .tint(.accentColor)
                 .accessibilityLabel(title)
                 .accessibilityValue(formattedValue)
-                .modifier(NativeGlassControl())
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .contain)
-    }
-}
-
-
-/// Adds Apple's interactive glass surface while preserving the original control.
-struct NativeGlassControl: ViewModifier {
-    @ViewBuilder func body(content: Content) -> some View {
-        if #available(macOS 26.0, *) {
-            content
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .background {
-                    Capsule()
-                        .fill(.clear)
-                        .glassEffect(.regular.interactive())
-                        .allowsHitTesting(false)
-                }
-        } else {
-            content
-        }
     }
 }

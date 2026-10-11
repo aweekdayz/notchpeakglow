@@ -119,4 +119,4 @@ MIT
 
 光晕和面板动画由系统 CADisplayLink 同步屏幕刷新，面板展开/收起可中途反转；原生滑块保留系统绘制和交互，亮度、范围、透明度采用平滑响应，设置更新合并到约一帧以内。
 
-macOS 26+ 为原生 Slider 与分段 Picker 明确添加 SwiftUI 系统交互玻璃表面（glassEffect），没有自绘轨道或滑块。设置宿主使用窗口约束布局，侧栏采用 prominentDetail，减少折叠/展开时的重复内容测量。
+macOS 26+ 的 Slider、Toggle 和分段 Picker 使用系统默认控件；动作按钮使用原生 .glass 样式，不额外包裹玻璃胶囊。直接编译的预览包必须正确记录构建 SDK（LC_BUILD_VERSION.sdk），否则新 SDK 编译的代码仍可能显示旧控件样式。可用 scripts/compile-preview-swift.sh 编译并校验 SDK 标记。设置宿主使用窗口约束布局，侧栏采用 prominentDetail，减少折叠/展开时的重复内容测量。

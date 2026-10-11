@@ -69,7 +69,6 @@ struct BubbleContentView: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
-                .modifier(NativeGlassControl())
             }
 
             HStack {
