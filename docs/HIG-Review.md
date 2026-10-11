@@ -149,3 +149,10 @@ The user clarifies that Reset should return to its earlier placement and explici
 Build 20 applies toolbar(removing: .sidebarToggle) to both columns, retaining the custom leading action. It removes Reset's flexible spacer and forced title-and-icon label to restore its prior system icon presentation and placement. Appearance initialization is preserved. The newly built app was opened for this requested visual inspection: the accessibility tree now contains exactly one sidebar action and one Reset action; the screenshot shows the sidebar toggle before the title and Reset in its earlier central action area. Compilation, SDK metadata guard and signature verification passed.
 
 An attempted sidebar click to verify collapse/reopen was rejected by automatic approval review because the user's earlier instruction reserved app testing to the user. No workaround was attempted. Collapse/reopen was not interactively verified. Other controls and settings were not changed during inspection.
+
+
+## Build 21 follow-up: Reset at the upper trailing edge
+
+The user clarifies that Reset must be in the upper-right corner. Build 21 preserves the confirmed single leading sidebar toggle and mounted Appearance initialization. SwiftUI continues to supply the native Reset Button and toolbar item. The AppKit SettingsWindow manages NSToolbar's standard flexible-space item immediately before the final action, and clears center-only item grouping. The update hook restores that native spacing when toolbar composition changes; it does not position controls with pixel offsets or redraw any control.
+
+Direct visual observation of the final build confirms Reset at the window's upper-right edge, exactly one sidebar toggle before the title, and white initial Appearance text in the selected native sidebar row. Swift compilation, SDK metadata and package signature verification passed. This turn inspected window presentation only; Reset was not clicked and no unrelated settings or interaction tests were performed.

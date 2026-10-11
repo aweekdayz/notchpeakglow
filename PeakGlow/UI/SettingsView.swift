@@ -13,7 +13,7 @@ final class SettingsWindowController {
             window.makeKeyAndOrderFront(nil)
             return
         }
-        let w = NSWindow(
+        let w = SettingsWindow(
             contentRect: NSRect(x: 0, y: 0, width: 760, height: 560),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false)
@@ -30,6 +30,7 @@ final class SettingsWindowController {
                 w.contentView?.needsLayout = true
                 w.contentView?.layoutSubtreeIfNeeded()
                 w.contentView?.displayIfNeeded()
+                w.alignResetToolbar()
                 w.alphaValue = 1
             }
         }))
@@ -39,6 +40,25 @@ final class SettingsWindowController {
         w.center()
         w.makeKeyAndOrderFront(nil)
         window = w
+    }
+}
+
+/// The AppKit window owns native toolbar spacing; SwiftUI owns the controls.
+private final class SettingsWindow: NSWindow {
+    override func update() {
+        super.update()
+        alignResetToolbar()
+    }
+
+    func alignResetToolbar() {
+        guard let toolbar, toolbar.items.count >= 2 else { return }
+        toolbar.centeredItemIdentifiers = []
+        let actionIndex = toolbar.items.count - 1
+        // Reset is the final action. Use NSToolbar's real flexible-space item,
+        // rather than a hosted SwiftUI spacer with an intrinsic view width.
+        if toolbar.items[actionIndex - 1].itemIdentifier != .flexibleSpace {
+            toolbar.insertItem(withItemIdentifier: .flexibleSpace, at: actionIndex)
+        }
     }
 }
 
@@ -178,7 +198,7 @@ struct SettingsView: View {
             if columnVisibility == .detailOnly {
                 ToolbarItem(placement: .navigation) { sidebarToggle }
             }
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarItem(placement: .automatic) {
                 resetButton
             }
         }
