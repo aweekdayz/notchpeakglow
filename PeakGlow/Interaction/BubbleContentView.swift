@@ -7,8 +7,13 @@ struct BubbleContentView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var status: String {
-        if app.preview == .low { return "Glow off" }
-        if app.preview == .overheat { return "Warm preview" }
+        switch app.preview {
+        case .low: return "Glow off"
+        case .medium: return "Soft preview"
+        case .high: return "Boost preview"
+        case .overheat: return "Warm preview"
+        case .auto: break
+        }
         if app.overheatAlarm { return "Temperature elevated" }
         switch app.effectiveLevel {
         case .low: return "Low load"
