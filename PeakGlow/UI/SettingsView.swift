@@ -65,6 +65,7 @@ struct SettingsView: View {
                 }
             }
             .listStyle(.sidebar)
+            .toolbar(removing: .sidebarToggle)
             .focused($sidebarFocused)
             .navigationSplitViewColumnWidth(180)
             .toolbar {
@@ -169,6 +170,7 @@ struct SettingsView: View {
                 }
             }
             .formStyle(.grouped)
+            .toolbar(removing: .sidebarToggle)
             .navigationTitle((selection ?? .appearance).title)
         }
         .toolbar(removing: .sidebarToggle)
@@ -176,11 +178,8 @@ struct SettingsView: View {
             if columnVisibility == .detailOnly {
                 ToolbarItem(placement: .navigation) { sidebarToggle }
             }
-            if #available(macOS 26.0, *) {
-                ToolbarSpacer(.flexible, placement: .primaryAction)
-            }
             ToolbarItem(placement: .primaryAction) {
-                resetButton.labelStyle(.titleAndIcon)
+                resetButton
             }
         }
         .task {
