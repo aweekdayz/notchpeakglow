@@ -4,38 +4,6 @@ import SwiftUI
 struct BubbleContentView: View {
     var onClose: () -> Void
     @EnvironmentObject var app: AppState
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    private var status: String {
-        switch app.preview {
-        case .low: return "Glow off"
-        case .medium: return "Soft preview"
-        case .high: return "Boost preview"
-        case .overheat: return "Warm preview"
-        case .auto: break
-        }
-        if app.gamepadConnected { return "Glow paused" }
-        if app.overheatAlarm { return "Temperature elevated" }
-        if app.powerAvailability != .current { return "Load unavailable" }
-        switch app.effectiveLevel {
-        case .low: return "Low load"
-        case .medium: return "Moderate load"
-        case .high: return "High load"
-        }
-    }
-
-    private var powerText: String {
-        app.powerAvailability == .current ? String(format: "%.1f", app.watts) : "—"
-    }
-
-    private var powerDescription: String {
-        switch app.powerAvailability {
-        case .waiting: return "Waiting for power data"
-        case .current: return "System power"
-        case .unavailable: return "Power data unavailable"
-        }
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
@@ -57,37 +25,8 @@ struct BubbleContentView: View {
                 .accessibilityLabel("More actions")
             }
 
-            HStack(alignment: .center, spacing: 12) {
-                VStack(alignment: .leading, spacing: 5) {
-                    Label(status, systemImage: app.overheatAlarm ? "thermometer.high" : "circle.fill")
-                        .font(.callout)
-                        .lineLimit(2)
-                        .frame(maxWidth: .infinity, minHeight: 34, alignment: .leading)
-                        .foregroundStyle(app.overheatAlarm ? Color.orange : Color.secondary)
-                    Text(powerDescription)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                        .frame(maxWidth: .infinity, minHeight: 28, alignment: .topLeading)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text(powerText)
-                        .font(.system(size: 30, weight: .medium))
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-                        .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: app.watts)
-                    Text("W")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(width: 100, alignment: .trailing)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("System power")
-                .accessibilityValue(app.powerAvailability == .current ? "\(powerText) watts" : powerDescription)
-            }
-
-            .frame(height: 72)
+            BubblePowerView(app: app, power: app.power)
+                .frame(height: 72)
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("Glow")
@@ -128,3 +67,74 @@ struct BubbleContentView: View {
     }
 }
 
+
+/// Keep streaming data outside the menu and segmented-control view identity.
+private struct BubblePowerView: View {
+    @ObservedObject var app: AppState
+    @ObservedObject var power: PowerReadingState
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var status: String {
+        switch app.preview {
+        case .low: return "Glow off"
+        case .medium: return "Soft preview"
+        case .high: return "Boost preview"
+        case .overheat: return "Warm preview"
+        case .auto: break
+        }
+        if app.gamepadConnected { return "Glow paused" }
+        if app.overheatAlarm { return "Temperature elevated" }
+        if power.reading.availability != .current { return "Load unavailable" }
+        switch app.effectiveLevel {
+        case .low: return "Low load"
+        case .medium: return "Moderate load"
+        case .high: return "High load"
+        }
+    }
+
+    private var powerText: String {
+        power.reading.availability == .current ? String(format: "%.1f", power.reading.watts) : "—"
+    }
+
+    private var powerDescription: String {
+        switch power.reading.availability {
+        case .waiting: return "Waiting for power data"
+        case .current: return "System power"
+        case .unavailable: return "Power data unavailable"
+        }
+    }
+
+    var body: some View {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Label(status, systemImage: app.overheatAlarm ? "thermometer.high" : "circle.fill")
+                        .font(.callout)
+                        .lineLimit(2)
+                        .frame(maxWidth: .infinity, minHeight: 34, alignment: .leading)
+                        .foregroundStyle(app.overheatAlarm ? Color.orange : Color.secondary)
+                    Text(powerDescription)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .frame(maxWidth: .infinity, minHeight: 28, alignment: .topLeading)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(powerText)
+                        .font(.system(size: 30, weight: .medium))
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                        .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: power.reading.watts)
+                    Text("W")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(width: 100, alignment: .trailing)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("System power")
+                .accessibilityValue(power.reading.availability == .current ? "\(powerText) watts" : powerDescription)
+            }
+
+
+    }
+}

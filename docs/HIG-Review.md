@@ -85,3 +85,12 @@ Apple's macOS slider guidance supports both marked and unmarked tracks. Tick mar
 The panel now reserves separate measurement and two-line status regions, gives the native More menu a stable footprint, and aligns content from the top. Cached measurement refresh disables first-presentation number animation. The hosting view follows its panel bounds. Entrance/exit animate opacity at the anchored final position rather than moving the panel. These address source-level causes of perceived layout shifts; they are not a runtime confirmation that the reported stutter is resolved.
 
 Build 12 Swift compilation and SDK metadata verification passed. The user retains interactive verification; no application was launched.
+
+
+## Build 13 follow-up: publication and presentation ordering
+
+The user reports that the layout stutter persists in Build 12. Fixed layout space alone did not resolve the report. Source review found that streaming power and availability were separate AppState publications observed by the entire panel, including native controls. They now publish one equatable reading snapshot through a dedicated PowerReadingState, observed by the measurement subtree. Hidden sampling still avoids publishing to the view.
+
+A newly shown panel is attached to its window at zero opacity before final layout. A generation-guarded main-queue update and the first display-link tick prepare the attached hosting hierarchy before the fade advances. Dismissal invalidates queued preparation, preserving rapid reopen/reversal behavior. Reduce Motion skips the fade after layout. This removes an immediate-show-before-layout path; the cause of the user's visible stutter remains unconfirmed without runtime observation.
+
+Build 13 compiled successfully and retained the checked linked SDK metadata. Packaging signature verification passed. No application was launched or interactively tested.

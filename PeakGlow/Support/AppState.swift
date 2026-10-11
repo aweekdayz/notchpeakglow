@@ -11,9 +11,8 @@ final class AppState: ObservableObject {
     private var lastPowerSample: Date?
     enum PowerAvailability { case waiting, current, unavailable }
     var latestPowerAvailability: PowerAvailability = .waiting
-    @Published var powerAvailability: PowerAvailability = .waiting
+    let power = PowerReadingState()
     @Published var gamepadConnected = false
-    @Published var watts: Double = 0
 
     func recordPower(_ reading: Double?) {
         if let reading, reading.isFinite, reading > 0 {
@@ -27,14 +26,16 @@ final class AppState: ObservableObject {
     }
 
     func refreshPower() {
-        watts = latestWatts
+        let availability: PowerAvailability
         if latestPowerAvailability == .current,
            let lastPowerSample,
            Date().timeIntervalSince(lastPowerSample) > max(2, AppSettings.shared.sampleInterval * 3) {
-            powerAvailability = .unavailable
+            availability = .unavailable
         } else {
-            powerAvailability = latestPowerAvailability
+            availability = latestPowerAvailability
         }
+        let reading = PowerReadingState.Reading(watts: latestWatts, availability: availability)
+        if power.reading != reading { power.reading = reading }
     }
     @Published var effectiveLevel: LoadLevel = .low
     /// 真实过热降频告警激活中（区分于普通高档）
@@ -48,3 +49,12 @@ final class AppState: ObservableObject {
     }
 }
 
+
+/// Sampling changes only the measurement subtree, never the native controls.
+final class PowerReadingState: ObservableObject {
+    struct Reading: Equatable {
+        var watts: Double = 0
+        var availability: AppState.PowerAvailability = .waiting
+    }
+    @Published var reading = Reading()
+}

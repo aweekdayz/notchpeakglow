@@ -12,6 +12,9 @@ final class BubblePanelController: NSObject {
     private var motionStartAlpha: CGFloat = 0
     private var motionEndAlpha: CGFloat = 1
     private var closing = false
+    private var preparingPresentation = false
+    private var presentationGeneration: UInt = 0
+    private var hostingView: NSView?
 
     init(hover: NotchHoverController) {
         self.hover = hover
@@ -61,6 +64,7 @@ final class BubblePanelController: NSObject {
         hosting.sizingOptions = []
         hosting.frame = NSRect(origin: .zero, size: size)
         hosting.autoresizingMask = [.width, .height]
+        hostingView = hosting
         if #available(macOS 26.0, *) {
             let glass = NSGlassEffectView(frame: hosting.frame)
             glass.cornerRadius = 24
@@ -98,15 +102,37 @@ final class BubblePanelController: NSObject {
         var transaction = Transaction()
         transaction.disablesAnimations = true
         withTransaction(transaction) { AppState.shared.refreshPower() }
-        p.contentView?.layoutSubtreeIfNeeded()
         AppState.shared.bubbleVisible = true
+        presentationGeneration &+= 1
+        let generation = presentationGeneration
+        let needsPreparation = !p.isVisible
+        if needsPreparation {
+            motionLink?.invalidate()
+            motionLink = nil
+            preparingPresentation = true
+        }
         p.orderFrontRegardless()
-        animate(to: destination, alpha: 1, closing: false)
+        if !needsPreparation {
+            animate(to: destination, alpha: 1, closing: false)
+            return
+        }
+        // Window attachment changes native control metrics. Let SwiftUI consume the
+        // atomic measurement update while the attached window is still transparent.
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.presentationGeneration == generation,
+                  AppState.shared.bubbleVisible else { return }
+            self.hostingView?.needsLayout = true
+            self.hostingView?.layoutSubtreeIfNeeded()
+            p.contentView?.layoutSubtreeIfNeeded()
+            self.animate(to: destination, alpha: 1, closing: false)
+        }
     }
 
     func hide() {
         guard let panel else { return }
         AppState.shared.bubbleVisible = false
+        presentationGeneration &+= 1
+        preparingPresentation = false
         animate(to: panel.frame, alpha: 0, closing: true)
     }
 
@@ -120,6 +146,7 @@ final class BubblePanelController: NSObject {
         motionStartAlpha = panel.alphaValue
         motionEndAlpha = alpha
         if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            preparingPresentation = false
             panel.setFrame(frame, display: true)
             panel.alphaValue = alpha
             if closing { panel.orderOut(nil) }
@@ -135,6 +162,17 @@ final class BubblePanelController: NSObject {
 
     @objc private func animateFrame(_ link: CADisplayLink) {
         guard let panel else { link.invalidate(); motionLink = nil; return }
+        if preparingPresentation {
+            // First display-link tick lays out the attached native controls without
+            // exposing an intermediate frame; subsequent ticks perform the fade.
+            hostingView?.needsLayout = true
+            hostingView?.layoutSubtreeIfNeeded()
+            panel.contentView?.layoutSubtreeIfNeeded()
+            panel.contentView?.displayIfNeeded()
+            preparingPresentation = false
+            motionStarted = CACurrentMediaTime()
+            return
+        }
         let fraction = min(1, max(0, (CACurrentMediaTime() - motionStarted) / motionDuration))
         let eased = CGFloat(PanelMotion.progress(fraction))
         panel.alphaValue = motionStartAlpha + (motionEndAlpha - motionStartAlpha) * eased
