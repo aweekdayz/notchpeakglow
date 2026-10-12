@@ -11,6 +11,9 @@ final class BubblePanelController: NSObject {
     private var motionDuration: CFTimeInterval = 0.18
     private var motionStartAlpha: CGFloat = 0
     private var motionEndAlpha: CGFloat = 1
+    private var motionStartOrigin: CGPoint = .zero
+    private var motionEndOrigin: CGPoint = .zero
+    private var restingFrame: CGRect?
     private var closing = false
     private var preparingPresentation = false
     private var presentationGeneration: UInt = 0
@@ -88,9 +91,11 @@ final class BubblePanelController: NSObject {
         let destination = CGRect(x: notch.midX - p.frame.width / 2,
                                  y: notch.minY - p.frame.height - 8,
                                  width: p.frame.width, height: p.frame.height)
+        restingFrame = destination
         if !p.isVisible {
             p.alphaValue = 0
-            p.setFrame(destination, display: false)
+            let entranceOffset: CGFloat = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0 : 6
+            p.setFrame(destination.offsetBy(dx: 0, dy: entranceOffset), display: false)
         }
         var transaction = Transaction()
         transaction.disablesAnimations = true
@@ -128,7 +133,8 @@ final class BubblePanelController: NSObject {
         AppState.shared.bubbleVisible = false
         presentationGeneration &+= 1
         preparingPresentation = false
-        animate(to: panel.frame, alpha: 0, closing: true)
+        let destination = (restingFrame ?? panel.frame).offsetBy(dx: 0, dy: 4)
+        animate(to: destination, alpha: 0, closing: true)
     }
 
     private func animate(to frame: CGRect, alpha: CGFloat, closing: Bool) {
@@ -136,26 +142,31 @@ final class BubblePanelController: NSObject {
         motionLink = nil
         guard let panel else { return }
         self.closing = closing
-        // Keep the control surface anchored; entrance motion must not move its contents.
-        if panel.frame != frame { panel.setFrame(frame, display: true) }
+        // Translate the whole window; never animate its size or internal layout.
+        motionStartOrigin = panel.frame.origin
+        motionEndOrigin = frame.origin
         motionStartAlpha = panel.alphaValue
         motionEndAlpha = alpha
         let distance = abs(motionEndAlpha - motionStartAlpha)
-        if distance < 0.001, !preparingPresentation {
+        let travel = hypot(motionEndOrigin.x - motionStartOrigin.x,
+                           motionEndOrigin.y - motionStartOrigin.y)
+        if distance < 0.001, travel < 0.01, !preparingPresentation {
             panel.alphaValue = alpha
             if closing { panel.orderOut(nil) }
             return
         }
         if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
             preparingPresentation = false
-            panel.setFrame(frame, display: true)
+            // Reduce Motion retains the settled anchor without spatial movement.
+            panel.setFrameOrigin((restingFrame ?? frame).origin)
             panel.alphaValue = alpha
             if closing { panel.orderOut(nil) }
             return
         }
         motionStarted = CACurrentMediaTime()
         // Reverse from the current opacity without restarting a full-length fade.
-        motionDuration = max(1.0 / 60.0, (closing ? 0.12 : 0.18) * Double(distance))
+        let remaining = max(Double(distance), min(1, Double(travel / 6)))
+        motionDuration = max(1.0 / 60.0, (closing ? 0.14 : 0.22) * remaining)
         guard let view = panel.contentView else { return }
         let link = view.displayLink(target: self, selector: #selector(animateFrame(_:)))
         link.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)
@@ -177,7 +188,11 @@ final class BubblePanelController: NSObject {
             return
         }
         let fraction = min(1, max(0, (CACurrentMediaTime() - motionStarted) / motionDuration))
-        let eased = CGFloat(PanelMotion.progress(fraction))
+        let eased = CGFloat(PanelMotion.progress(fraction, closing: closing))
+        let origin = CGPoint(
+            x: motionStartOrigin.x + (motionEndOrigin.x - motionStartOrigin.x) * eased,
+            y: motionStartOrigin.y + (motionEndOrigin.y - motionStartOrigin.y) * eased)
+        if panel.frame.origin != origin { panel.setFrameOrigin(origin) }
         panel.alphaValue = motionStartAlpha + (motionEndAlpha - motionStartAlpha) * eased
         if fraction >= 1 {
             link.invalidate()
@@ -195,10 +210,11 @@ private final class BubbleControlPanel: NSPanel {
 }
 
 
-/// A bounded ease-out curve; reversing starts from the current visible state.
+/// Arrival settles gently; departure accelerates toward the notch without overshoot.
 enum PanelMotion {
-    static func progress(_ fraction: Double) -> Double {
+    static func progress(_ fraction: Double, closing: Bool = false) -> Double {
         let x = min(1, max(0, fraction))
+        if closing { return x * x }
         return 1 - pow(1 - x, 3)
     }
 }

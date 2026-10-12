@@ -252,3 +252,11 @@ Build 29 passed Swift compilation with SDK/minimum OS 27.0, source whitespace ch
 The user reports that disabling the host focus ring did not remove the corner rectangle. The previous diagnosis was therefore insufficient. The borderless panel still had hasShadow = true, allowing AppKit's window shadow to follow the rectangular window frame outside the rounded SwiftUI glass surface. This build disables that separate system window shadow. The native glass surface, focus behavior and controls remain unchanged. This targets the remaining rectangular window decoration; visual removal is not asserted without user verification. No Computer Use, app launch or interaction testing is performed.
 
 Build 30 passed Swift compilation with SDK/minimum OS 27.0, source whitespace checks and package signature verification.
+
+## Build 31: notch hover presentation motion
+
+The user accepts the corner-decoration fix and requests an upgraded hover presentation animation. The panel now enters from six points closer to the notch, settling downward with a bounded ease-out and synchronized opacity over 220 ms. Dismissal moves four points toward the notch and fades with a short accelerating departure over 140 ms. Reversal captures the current window origin and alpha and scales the remaining duration, avoiding position resets. The settled notch anchor is stored separately from animated coordinates so repeated presentations cannot drift.
+
+Only NSWindow origin and opacity animate. Window size, SwiftUI layout and native Liquid Glass segmented tracking remain unchanged; setFrameOrigin avoids frame-size changes or per-tick content layout. Existing transparent attachment/layout preparation remains before the first visible frame. The pointer hit region follows the actual panel frame, with existing eight-point tolerance covering the six-point motion. Reduce Motion skips spatial movement and reveals/dismisses at the settled anchor. Animation display links stop at completion. No Computer Use, app launch or interaction testing is performed; hover entry, departure and rapid reversal remain for user verification.
+
+Build 31 passed Swift compilation with SDK/minimum OS 27.0, source whitespace checks and package signature verification.
