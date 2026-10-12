@@ -240,3 +240,9 @@ Panel fade duration scales with the remaining alpha distance on reversal; settle
 No Computer Use, app launch, interaction testing or performance profiling is performed at the user's request. These are source-level reductions in work and bounded animation changes, not measured CPU/GPU/energy claims. User verification should cover quick hover reversal, Off/on transitions, power updates, settings responsiveness and sleep/wake.
 
 Build 28 passed Swift compilation with SDK/minimum OS 27.0, source whitespace checks and package signature verification.
+
+## Build 29: remove the panel host focus rectangle
+
+The user's screenshot shows a rectangular outline extending into the transparent corners around the rounded glass panel when focused. The controls panel's NSHostingView now uses focusRingType = .none to suppress its host-level focus outline. The native segmented control and SwiftUI buttons are unchanged; no blanket focusEffectDisabled, focus removal or keyboard-navigation suppression is added. The glass contour and shadow are retained. This is a targeted source fix for the host rectangle, with its focused visual result left for user verification. No Computer Use, app launch or interaction testing is performed.
+
+Build 29 passed Swift compilation with SDK/minimum OS 27.0, source whitespace checks and package signature verification.

@@ -64,6 +64,9 @@ final class BubblePanelController: NSObject {
             self?.hover.dismissNow()
         })
         let hosting = NSHostingView(rootView: view)
+        // The borderless glass panel has no rectangular host-level focus outline.
+        // Child controls retain their native keyboard focus indicators.
+        hosting.focusRingType = .none
         hosting.sizingOptions = []
         hosting.frame = NSRect(origin: .zero, size: size)
         hosting.autoresizingMask = [.width, .height]
