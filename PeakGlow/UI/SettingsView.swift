@@ -235,17 +235,13 @@ struct SettingsView: View {
         .accessibilityLabel(columnVisibility == .detailOnly ? "Show sidebar" : "Hide sidebar")
     }
 
-    @ViewBuilder private var resetButton: some View {
-        if #available(macOS 26.0, *) {
-            Button { confirmReset = true } label: {
-                Label("Reset…", systemImage: "arrow.counterclockwise")
-                    .foregroundStyle(.primary)
-            }
-                .nativeGlassAction()
-                .help("Reset all settings")
-        } else {
-            Button("Reset…", systemImage: "arrow.counterclockwise") { confirmReset = true }
+    private var resetButton: some View {
+        Button { confirmReset = true } label: {
+            Label("Reset…", systemImage: "arrow.counterclockwise")
+                .foregroundStyle(.primary)
         }
+        .nativeGlassAction()
+        .help("Reset all settings")
     }
 
     private func binding<T>(_ keyPath: ReferenceWritableKeyPath<AppSettings, T>) -> Binding<T> {
@@ -307,9 +303,8 @@ private enum SettingsPage: String, CaseIterable, Identifiable {
 }
 
 private extension View {
-    @ViewBuilder func nativeGlassAction() -> some View {
-        if #available(macOS 26.0, *) { self.buttonStyle(.glass) }
-        else { self.buttonStyle(.bordered) }
+    func nativeGlassAction() -> some View {
+        self.buttonStyle(.glass)
     }
 }
 

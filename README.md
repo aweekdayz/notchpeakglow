@@ -4,7 +4,7 @@
 >
 > 大概是最终版本了，如果后续macOS更新了导致api不兼容我会回来更新一下下
 
-[![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black)](https://developer.apple.com/macos/)
+[![macOS 27+](https://img.shields.io/badge/macOS-27%2B-black)](https://developer.apple.com/macos/)
 [![Apple Silicon](https://img.shields.io/badge/Apple-Silicon-blue)](https://developer.apple.com/silicon/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
@@ -39,18 +39,18 @@ PeakGlow 是一款 macOS 菜单栏常驻小工具（好吧，其实它连菜单�
 界面使用 English。SwiftUI 原生表单、开关、分段控件和系统材质；AppKit 仅管理原生悬浮窗口与屏幕行为，Metal 保留透明光晕渲染。Auto 低负载也显示轻柔光晕，Off 始终关闭。
 
 - 光晕沿真实刘海轮廓扩散，以青、紫、粉色柔光带缓慢交融；高负载过渡为冰蓝色，温度提醒使用持续暖色。
-- 控制面板在 macOS 26+ 使用系统 Liquid Glass；macOS 14/15 使用原生 popover 材质，自动适配浅色与深色外观。
-- 预览采用系统分段控件，退出收进更多菜单；设置采用 SwiftUI 原生侧栏导航与分组表单，macOS 26+ 的工具栏及操作按钮使用系统玻璃样式，技术参数收进 Advanced 页面。
+- 控制面板以 macOS 27 为基线，材质使用 SwiftUI 原生 glassEffect，自动适配系统外观与辅助功能设置。
+- 预览采用系统分段控件，退出收进更多菜单；设置采用 SwiftUI 原生侧栏导航与分组表单，macOS 27 的工具栏及操作按钮使用系统玻璃样式，技术参数收进 Advanced 页面。
 - 遵循系统“减少动态效果”；HDR 增益限定在屏幕可用 headroom 内，Air 使用 SDR。
 - 已保存的个人参数保持不变。想体验新的默认外观，可在设置中选择“Use Soft Appearance”，保留已有负载阈值。
 
-源码构建需要 Xcode 26+（保留 macOS 14 部署目标）及 Metal Toolchain。若缺少 Metal 编译器，可运行 `xcodebuild -downloadComponent MetalToolchain` 安装。
+源码构建需要提供 macOS 27 SDK 的 Xcode 及 Metal Toolchain，最低运行版本为 macOS 27。若缺少 Metal 编译器，可运行 `xcodebuild -downloadComponent MetalToolchain` 安装。
 
 ## 系统要求
 
 - MacBook（带刘海的内建显示器）
 - Apple Silicon
-- macOS 14.0+
+- macOS 27.0+
 - HDR 效果需要 XDR 显示屏（MacBook Pro 14"/16"）；Air 上自动回退 SDR
 
 ## 构建与安装
@@ -119,4 +119,4 @@ MIT
 
 光晕和面板动画由系统 CADisplayLink 同步屏幕刷新，面板展开/收起可中途反转；原生滑块保留系统绘制和交互，亮度、范围、透明度采用平滑响应，设置更新合并到约一帧以内。
 
-macOS 26+ 的 Slider、Toggle 和分段 Picker 使用系统默认控件；动作按钮使用原生 .glass 样式，不额外包裹玻璃胶囊。直接编译的预览包必须正确记录构建 SDK（LC_BUILD_VERSION.sdk），否则新 SDK 编译的代码仍可能显示旧控件样式。可用 scripts/compile-preview-swift.sh 编译并校验 SDK 标记。设置宿主使用窗口约束布局，侧栏采用 prominentDetail，减少折叠/展开时的重复内容测量。
+macOS 27 的 Slider、Toggle 和分段 Picker 使用系统默认控件；动作按钮使用原生 .glass 样式，不额外包裹玻璃胶囊。直接编译的预览包必须正确记录构建 SDK（LC_BUILD_VERSION.sdk），否则新 SDK 编译的代码仍可能显示旧控件样式。可用 scripts/compile-preview-swift.sh 编译并校验 SDK 标记。设置宿主使用窗口约束布局，侧栏采用 prominentDetail，减少折叠/展开时的重复内容测量。

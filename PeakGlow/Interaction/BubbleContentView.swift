@@ -34,6 +34,7 @@ struct BubbleContentView: View {
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     .padding(20)
     .frame(width: 328, height: 258)
+    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24))
   }
 }
 

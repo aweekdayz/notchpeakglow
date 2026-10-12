@@ -59,29 +59,14 @@ final class BubblePanelController: NSObject {
 
         let view = BubbleContentView(onClose: { [weak self] in
             self?.hover.dismissNow()
-        }).environmentObject(AppState.shared)
+        })
         let hosting = NSHostingView(rootView: view)
         hosting.sizingOptions = []
         hosting.frame = NSRect(origin: .zero, size: size)
         hosting.autoresizingMask = [.width, .height]
         hostingView = hosting
-        if #available(macOS 26.0, *) {
-            let glass = NSGlassEffectView(frame: hosting.frame)
-            glass.cornerRadius = 24
-            glass.contentView = hosting
-            p.contentView = glass
-        } else {
-            let material = NSVisualEffectView(frame: hosting.frame)
-            material.material = .popover
-            material.blendingMode = .behindWindow
-            material.state = .active
-            material.wantsLayer = true
-            material.layer?.cornerRadius = 20
-            material.layer?.masksToBounds = true
-            hosting.autoresizingMask = [.width, .height]
-            material.addSubview(hosting)
-            p.contentView = material
-        }
+        // SwiftUI owns the material and its control context; AppKit owns only the window.
+        p.contentView = hosting
         return p
     }
 

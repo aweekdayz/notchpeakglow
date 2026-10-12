@@ -169,3 +169,14 @@ The main panel retains only the footer gear as its Settings entry; the More menu
 Glow uses native SwiftUI Picker with pickerStyle(.segmented), the style linked in HIG Segmented controls. It remains a single-choice control with five related glow-state options; no custom segmented-button implementation was introduced.
 
 Build 22 passed Swift compilation, SDK metadata guard, whitespace and package signature validation. The app package is built in a separate staging directory to avoid overwriting the running Build 21 app. No Computer Use or interaction testing was performed; rapid sidebar toggling and Glow layout changes remain for user verification.
+
+
+## Build 23: macOS 27 baseline and SwiftUI-owned panel glass
+
+The user requests the latest macOS 27 native experience. The installed SDK is 27.0; the earlier preview already linked that SDK while deploying to macOS 14. Build 23 explicitly raises the Xcode deployment target, source Info.plist minimum, direct Swift target and linker minimum to 27.0. The compiler rejects SDKs older than 27 and validates both recorded SDK and minimum OS metadata. This is a deliberate compatibility change: Build 23 requires macOS 27 or newer. Raising the deployment target alone is not a guarantee of changed optics.
+
+The panel's material is now native SwiftUI glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24)) within its own hosting hierarchy. AppKit remains responsible for the borderless window and its focus/placement. The NSGlassEffectView wrapper and old popover NSVisualEffectView branch are removed, so only one framework owns the panel material context. Settings actions use native .glass directly without older-control fallbacks. Standard Slider, Toggle and segmented Picker retain the system implementation; no custom thumb, selection pill or nested fake glass is introduced. This migration provides SwiftUI-owned material composition, not runtime proof of the user's reported appearance issue.
+
+Apple's Adopting Liquid Glass documentation describes automatic current-SDK control adoption and dynamic interaction effects; a resting control need not look fully transparent. New APIs should be chosen by semantics, not merely by their introduction version. Glow is a value selector, so its segmented style is retained rather than changing to tab-view navigation.
+
+Compilation, SDK 27.0 and minimum OS 27.0 checks, source whitespace and package signature verification passed. No Computer Use, app launch or interactive testing was performed. Native control optics and panel focus/material behavior remain for user verification.
