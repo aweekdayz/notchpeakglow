@@ -213,3 +213,16 @@ Reference: https://developer.apple.com/documentation/appkit/nswindow/collectionb
 Actual foreground-window, fullscreen and Stage Manager interaction remains for user verification. No Computer Use or app launch is performed.
 
 Build 26 passed Swift compilation with SDK/minimum OS 27.0, whitespace checks and package signature verification.
+
+## Build 27: native tabs-role lens and compact Quit
+
+The user supplied a Reddit discussion explicitly identifying NSSegmentedControl.role = .tabs for the desired macOS 27 lens effect. Earlier builds deliberately chose valueSelection for Glow's value semantics, but that did not produce the requested appearance. This build prioritizes the user's explicit visual direction and adopts the public macOS 27 tabs role. The same native control, select-one tracking, equal segment distribution, intrinsic height and guarded selection update remain; no custom selection pill, private API or manual lens animation is introduced. Modes still update the existing glow preview rather than navigating a TabView. The installed Apple SDK declares tabs and valueSelection as separate public roles available since macOS 27.
+
+Quit now uses a small native SwiftUI circular glass button with the SF Symbol power, retaining the Quit PeakGlow tooltip and accessibility label. The header's fixed allocation and direct quit action remain.
+
+Reference supplied by the user: https://www.reddit.com/r/swift/comments/1vbefq1/why_doesnt_nssegmentedcontrol_get_the_macos_26/
+Public API: https://developer.apple.com/documentation/appkit/nssegmentedcontrol/role-swift.enum/tabs
+
+The role-specific visual result and animation remain for user verification. No Computer Use, app launch or interaction testing is performed.
+
+Build 27 passed Swift compilation with SDK/minimum OS 27.0, source whitespace checks and package signature verification.

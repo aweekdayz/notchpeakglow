@@ -11,8 +11,12 @@ struct BubbleContentView: View {
         Label("PeakGlow", systemImage: "waveform.path")
           .font(.system(size: 13, weight: .semibold))
         Spacer()
-        Button("Quit") { NSApp.terminate(nil) }
+        Button { NSApp.terminate(nil) } label: {
+          Label("Quit", systemImage: "power")
+        }
+          .labelStyle(.iconOnly)
           .buttonStyle(.glass)
+          .buttonBorderShape(.circle)
           .controlSize(.small)
           .help("Quit PeakGlow")
           .accessibilityLabel("Quit PeakGlow")
@@ -109,7 +113,7 @@ private struct BubblePowerView: View {
   }
 }
 
-/// The native macOS value selector updates independently of the static panel shell.
+/// The native macOS mode selector updates independently of the static panel shell.
 private struct GlowModeControl: View {
   @ObservedObject var app: AppState
   var body: some View {
@@ -155,7 +159,7 @@ private struct BubbleFooter: View {
 }
 
 /// A system segmented control, not a drawn replacement. AppKit exposes equal segment
-/// distribution and the explicit macOS 27 value-selection role to SwiftUI hosting.
+/// distribution and the macOS 27 tabs role to SwiftUI hosting.
 private struct NativeGlowSelector: NSViewRepresentable {
   @Binding var selection: PreviewLevel
   private static let modes: [PreviewLevel] = [.auto, .low, .medium, .high, .overheat]
@@ -171,7 +175,7 @@ private struct NativeGlowSelector: NSViewRepresentable {
     let control = NSSegmentedControl(
       labels: Self.labels, trackingMode: .selectOne,
       target: context.coordinator, action: #selector(Coordinator.select(_:)))
-    control.role = .valueSelection
+    control.role = .tabs
     control.segmentStyle = .automatic
     control.borderShape = .capsule
     control.segmentDistribution = .fillEqually
