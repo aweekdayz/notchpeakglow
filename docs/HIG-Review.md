@@ -180,3 +180,16 @@ The panel's material is now native SwiftUI glassEffect(.regular, in: RoundedRect
 Apple's Adopting Liquid Glass documentation describes automatic current-SDK control adoption and dynamic interaction effects; a resting control need not look fully transparent. New APIs should be chosen by semantics, not merely by their introduction version. Glow is a value selector, so its segmented style is retained rather than changing to tab-view navigation.
 
 Compilation, SDK 27.0 and minimum OS 27.0 checks, source whitespace and package signature verification passed. No Computer Use, app launch or interactive testing was performed. Native control optics and panel focus/material behavior remain for user verification.
+
+
+## Build 24: direct Quit and native segmented tracking
+
+The user reports mode-switch layout stutter persists and asks why the segmented control is not visibly Liquid Glass. Native status alone does not guarantee a permanently transparent resting appearance. The OS chooses system control optics; this build does not add a drawn glass pill or claim visual verification.
+
+Glow now uses macOS 27 NSSegmentedControl via NSViewRepresentable, explicitly configuring valueSelection role, automatic system style, capsule border, single-choice tracking and fillEqually segment distribution. The SwiftUI shell and glass surface remain. Native selection tracking is retained; updateNSView writes selection only when it differs from the already tracked segment. Per-segment system tooltips describe each mode. The representable sizes from system intrinsic height and offered width instead of allowing selection-dependent fitting width to drive the layout.
+
+Source inspection also found that every panel mouse-down called engage again, repeating App activation and makeKeyAndOrderFront during control tracking. Engagement is now idempotent until dismissal. Redundant effective-load/alarm publications are avoided. These changes target actual repeat-focus and native metric update paths; they do not establish that all reported stutter is resolved.
+
+Quit is a directly labeled native SwiftUI glass Button in the header. The one-item More menu is removed. The footer gear remains the sole Settings entry in the panel.
+
+Build 24 compiled with SDK/minimum OS 27.0 and passed metadata, whitespace and signature verification. No Computer Use, app launch or interactive testing was performed. Native material optics and rapid selection behavior remain for user verification.

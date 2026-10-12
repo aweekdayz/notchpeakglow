@@ -1,6 +1,7 @@
+import AppKit
 import SwiftUI
 
-/// A compact system-style control surface. Material lives on the AppKit panel.
+/// A compact native control surface. SwiftUI owns the glass; AppKit owns the window.
 struct BubbleContentView: View {
   var onClose: () -> Void
   private let app = AppState.shared
@@ -10,14 +11,11 @@ struct BubbleContentView: View {
         Label("PeakGlow", systemImage: "waveform.path")
           .font(.system(size: 13, weight: .semibold))
         Spacer()
-        Menu {
-          Button("Quit PeakGlow") { NSApp.terminate(nil) }
-        } label: {
-          Image(systemName: "ellipsis").frame(width: 28, height: 28)
-        }
-        .menuStyle(.borderlessButton)
-        .frame(width: 36, height: 28)
-        .accessibilityLabel("More actions")
+        Button("Quit") { NSApp.terminate(nil) }
+          .buttonStyle(.glass)
+          .controlSize(.small)
+          .help("Quit PeakGlow")
+          .accessibilityLabel("Quit PeakGlow")
       }
 
       .frame(height: 28)
@@ -111,7 +109,7 @@ private struct BubblePowerView: View {
   }
 }
 
-/// The native segmented Picker updates independently of the static panel shell.
+/// The native macOS value selector updates independently of the static panel shell.
 private struct GlowModeControl: View {
   @ObservedObject var app: AppState
   var body: some View {
@@ -119,16 +117,9 @@ private struct GlowModeControl: View {
       Text("Glow")
         .font(.caption)
         .foregroundStyle(.secondary)
-      Picker("Glow mode", selection: $app.preview) {
-        Text("Auto").tag(PreviewLevel.auto)
-        Text("Off").tag(PreviewLevel.low)
-        Text("Soft").tag(PreviewLevel.medium)
-        Text("Boost").tag(PreviewLevel.high)
-        Text("Warm").tag(PreviewLevel.overheat)
-      }
-      .pickerStyle(.segmented)
-      .labelsHidden()
-      .frame(maxWidth: .infinity)
+      NativeGlowSelector(selection: $app.preview)
+        .frame(maxWidth: .infinity)
+
     }
 
   }
@@ -160,5 +151,61 @@ private struct BubbleFooter: View {
       .accessibilityLabel("Open Settings")
     }
 
+  }
+}
+
+/// A system segmented control, not a drawn replacement. AppKit exposes equal segment
+/// distribution and the explicit macOS 27 value-selection role to SwiftUI hosting.
+private struct NativeGlowSelector: NSViewRepresentable {
+  @Binding var selection: PreviewLevel
+  private static let modes: [PreviewLevel] = [.auto, .low, .medium, .high, .overheat]
+  private static let labels = ["Auto", "Off", "Soft", "Boost", "Warm"]
+  private static let help = [
+    "Adapt glow to system load", "Turn glow off", "Preview soft glow",
+    "Preview boost glow", "Preview the warm temperature-alert glow",
+  ]
+
+  func makeCoordinator() -> Coordinator { Coordinator(selection: $selection) }
+
+  func makeNSView(context: Context) -> NSSegmentedControl {
+    let control = NSSegmentedControl(
+      labels: Self.labels, trackingMode: .selectOne,
+      target: context.coordinator, action: #selector(Coordinator.select(_:)))
+    control.role = .valueSelection
+    control.segmentStyle = .automatic
+    control.borderShape = .capsule
+    control.segmentDistribution = .fillEqually
+    control.controlSize = .regular
+    control.setAccessibilityLabel("Glow mode")
+    for index in Self.modes.indices {
+      control.setToolTip(Self.help[index], forSegment: index)
+    }
+    control.selectedSegment = Self.modes.firstIndex(of: selection) ?? 0
+    return control
+  }
+
+  func updateNSView(_ control: NSSegmentedControl, context: Context) {
+    context.coordinator.selection = $selection
+    let index = Self.modes.firstIndex(of: selection) ?? 0
+    // Tracking already set the selected segment. Avoid resetting it during the
+    // state publication, which can invalidate native metrics mid-interaction.
+    if control.selectedSegment != index { control.selectedSegment = index }
+  }
+
+  func sizeThatFits(
+    _ proposal: ProposedViewSize, nsView: NSSegmentedControl,
+    context: Context
+  ) -> CGSize? {
+    CGSize(width: proposal.width ?? 288, height: nsView.intrinsicContentSize.height)
+  }
+
+  final class Coordinator: NSObject {
+    var selection: Binding<PreviewLevel>
+    init(selection: Binding<PreviewLevel>) { self.selection = selection }
+    @objc func select(_ sender: NSSegmentedControl) {
+      guard NativeGlowSelector.modes.indices.contains(sender.selectedSegment) else { return }
+      let mode = NativeGlowSelector.modes[sender.selectedSegment]
+      if selection.wrappedValue != mode { selection.wrappedValue = mode }
+    }
   }
 }

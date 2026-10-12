@@ -127,6 +127,7 @@ final class NotchHoverController {
     }
 
     private func engage() {
+        guard !engaged else { return }
         engaged = true
         outsideSince = nil
         onEngageBubble?()

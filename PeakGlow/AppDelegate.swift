@@ -192,10 +192,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .low, .medium, .high:
             effective = LoadLevel(rawValue: AppSettings.shared.preview.rawValue) ?? lastAutoLevel
         }
-        AppState.shared.effectiveLevel = effective
+        if AppState.shared.effectiveLevel != effective {
+            AppState.shared.effectiveLevel = effective
+        }
         // 真实过热（非预览）时同步给气泡 UI 做状态区分
-        AppState.shared.overheatAlarm = overheat && AppSettings.shared.preview != .overheat
+        let alarm = overheat && AppSettings.shared.preview != .overheat
             && AppSettings.shared.overheatAlarm
+        if AppState.shared.overheatAlarm != alarm { AppState.shared.overheatAlarm = alarm }
         glow.setOverheat(overheat, gainBoost: Float(AppSettings.shared.overheatGain))
         glow.setLevel(effective)
     }
