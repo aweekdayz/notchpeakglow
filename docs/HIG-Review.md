@@ -156,3 +156,16 @@ An attempted sidebar click to verify collapse/reopen was rejected by automatic a
 The user clarifies that Reset must be in the upper-right corner. Build 21 preserves the confirmed single leading sidebar toggle and mounted Appearance initialization. SwiftUI continues to supply the native Reset Button and toolbar item. The AppKit SettingsWindow manages NSToolbar's standard flexible-space item immediately before the final action, and clears center-only item grouping. The update hook restores that native spacing when toolbar composition changes; it does not position controls with pixel offsets or redraw any control.
 
 Direct visual observation of the final build confirms Reset at the window's upper-right edge, exactly one sidebar toggle before the title, and white initial Appearance text in the selected native sidebar row. Swift compilation, SDK metadata and package signature verification passed. This turn inspected window presentation only; Reset was not clicked and no unrelated settings or interaction tests were performed.
+
+
+## Build 22 follow-up: stable toolbar and mode-control layout
+
+The user prohibits further Computer Use, reports Reset flashing between center and trailing positions during rapid sidebar toggles, identifies duplicate Settings entry points, and reports panel movement when switching Glow modes. This turn uses source inspection and compilation only.
+
+Toolbar declarations now keep sidebar toggle and Reset in fixed root-level slots with explicit stable identifiers. Changing sidebar visibility no longer removes an item from one column and inserts it into another. Scoped removal of default sidebar controls is retained, as is native flexible-space alignment. Redundant centered-item writes are avoided. This targets the structural rebuild that required after-update spacing repair; runtime flicker resolution is not established.
+
+The main panel retains only the footer gear as its Settings entry; the More menu no longer duplicates it. The static panel shell no longer observes AppState. Mode control, status/measurement and footer observe their own child regions. Header, measurement, mode selector and footer reserve stable heights; the segmented Picker fills the available width. Mode-dependent text therefore does not change the shell's vertical allocation.
+
+Glow uses native SwiftUI Picker with pickerStyle(.segmented), the style linked in HIG Segmented controls. It remains a single-choice control with five related glow-state options; no custom segmented-button implementation was introduced.
+
+Build 22 passed Swift compilation, SDK metadata guard, whitespace and package signature validation. The app package is built in a separate staging directory to avoid overwriting the running Build 21 app. No Computer Use or interaction testing was performed; rapid sidebar toggling and Glow layout changes remain for user verification.

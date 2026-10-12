@@ -52,7 +52,7 @@ private final class SettingsWindow: NSWindow {
 
     func alignResetToolbar() {
         guard let toolbar, toolbar.items.count >= 2 else { return }
-        toolbar.centeredItemIdentifiers = []
+        if !toolbar.centeredItemIdentifiers.isEmpty { toolbar.centeredItemIdentifiers = [] }
         let actionIndex = toolbar.items.count - 1
         // Reset is the final action. Use NSToolbar's real flexible-space item,
         // rather than a hosted SwiftUI spacer with an intrinsic view width.
@@ -88,11 +88,6 @@ struct SettingsView: View {
             .toolbar(removing: .sidebarToggle)
             .focused($sidebarFocused)
             .navigationSplitViewColumnWidth(180)
-            .toolbar {
-                if columnVisibility != .detailOnly {
-                    ToolbarItem(placement: .navigation) { sidebarToggle }
-                }
-            }
         } detail: {
             Form {
                 switch selection ?? .appearance {
@@ -195,10 +190,9 @@ struct SettingsView: View {
         }
         .toolbar(removing: .sidebarToggle)
         .toolbar {
-            if columnVisibility == .detailOnly {
-                ToolbarItem(placement: .navigation) { sidebarToggle }
-            }
-            ToolbarItem(placement: .automatic) {
+            // Both toolbar items keep the same identity through sidebar transitions.
+            ToolbarItem(id: "PeakGlowSidebarToggle", placement: .navigation) { sidebarToggle }
+            ToolbarItem(id: "PeakGlowReset", placement: .automatic) {
                 resetButton
             }
         }
