@@ -246,3 +246,9 @@ Build 28 passed Swift compilation with SDK/minimum OS 27.0, source whitespace ch
 The user's screenshot shows a rectangular outline extending into the transparent corners around the rounded glass panel when focused. The controls panel's NSHostingView now uses focusRingType = .none to suppress its host-level focus outline. The native segmented control and SwiftUI buttons are unchanged; no blanket focusEffectDisabled, focus removal or keyboard-navigation suppression is added. The glass contour and shadow are retained. This is a targeted source fix for the host rectangle, with its focused visual result left for user verification. No Computer Use, app launch or interaction testing is performed.
 
 Build 29 passed Swift compilation with SDK/minimum OS 27.0, source whitespace checks and package signature verification.
+
+## Build 30: remove the rectangular AppKit window shadow
+
+The user reports that disabling the host focus ring did not remove the corner rectangle. The previous diagnosis was therefore insufficient. The borderless panel still had hasShadow = true, allowing AppKit's window shadow to follow the rectangular window frame outside the rounded SwiftUI glass surface. This build disables that separate system window shadow. The native glass surface, focus behavior and controls remain unchanged. This targets the remaining rectangular window decoration; visual removal is not asserted without user verification. No Computer Use, app launch or interaction testing is performed.
+
+Build 30 passed Swift compilation with SDK/minimum OS 27.0, source whitespace checks and package signature verification.

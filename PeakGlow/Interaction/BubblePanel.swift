@@ -49,7 +49,9 @@ final class BubblePanelController: NSObject {
             defer: false)
         p.isOpaque = false
         p.backgroundColor = .clear
-        p.hasShadow = true
+        // A borderless NSPanel's system shadow follows its rectangular frame,
+        // exposing square corners around SwiftUI's rounded Liquid Glass surface.
+        p.hasShadow = false
         p.isFloatingPanel = true
         p.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.statusWindow)) + 2)
         // Hover doesn't activate this app, so moving on activation isn't enough.
