@@ -193,3 +193,11 @@ Source inspection also found that every panel mouse-down called engage again, re
 Quit is a directly labeled native SwiftUI glass Button in the header. The one-item More menu is removed. The footer gear remains the sole Settings entry in the panel.
 
 Build 24 compiled with SDK/minimum OS 27.0 and passed metadata, whitespace and signature verification. No Computer Use, app launch or interactive testing was performed. Native material optics and rapid selection behavior remain for user verification.
+
+## Build 25: Always On Top
+
+The user clarified that AOP means Always On Top. The notch glow and controls panel already use elevated window levels; Settings was still a normal window. Settings now defaults to the native NSWindow floating level, with a persistent native SwiftUI “Keep Settings on Top” toggle in Behavior. The controller observes settings changes and updates the existing window immediately, without activating the app, recreating its content or changing the toolbar. Turning the option off restores the normal window level. Reset All restores the default enabled state. This setting applies to Settings, above ordinary app windows in its current Space; it does not change the panel's dismissal behavior or move windows across Spaces.
+
+Liquid Glass appearance remains an open user-reported issue. This build does not replace value selection with a tab-navigation role simply for different optics, add a drawn glass imitation or assert that the visual issue is resolved. The native macOS 27 APIs were rechecked against the installed SDK and Apple's AppKit design presentation. No interactive visual verification is performed at the user's request.
+
+Build 25 compiled with SDK/minimum OS 27.0 and passed package signature verification. No Computer Use, app launch or interaction testing was performed.
