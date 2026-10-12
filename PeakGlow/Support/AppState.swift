@@ -34,7 +34,9 @@ final class AppState: ObservableObject {
         } else {
             availability = latestPowerAvailability
         }
-        let reading = PowerReadingState.Reading(watts: latestWatts, availability: availability)
+        // UI shows tenths of a watt; retain full precision for load detection only.
+        let displayWatts = (latestWatts * 10).rounded() / 10
+        let reading = PowerReadingState.Reading(watts: displayWatts, availability: availability)
         if power.reading != reading { power.reading = reading }
     }
     @Published var effectiveLevel: LoadLevel = .low

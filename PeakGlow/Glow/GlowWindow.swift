@@ -29,9 +29,8 @@ final class GlowWindow {
 
     func setLevel(_ level: LoadLevel) {
         pendingLevel = level
-        syncPauseState()
         metalView?.renderer?.targetLevel = level
-        metalView?.wake()
+        syncPauseState()
     }
 
     func setOverheat(_ on: Bool, gainBoost: Float = 1.5) {
@@ -124,7 +123,6 @@ final class GlowWindow {
             updateHeadroom(screen: screen)
         }
 
-        metalView?.wake()
         panel?.orderFrontRegardless()
     }
 
@@ -148,6 +146,11 @@ final class GlowWindow {
     }
 
     private func observeScreenChanges() {
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification,
+            object: nil, queue: .main) { [weak self] _ in
+                self?.metalView?.wake()
+            }
         // 唤醒时屏幕参数通知成串到达，合并防抖避免反复 setFrame/重建 drawable
         NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,

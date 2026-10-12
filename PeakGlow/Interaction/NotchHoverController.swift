@@ -130,7 +130,7 @@ final class NotchHoverController {
     private func engage() {
         guard !engaged else { return }
         engaged = true
-        outsideSince = nil
+        cancelOutsideWatch()
         onEngageBubble?()
     }
 
@@ -185,12 +185,15 @@ final class NotchHoverController {
 
     private func startOutsideWatch() {
         outsidePoll?.invalidate()
+        outsidePoll = nil
         outsideSince = nil
+        guard !engaged else { return }
         outsidePoll = Timer(
             timeInterval: 0.04, repeats: true) { [weak self] _ in
             self?.checkOutside()
         }
         if let outsidePoll { RunLoop.main.add(outsidePoll, forMode: .common) }
+        outsidePoll?.tolerance = 0.004
     }
 
     private func cancelOutsideWatch() {

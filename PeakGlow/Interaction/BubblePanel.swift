@@ -135,6 +135,12 @@ final class BubblePanelController: NSObject {
         if panel.frame != frame { panel.setFrame(frame, display: true) }
         motionStartAlpha = panel.alphaValue
         motionEndAlpha = alpha
+        let distance = abs(motionEndAlpha - motionStartAlpha)
+        if distance < 0.001, !preparingPresentation {
+            panel.alphaValue = alpha
+            if closing { panel.orderOut(nil) }
+            return
+        }
         if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
             preparingPresentation = false
             panel.setFrame(frame, display: true)
@@ -143,9 +149,11 @@ final class BubblePanelController: NSObject {
             return
         }
         motionStarted = CACurrentMediaTime()
-        motionDuration = closing ? 0.12 : 0.18
+        // Reverse from the current opacity without restarting a full-length fade.
+        motionDuration = max(1.0 / 60.0, (closing ? 0.12 : 0.18) * Double(distance))
         guard let view = panel.contentView else { return }
         let link = view.displayLink(target: self, selector: #selector(animateFrame(_:)))
+        link.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)
         link.add(to: .main, forMode: .common)
         motionLink = link
     }

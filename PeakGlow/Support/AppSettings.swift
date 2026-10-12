@@ -84,7 +84,8 @@ final class AppSettings: ObservableObject {
         return (v as? T) ?? fallback
     }
 
-    private func set<T>(_ value: T, _ key: String) {
+    private func set<T: Equatable>(_ value: T, _ key: String) {
+        guard (d.object(forKey: key) as? T) != value else { return }
         objectWillChange.send()
         d.set(value, forKey: key)
         NotificationCenter.default.post(name: Self.changedNotification, object: nil)

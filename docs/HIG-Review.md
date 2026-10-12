@@ -226,3 +226,17 @@ Public API: https://developer.apple.com/documentation/appkit/nssegmentedcontrol/
 The role-specific visual result and animation remain for user verification. No Computer Use, app launch or interaction testing is performed.
 
 Build 27 passed Swift compilation with SDK/minimum OS 27.0, source whitespace checks and package signature verification.
+
+## Build 28: performance and transition polish
+
+The user confirms the native tabs-role Liquid Glass appearance. That control, its system animation, the Quit button and panel geometry are unchanged.
+
+Power now owns its sampling timer instead of being gated by an unused Mach CPU sampler callback. Sampling starts immediately and still feeds the same five-reading load filter. Positive SMC metadata is cached per connection; value-read failures invalidate that entry for retry. Successful steady-state power reads need one SMC call instead of two, and the unused CPU tick queries/array allocations no longer run. A small timer tolerance permits wakeup coalescing. Full precision remains in the load path; the measurement subtree publishes the one-decimal precision it actually displays, avoiding updates for invisible fractional changes.
+
+The renderer snapshots preferences and Reduce Motion at wake/state updates, removing preference reads from the display-link loop. Accessibility display changes refresh that snapshot. Duplicate wake calls are removed; an already idle, hidden glow does not restart its display link. Idle resumption resets its time baseline instead of integrating the time spent off. A two-frame nonblocking submission gate limits GPU backlog and drops work when full; drawable acquisition still uses CAMetalLayer's system API and is not claimed to be universally nonblocking. Metal completion handlers return permits, including failure paths before submission. A fade to zero now submits a fully transparent final frame before entering idle, addressing the previous unpresented last-frame residual.
+
+Panel fade duration scales with the remaining alpha distance on reversal; settled transitions avoid starting an unnecessary display link. The opacity fade requests 60 fps while leaving native control animations under system control. Clicking to engage the panel stops the outside-pointer poll; click-outside and Esc monitors remain active. Identical persisted settings writes no longer broadcast updates.
+
+No Computer Use, app launch, interaction testing or performance profiling is performed at the user's request. These are source-level reductions in work and bounded animation changes, not measured CPU/GPU/energy claims. User verification should cover quick hover reversal, Off/on transitions, power updates, settings responsiveness and sleep/wake.
+
+Build 28 passed Swift compilation with SDK/minimum OS 27.0, source whitespace checks and package signature verification.

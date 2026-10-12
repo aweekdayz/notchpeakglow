@@ -2,7 +2,6 @@ import AppKit
 import ServiceManagement
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let sampler = CPUSampler()
     private let powerSampler = PowerSampler()
     private let thermal = OverheatDetector()
     private let stateMachine = LoadLevelStateMachine()
@@ -28,13 +27,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         installMainMenu()
         bubble = BubblePanelController(hover: hover)
-        // 采样 → 状态机（仅整机功率信号；CPU% 仅作显示）
+        // Sample power directly; unused CPU readings must not gate this callback.
         var wattWindow: [Double] = []
-        sampler.onSample = { [weak self] avg in
+        powerSampler.onSample = { [weak self] reading in
             guard let self else { return }
             let state = AppState.shared
 
-            let reading = powerSampler.readWatts()
             state.recordPower(reading)
             guard let w = reading, w.isFinite, w > 0 else {
                 wattWindow.removeAll()
@@ -94,7 +92,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hover.start()
         gamepad.start()
         thermal.start()
-        sampler.start(interval: AppSettings.shared.sampleInterval)
+        powerSampler.start(interval: AppSettings.shared.sampleInterval)
         applyLevel()   // start 之后再应用一次（renderer 此时已创建）
 
         FirstRunWindow.showIfNeeded()
@@ -103,7 +101,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         settingsUpdate?.cancel()
         glow.shutdown()
-        sampler.stop()
+        powerSampler.stop()
     }
 
     private func installMainMenu() {
@@ -166,7 +164,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         applyLevel()
         if samplingInterval != s.sampleInterval {
             samplingInterval = s.sampleInterval
-            sampler.start(interval: samplingInterval)
+            powerSampler.start(interval: samplingInterval)
         }
     }
 

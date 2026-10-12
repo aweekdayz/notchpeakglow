@@ -57,6 +57,7 @@ final class GlowMetalView: NSView {
     /// 档位变化时由外部调用：唤醒渲染
     func wake() {
         renderer?.wake()
+        guard renderer?.isIdle == false else { return }
         startDisplayLinkIfNeeded()
     }
 

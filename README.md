@@ -43,6 +43,7 @@ PeakGlow 是一款 macOS 菜单栏常驻小工具（好吧，其实它连菜单�
 - 预览采用 macOS 27 的系统单选分段控件（SwiftUI 托管、tabs 角色、等宽分段），Quit 使用直接可点的电源图标按钮；设置采用 SwiftUI 原生侧栏导航与分组表单，macOS 27 的工具栏及操作按钮使用系统玻璃样式，技术参数收进 Advanced 页面。
 - 鼠标悬停呼出的控制面板使用原生跨应用覆盖窗口行为，支持全屏及 Stage Manager；悬停显示时不抢走当前应用的焦点。
 - 遵循系统“减少动态效果”；HDR 增益限定在屏幕可用 headroom 内，Air 使用 SDR。
+- 性能优化：直接采样功耗、缓存传感器元数据和渲染参数，关闭光晕后提交透明帧并停止渲染；呼出/收起的反向动画从当前透明度继续。
 - 已保存的个人参数保持不变。想体验新的默认外观，可在设置中选择“Use Soft Appearance”，保留已有负载阈值。
 
 源码构建需要提供 macOS 27 SDK 的 Xcode 及 Metal Toolchain，最低运行版本为 macOS 27。若缺少 Metal 编译器，可运行 `xcodebuild -downloadComponent MetalToolchain` 安装。

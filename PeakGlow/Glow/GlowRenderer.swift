@@ -20,6 +20,32 @@ final class GlowRenderer {
     private let layer: CAMetalLayer
     private let commandQueue: MTLCommandQueue
     private let pipeline: MTLRenderPipelineState
+    private let framesInFlight = DispatchSemaphore(value: 2)
+    private var settings = RenderingSettings()
+
+    /// Read preferences on state changes, not from the display-link hot path.
+    private struct RenderingSettings {
+        let frameRate: Double
+        let glowIntensity: Double
+        let glowScale: Double
+        let mediumAlpha: Double
+        let hdrFactor: Double
+        let pulseHz: Double
+        let overheatScale: Double
+        let reduceMotion: Bool
+
+        init() {
+            let s = AppSettings.shared
+            frameRate = s.frameRate
+            glowIntensity = s.glowIntensity
+            glowScale = s.glowScale
+            mediumAlpha = s.mediumAlpha
+            hdrFactor = s.hdrFactor
+            pulseHz = s.pulseHz
+            overheatScale = s.overheatScale
+            reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        }
+    }
 
     private var intensity: Float = 0
     private var modeMix: Float = 0
@@ -61,6 +87,12 @@ final class GlowRenderer {
 
     /// 有新目标（档位变化/恢复）时唤醒
     func wake() {
+        settings = RenderingSettings()
+        if isIdle {
+            guard Self.targetIntensity(level: targetLevel, paused: paused, ambient: ambientEnabled) > 0 else { return }
+            // Don't integrate the whole time spent idle into the first resumed frame.
+            lastRender = 0
+        }
         isIdle = false
     }
 
@@ -73,15 +105,15 @@ final class GlowRenderer {
     // MARK: - 渲染（主线程，Timer 驱动）
 
     func renderFrame(now: CFTimeInterval) {
-        if lastRender != 0, now - lastRender < (1.0 / AppSettings.shared.frameRate) * 0.9 { return }
-        let s = AppSettings.shared
+        let s = settings
+        if lastRender != 0, now - lastRender < (1.0 / s.frameRate) * 0.9 { return }
 
         let targetIntensity = Self.targetIntensity(level: targetLevel, paused: paused, ambient: ambientEnabled)
         let targetMix: Float = targetLevel == .high ? 1 : 0
 
         let dt = Float(min(0.1, lastRender == 0 ? 0.033 : now - lastRender))
         let fadeSpeed: Float = targetLevel == .low ? 2.0 : 1.25
-        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        let reduceMotion = s.reduceMotion
         let fade = reduceMotion ? Float(1) : 1 - exp(-dt * fadeSpeed * 3)
         intensity += (targetIntensity - intensity) * fade
         modeMix += (targetMix - modeMix) * (reduceMotion ? 1 : 1 - exp(-dt * 3))
@@ -97,13 +129,14 @@ final class GlowRenderer {
         lastRender = now
 
         // 完全隐藏 → 通知宿主暂停 Timer
-        if intensity < 0.004, targetIntensity == 0 {
-            intensity = 0
-            isIdle = true
-            return
-        }
+        let finishingFade = intensity < 0.004 && targetIntensity == 0
+        if finishingFade { intensity = 0 }
         isIdle = false
 
+        // Under GPU pressure, skip a frame instead of waiting on the UI thread.
+        guard framesInFlight.wait(timeout: .now()) == .success else { return }
+        var submitted = false
+        defer { if !submitted { framesInFlight.signal() } }
         guard let drawable = layer.nextDrawable() else { return }
         let drawableSize = layer.drawableSize
 
@@ -138,8 +171,13 @@ final class GlowRenderer {
         encoder.setFragmentBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: 0)
         encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
         encoder.endEncoding()
+        let completionGate = framesInFlight
+        cmd.addCompletedHandler { _ in completionGate.signal() }
         cmd.present(drawable)
+        submitted = true
         cmd.commit()
+        // Submit a truly transparent final frame before stopping the display link.
+        if finishingFade { isIdle = true }
     }
 }
 
