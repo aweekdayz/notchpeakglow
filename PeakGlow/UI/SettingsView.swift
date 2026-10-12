@@ -5,28 +5,11 @@ import ServiceManagement
 final class SettingsWindowController {
     static let shared = SettingsWindowController()
     private var window: NSWindow?
-    private var settingsObserver: NSObjectProtocol?
-
-    private init() {
-        settingsObserver = NotificationCenter.default.addObserver(
-            forName: AppSettings.changedNotification, object: nil, queue: .main
-        ) { [weak self] _ in
-            self?.updateWindowLevel()
-        }
-    }
-
-    private func updateWindowLevel() {
-        guard let window else { return }
-        let level: NSWindow.Level = AppSettings.shared.keepSettingsOnTop ? .floating : .normal
-        // Change ordering only; don't activate the app or rebuild the window.
-        if window.level != level { window.level = level }
-    }
 
     func show() {
         // Establish active-app appearance before the initially selected row is rendered.
         NSApp.activate(ignoringOtherApps: true)
         if let window {
-            updateWindowLevel()
             window.makeKeyAndOrderFront(nil)
             return
         }
@@ -35,7 +18,6 @@ final class SettingsWindowController {
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false)
         w.title = "PeakGlow Settings"
-        w.level = AppSettings.shared.keepSettingsOnTop ? .floating : .normal
         w.isReleasedWhenClosed = false
         w.minSize = NSSize(width: 700, height: 540)
         w.toolbarStyle = .unified
@@ -151,8 +133,6 @@ struct SettingsView: View {
                 }
                 case .behavior:
                 Section("Behavior") {
-                    Toggle("Keep Settings on Top", isOn: binding(\.keepSettingsOnTop))
-                        .help("Keep the Settings window above other apps’ normal windows.")
                     Toggle("Launch at login", isOn: $loginEnabled)
                         .onChange(of: loginEnabled) { _, enabled in
                             updateLogin(enabled)

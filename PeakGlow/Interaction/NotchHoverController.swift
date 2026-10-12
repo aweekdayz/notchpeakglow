@@ -98,7 +98,8 @@ final class NotchHoverController {
             p.hasShadow = false
             p.hidesOnDeactivate = false   // 关键：锁屏/切 App 时系统默认会收起面板
             p.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.statusWindow)))
-            p.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+            // The hit target must also join the foreground app's fullscreen Space.
+            p.collectionBehavior = [.canJoinAllSpaces, .canJoinAllApplications, .stationary, .ignoresCycle]
             p.isMovable = false
 
             let view = HoverTargetView(frame: NSRect(origin: .zero, size: notch.size))

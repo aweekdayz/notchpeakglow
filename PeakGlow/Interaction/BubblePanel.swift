@@ -50,8 +50,11 @@ final class BubblePanelController: NSObject {
         p.isOpaque = false
         p.backgroundColor = .clear
         p.hasShadow = true
+        p.isFloatingPanel = true
         p.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.statusWindow)) + 2)
-        p.collectionBehavior = [.moveToActiveSpace, .ignoresCycle]
+        // Hover doesn't activate this app, so moving on activation isn't enough.
+        // Join the foreground app's Space, including full screen and Stage Manager.
+        p.collectionBehavior = [.canJoinAllSpaces, .canJoinAllApplications, .ignoresCycle]
         p.isMovable = false
         p.hidesOnDeactivate = false
         p.acceptsMouseMovedEvents = true
@@ -96,6 +99,8 @@ final class BubblePanelController: NSObject {
             motionLink = nil
             preparingPresentation = true
         }
+        let overlayLevel = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.statusWindow)) + 2)
+        if p.level != overlayLevel { p.level = overlayLevel }
         p.orderFrontRegardless()
         if !needsPreparation {
             animate(to: destination, alpha: 1, closing: false)

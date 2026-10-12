@@ -201,3 +201,15 @@ The user clarified that AOP means Always On Top. The notch glow and controls pan
 Liquid Glass appearance remains an open user-reported issue. This build does not replace value selection with a tab-navigation role simply for different optics, add a drawn glass imitation or assert that the visual issue is resolved. The native macOS 27 APIs were rechecked against the installed SDK and Apple's AppKit design presentation. No interactive visual verification is performed at the user's request.
 
 Build 25 compiled with SDK/minimum OS 27.0 and passed package signature verification. No Computer Use, app launch or interaction testing was performed.
+
+## Build 26: hover overlay above the focused application
+
+The user clarified that Always On Top applies to the hover controls panel, not Settings. The Build 25 Settings preference and floating-window changes are removed; Settings returns to its existing normal-window behavior.
+
+The controls panel already used status-window level + 2 and orderFrontRegardless. Its collection behavior, however, only moved it to the active Space on activation, while hover intentionally does not activate PeakGlow. The panel now combines canJoinAllSpaces with canJoinAllApplications, explicitly opts into floating-panel behavior and preserves hidesOnDeactivate = false. The hover hit target also adopts canJoinAllApplications so it can receive hover in the foreground app's eligible fullscreen Space. The overlay level is reaffirmed only when different on presentation. Hover still does not make the panel key or activate the application; click engagement retains keyboard navigation. This uses Apple's documented behavior for overlays joining other apps in full screen and Stage Manager, rather than repeatedly stealing focus or polling frontmost windows.
+
+Reference: https://developer.apple.com/documentation/appkit/nswindow/collectionbehavior-swift.struct/canjoinallapplications
+
+Actual foreground-window, fullscreen and Stage Manager interaction remains for user verification. No Computer Use or app launch is performed.
+
+Build 26 passed Swift compilation with SDK/minimum OS 27.0, whitespace checks and package signature verification.

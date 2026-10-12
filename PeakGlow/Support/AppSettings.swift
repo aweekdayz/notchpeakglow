@@ -49,7 +49,6 @@ final class AppSettings: ObservableObject {
         static let overheatScale = "overheatScale"
         static let frameRate = "frameRate"
         static let hoverDwell = "hoverDwell"
-        static let keepSettingsOnTop = "keepSettingsOnTop"
         static let previewLevel = "previewLevel"
         static let powerTuned = "powerTuned"
         static let firstRunDone = "firstRunDone"
@@ -75,7 +74,6 @@ final class AppSettings: ObservableObject {
         // Only renders while visible; 30 fps keeps transitions smooth.
         static let frameRate = 30.0
         static let hoverDwell = 0.08
-        static let keepSettingsOnTop = true
         static let previewLevel = PreviewLevel.auto.rawValue
         static let powerTuned = false
         static let firstRunDone = false
@@ -157,11 +155,6 @@ final class AppSettings: ObservableObject {
     }
 
     // MARK: - 行为
-    var keepSettingsOnTop: Bool {
-        get { get(Key.keepSettingsOnTop, Defaults.keepSettingsOnTop) }
-        set { set(newValue, Key.keepSettingsOnTop) }
-    }
-
     var hoverDwell: Double {
         get { get(Key.hoverDwell, Defaults.hoverDwell) }
         set { set(Double(newValue), Key.hoverDwell) }
@@ -214,7 +207,6 @@ final class AppSettings: ObservableObject {
         sampleInterval = Defaults.sampleInterval
         resetAppearance()
         hoverDwell = Defaults.hoverDwell
-        keepSettingsOnTop = Defaults.keepSettingsOnTop
         previewLevelRaw = Defaults.previewLevel
         powerTuned = Defaults.powerTuned
     }
