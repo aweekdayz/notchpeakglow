@@ -4,7 +4,7 @@ import AppKit
 final class NotchHoverController {
     var onShowBubble: (() -> Void)?
     var onHideBubble: (() -> Void)?
-    var onEngageBubble: (() -> Void)?
+    var onEngageBubble: ((Bool) -> Void)?
     /// 气泡全局 frame 提供者（AppKit 全局坐标，与 NSEvent.mouseLocation 同系）
     var bubbleFrameProvider: (() -> CGRect?)?
 
@@ -17,6 +17,7 @@ final class NotchHoverController {
     private var escapeMonitor: Any?
     private var localClickMonitor: Any?
     private var engaged = false
+    private var keyboardEngaged = false
     private var watchdogTimer: Timer?
     private var pendingReposition: Timer?
     private var bubbleVisible = false
@@ -124,15 +125,16 @@ final class NotchHoverController {
         dwellTimer?.invalidate()
         dwellTimer = nil
         if !bubbleVisible { showBubble() }
-        engage()
+        engage(forKeyboard: true)
     }
 
-    private func engage() {
-        guard !engaged else { return }
+    private func engage(forKeyboard: Bool = false) {
+        guard !engaged || (forKeyboard && !keyboardEngaged) else { return }
         engaged = true
+        keyboardEngaged = keyboardEngaged || forKeyboard
         outsideSince = nil
         if outsidePoll == nil { startOutsideWatch() }
-        onEngageBubble?()
+        onEngageBubble?(forKeyboard)
     }
 
     // MARK: - 内部
@@ -153,7 +155,12 @@ final class NotchHoverController {
     fileprivate func clickNotch() {
         dwellTimer?.invalidate()
         dwellTimer = nil
-        if bubbleVisible && engaged { hideBubble() } else { openForInteraction() }
+        if bubbleVisible && engaged {
+            hideBubble()
+        } else {
+            if !bubbleVisible { showBubble() }
+            engage()
+        }
     }
 
     fileprivate func mouseExitedNotch() {
@@ -177,6 +184,7 @@ final class NotchHoverController {
         guard bubbleVisible else { return }
         bubbleVisible = false
         engaged = false
+        keyboardEngaged = false
         cancelOutsideWatch()
         removeClickMonitor()
         onHideBubble?()

@@ -24,9 +24,10 @@ final class BubblePanelController: NSObject {
         super.init()
         hover.onShowBubble = { [weak self] in self?.show() }
         hover.onHideBubble = { [weak self] in self?.hide() }
-        hover.onEngageBubble = { [weak self] in
-            // A nonactivating panel can receive keys without activating the app.
-            self?.panel?.makeKeyAndOrderFront(nil)
+        hover.onEngageBubble = { [weak self] forKeyboard in
+            guard forKeyboard, let panel = self?.panel as? BubbleControlPanel else { return }
+            panel.allowsKeyboardFocus = true
+            panel.makeKeyAndOrderFront(nil)
         }
         hover.bubbleFrameProvider = { [weak self] in self?.panel?.frame }
         if let screen = NotchedScreenFinder.find(), let notch = NotchedScreenFinder.notchRect(of: screen) {
@@ -93,6 +94,9 @@ final class BubblePanelController: NSObject {
         let p: NSPanel
         if let panel { p = panel }
         else { p = makePanel(notch: notch); panel = p }
+        // Pointer presentations stay non-key throughout all control clicks.
+        (p as? BubbleControlPanel)?.allowsKeyboardFocus = false
+        if p.isKeyWindow { p.resignKey() }
         let destination = CGRect(x: notch.midX - p.frame.width / 2,
                                  y: notch.minY - p.frame.height - 8,
                                  width: p.frame.width, height: p.frame.height)
@@ -211,11 +215,14 @@ final class BubblePanelController: NSObject {
 /// Clip the complete composited host, including any focus-time backing surface.
 private final class BubbleHostingView: NSHostingView<BubbleContentView> {
     override var isOpaque: Bool { false }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }
 
-/// Hover never takes focus; clicking a control can enable native keyboard navigation.
+/// Pointer interaction preserves appearance and focus in the foreground app.
+/// Explicit Window-menu presentation enables native keyboard navigation.
 private final class BubbleControlPanel: NSPanel {
-    override var canBecomeKey: Bool { true }
+    var allowsKeyboardFocus = false
+    override var canBecomeKey: Bool { allowsKeyboardFocus }
     override var canBecomeMain: Bool { false }
 }
 
