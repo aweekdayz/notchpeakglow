@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Show the menu bar while Settings is open: the app switches to a regular activation policy (menu bar and Dock icon) with the Settings window and returns to accessory mode when it closes. Previously the menus existed but could never be displayed.
+
 ## 1.6.3 — Build 40 (not yet published)
 
 - Break the temperature-plateau window and the load-transition dwell when samples are interrupted (for example by system sleep), so a plateau or transition must be observed continuously after waking.
