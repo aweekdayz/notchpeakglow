@@ -1,6 +1,6 @@
 # Release audit — October 12, 2026
 
-Source revision: 1.6.1, Build 38 (packaged locally; not publicly released). Current public binary: 1.6.0, Build 37.
+Historical audit of 1.6.1 / Build 38 (never published separately; its changes shipped in 1.6.2). **Current public release: 1.6.2 / Build 39** — see the follow-up sections below, which supersede earlier status lines.
 
 ## Checks completed
 
@@ -9,7 +9,7 @@ All application Swift and Metal source files, bundle metadata, Xcode project, pr
 | Area | Finding and action |
 | --- | --- |
 | Language | UI strings were English, but diagnostic logs, comments and README were not. All current tracked text is now English. Error messages no longer interpolate potentially localized system descriptions. Native system menus/dialogs follow macOS language. |
-| Build consistency | Project and generator now agree on version 1.6.1, Build 38, macOS 27, arm64 and hardened runtime. English is explicit in the bundle and target. |
+| Build consistency | Project and generator agreed on version 1.6.1, Build 38 at the time of this audit (now 1.6.2, Build 39), macOS 27, arm64 and hardened runtime. English is explicit in the bundle and target. |
 | Resource completeness | Added a full Xcode packaging script. It requires a freshly built metallib and compiled layered-icon assets instead of reusing a prior preview's resources. |
 | Screen geometry | Require a built-in display and positive notch bounds. Detect recognized Pro size using physical display dimensions, independent of scaled resolution. Unknown products remain unknown. |
 | Display lifecycle | Stop hidden rendering on display loss/sleep, refresh EDR headroom after reposition, restore pending alert state and dismiss controls when geometry changes. |
@@ -33,7 +33,7 @@ All application Swift and Metal source files, bundle metadata, Xcode project, pr
 - Its executable is arm64 with linked SDK 27.0 and minimum OS 27.0. Strict deep signature verification and the archive SHA-256 check passed. The signature is ad-hoc with hardened runtime and no TeamIdentifier; it is not Developer ID-signed or Apple-notarized.
 - No application was launched for interactive testing, and no physical-device matrix or energy benchmark was performed.
 
-The previous 1.6.0 package signature and checksum were verified during publication. The 1.6.1 package has now been independently checked as described above; it has not been published as a GitHub Release.
+The previous 1.6.0 package signature and checksum were verified during publication. The 1.6.1 package has now been independently checked as described above; it was not published on its own; its changes shipped in 1.6.2.
 
 ## Hardware coverage
 

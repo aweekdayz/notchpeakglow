@@ -10,7 +10,7 @@
 - Full Xcode package verified with the new bundle identity, compiled shader/icon/Credits resources, strict ad-hoc hardened-runtime signature and SHA-256 checksum. Published as the latest GitHub release.
 
 
-## 1.6.1 — Unreleased (Build 38)
+## 1.6.1 — Build 38 (not published separately; included in 1.6.2)
 
 - English interface, diagnostic logs, source comments and current documentation.
 - Explicit arm64 build target, English bundle language and hardened runtime.
@@ -25,7 +25,7 @@
 - Match the alert-brightness control to the shader's actual 0.5–2× multiplier range.
 - Document family presets, unverified hardware coverage, current build limitations and unresolved upstream licensing.
 
-A complete Xcode source/resource build and local package succeeded on October 12, 2026. The 1.6.1 archive contains newly compiled shader and layered-icon resources; version, architecture, SDK, checksum and ad-hoc hardened-runtime signature checks passed. The package is not notarized and has not been publicly released.
+A complete Xcode source/resource build and local package succeeded on October 12, 2026. The 1.6.1 archive contains newly compiled shader and layered-icon resources; version, architecture, SDK, checksum and ad-hoc hardened-runtime signature checks passed. The package is not notarized and was not released on its own.
 
 ## 1.6.0 — 2026-10-12
 
