@@ -28,6 +28,7 @@
 		DA161A58960978E50627FF11 /* ThermalMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BADE20C64EADC092E8B2D15C /* ThermalMonitor.swift */; };
 		EAB5C494BCEC6905F683DB32 /* BubbleContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5507590C1DD1C460678DA601 /* BubbleContentView.swift */; };
 		F6B5AC507E4F5D935F9247EF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 765566A9E74AE98C9852F586 /* SettingsView.swift */; };
+		0BD592C4CEE703AA31B28366 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = D39DC3708C9152AC6A062667 /* Credits.rtf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -53,6 +54,7 @@
 		EE4F84256D3BFB04B82F10C2 /* FirstRunWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstRunWindow.swift; sourceTree = "<group>"; };
 		F2B9FD6D34CBBFF87048788A /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		FC527218437FDBCE3745D7C7 /* PowerSampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerSampler.swift; sourceTree = "<group>"; };
+		D39DC3708C9152AC6A062667 /* Credits.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = Credits.rtf; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -80,6 +82,7 @@
 			isa = PBXGroup;
 			children = (
 				20EA2667F8029096F50783C6 /* AppDelegate.swift */,
+				D39DC3708C9152AC6A062667 /* Credits.rtf */,
 				F2B9FD6D34CBBFF87048788A /* AppIcon.icon */,
 				E325D50F3CD2289EC27B9B37 /* main.swift */,
 				C5F59C6FF6C2C311F55594CF /* Glow */,
@@ -197,6 +200,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CAA88B5EB9E75ADD581A79A2 /* AppIcon.icon in Resources */,
+				0BD592C4CEE703AA31B28366 /* Credits.rtf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -241,7 +245,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 38;
+				CURRENT_PROJECT_VERSION = 39;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = PeakGlow/Info.plist;
@@ -249,9 +253,9 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.6.1;
+				MARKETING_VERSION = 1.6.2;
 				METAL_ENABLED = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.sirosafc.peakglow;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aweekdayz.peakglow;
 				PRODUCT_NAME = PeakGlow;
 				SDKROOT = macosx;
 			};
@@ -323,7 +327,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 38;
+				CURRENT_PROJECT_VERSION = 39;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = PeakGlow/Info.plist;
@@ -331,9 +335,9 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.6.1;
+				MARKETING_VERSION = 1.6.2;
 				METAL_ENABLED = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.sirosafc.peakglow;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aweekdayz.peakglow;
 				PRODUCT_NAME = PeakGlow;
 				SDKROOT = macosx;
 			};

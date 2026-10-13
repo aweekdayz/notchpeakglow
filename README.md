@@ -1,6 +1,10 @@
 # PeakGlow
 
-A small macOS utility that shows system load as a soft glow around the MacBook notch. This fork builds on [lzt66666/notchpeakglow](https://github.com/lzt66666/notchpeakglow), with a native macOS interface, refined pointer interaction and English documentation. Development has been assisted by AI.
+**Maintained by aweekdayz. Native macOS. Quiet by design.**
+
+A small macOS utility that shows system load as a soft glow around the MacBook notch, with native Liquid Glass controls and English Settings. Product direction, interface refinement and maintenance are led by aweekdayz, with AI-assisted development.
+
+[Credits and provenance](CREDITS.md) acknowledge the original project and contributors.
 
 ## Download
 
@@ -8,7 +12,7 @@ A small macOS utility that shows system load as a soft glow around the MacBook n
 
 Quit any running copy, extract the ZIP and move `PeakGlow.app` to Applications. Existing preferences are retained. The currently published 1.6.0 app is ad-hoc signed and **not Apple-notarized**. macOS may restrict its first launch; use Privacy & Security only if you trust the download.
 
-The source audit changes described below are newer than the published 1.6.0 binary. See [Release audit](docs/Release-Audit.md) for validation and outstanding work.
+Current source is 1.6.2 / Build 39. The fully built 1.6.1 / Build 38 package was validated locally; the public download remains 1.6.0. Source changes described below are newer than that public binary. See [Release audit](docs/Release-Audit.md) for validation and outstanding work.
 
 ## Requirements and compatibility
 
@@ -82,10 +86,12 @@ By default signing is ad-hoc. For a Developer ID build, set `PEAKGLOW_SIGN_IDENT
 - Reduced Motion is respected. Native system menus and security dialogs follow the system language; PeakGlow's own interface, logs and documentation are English.
 - No automated interactive UI tests or cross-model hardware benchmarks have been performed.
 
-## Attribution and licensing status
+## Credits
 
-Original project: [lzt66666/notchpeakglow](https://github.com/lzt66666/notchpeakglow). The original project credits [exelban/stats](https://github.com/exelban/stats) as a reference for SMC access.
+See [CREDITS.md](CREDITS.md) for the original project, contributors, maintenance scope and unresolved licensing status. The native About PeakGlow window includes the same attribution.
 
-At the October 12, 2026 audit, the upstream repository had no license file and GitHub reported no detected license. This fork does not add a license or claim ownership of upstream code. Permission and any third-party obligations must be resolved before treating the project as cleared for redistribution or App Store submission.
+## Application identity
+
+The maintained application uses `com.aweekdayz.peakglow`. On first launch it imports recognized preferences from the previous application's domain, without overwriting settings already saved under the new identity. The compatibility identifier remains only in migration code. Recheck Launch at login after replacing an older application, because its system registration may need to be enabled again.
 
 See [Development notes](docs/Development.md), [HIG review](docs/HIG-Review.md) and [HIG reading log](docs/HIG-Reading-Log.md).

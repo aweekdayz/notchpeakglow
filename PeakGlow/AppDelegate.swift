@@ -117,6 +117,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let appMenu = NSMenu(title: "PeakGlow")
         appItem.submenu = appMenu
         menu.addItem(appItem)
+        let about = appMenu.addItem(withTitle: "About PeakGlow", action: #selector(showAbout), keyEquivalent: "")
+        about.target = self
+        appMenu.addItem(.separator())
         let settings = appMenu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
         appMenu.addItem(.separator())
@@ -152,6 +155,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func openSettings() {
         hover.dismissNow()
         SettingsWindowController.shared.show()
+    }
+
+    @objc private func showAbout() {
+        let credits = Bundle.main.url(forResource: "Credits", withExtension: "rtf")
+            .flatMap { try? NSAttributedString(url: $0, options: [:], documentAttributes: nil) }
+            ?? NSAttributedString(string: "Maintained by aweekdayz. Credits: https://github.com/aweekdayz/notchpeakglow/blob/main/CREDITS.md")
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
     }
 
     @objc private func openControls() { hover.openForInteraction() }

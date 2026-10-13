@@ -52,3 +52,11 @@ Power presets remain 13/19 W for Air and 30/55 W for Pro/unknown. They are adjus
 5. For the Mac App Store, separately investigate the AppleSMC protocol, sandbox compatibility, signing and review requirements. The current unsandboxed configuration is not App Store-ready.
 
 Xcode's interface is optional for routine command-line builds. Its installed compiler, SDK, Metal and asset tools are required; the Swift-only preview build omits resource compilation and cannot certify a full release.
+
+## Maintainer identity follow-up — October 13, 2026
+
+Current source: 1.6.2 / Build 39. The previously verified full package remains 1.6.1 / Build 38; the identity update is not yet represented in a rebuilt installer.
+
+Project presentation and bundle metadata identify aweekdayz as maintainer. The identifier is `com.aweekdayz.peakglow`; the previous namespace is referenced only by a one-time, allowlisted preference migration. A focused migration check confirmed that new settings win, unknown keys and transient alerts are excluded, and a false Boolean value is preserved. The check does not modify user defaults.
+
+A native About panel reads the bundled Credits.rtf. RTF parsing, plist/project syntax, resource references and optimized Swift compilation passed. No application was launched for UI testing. Credits acknowledge provenance without assigning the original code's copyright to the maintainer; unresolved redistribution permission remains explicit.
