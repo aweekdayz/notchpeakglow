@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import Metal
 import QuartzCore
 
@@ -6,39 +6,60 @@ import QuartzCore
 /// 档位间平滑过渡
 final class GlowRenderer {
     // 仅主线程访问
-    var targetLevel: LoadLevel = .low   // low → intensity 0
+    var targetLevel: LoadLevel = .low   // Auto may retain a subtle ambient glow.
     var headroom: Float = 1.0
+    var ambientEnabled = false
     var paused = false                  // 全屏/睡眠时
-    /// 过热模式：蓝呼吸基底上每 3–5s 随机红闪一次
-    var overheat = false {
-        didSet {
-            if overheat && !oldValue {
-                nextRedAt = CACurrentMediaTime() + 1.2   // 进入后稍候首闪
-            } else if !overheat {
-                redFlash = 0
-            }
-        }
-    }
+    /// Temperature warning fades into a steady warm tint.
+    var overheat = false
     /// 过热红光相对蓝色的额外增益（×），由设置传入
     var overheatGain: Float = 1.5
-    /// 完全淡出后为 true，宿主视图据此暂停 displaylink（零功耗）
+    /// 完全淡出后为 true，宿主视图据此暂停 Timer（零功耗）
     private(set) var isIdle = true
 
     private let layer: CAMetalLayer
     private let commandQueue: MTLCommandQueue
     private let pipeline: MTLRenderPipelineState
+    private let framesInFlight = DispatchSemaphore(value: 2)
+    private var settings = RenderingSettings()
+
+    /// Read preferences on state changes, not from the display-link hot path.
+    private struct RenderingSettings {
+        let frameRate: Double
+        let glowIntensity: Double
+        let glowScale: Double
+        let mediumAlpha: Double
+        let hdrFactor: Double
+        let pulseHz: Double
+        let overheatScale: Double
+        let reduceMotion: Bool
+
+        init() {
+            let s = AppSettings.shared
+            frameRate = s.frameRate
+            glowIntensity = s.glowIntensity
+            glowScale = s.glowScale
+            mediumAlpha = s.mediumAlpha
+            hdrFactor = s.hdrFactor
+            pulseHz = s.pulseHz
+            overheatScale = s.overheatScale
+            reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        }
+    }
 
     private var intensity: Float = 0
     private var modeMix: Float = 0
     private var lastRender: CFTimeInterval = 0
-    private var startTime = CFAbsoluteTimeGetCurrent()
+    private var animationTime: Float = 0
 
-    private var redFlash: Float = 0          // 当前红闪包络 0..1
-    private var nextRedAt: CFTimeInterval = 0
-    private var debugCount = 0
+    private var smoothedBrightness: Float?
+    private var smoothedScale: Float?
+    private var smoothedOpacity: Float?
+    private var warningMix: Float = 0          // 温度暖色过渡 0..1
 
     /// notch 中心（像素），由主线程设置
     var notchCenterPixels: CGPoint = .zero
+    var notchSizePixels: CGSize = .zero
 
     init?(layer: CAMetalLayer) {
         self.layer = layer
@@ -66,65 +87,76 @@ final class GlowRenderer {
 
     /// 有新目标（档位变化/恢复）时唤醒
     func wake() {
+        settings = RenderingSettings()
+        if isIdle {
+            guard Self.targetIntensity(level: targetLevel, paused: paused, ambient: ambientEnabled) > 0 else { return }
+            // Don't integrate the whole time spent idle into the first resumed frame.
+            lastRender = 0
+        }
         isIdle = false
     }
 
-    // MARK: - 渲染（主线程，CADisplayLink 驱动）
+    /// Off and pauses always override the automatic low-load glow.
+    static func targetIntensity(level: LoadLevel, paused: Bool, ambient: Bool) -> Float {
+        if paused { return 0 }
+        return level == .low ? (ambient ? 0.55 : 0) : 1
+    }
+
+    // MARK: - 渲染（主线程，Timer 驱动）
 
     func renderFrame(now: CFTimeInterval) {
-        if lastRender != 0, now - lastRender < (1.0 / AppSettings.shared.frameRate) * 0.9 { return }
-        let s = AppSettings.shared
+        let s = settings
+        if lastRender != 0, now - lastRender < (1.0 / s.frameRate) * 0.9 { return }
 
-        let targetIntensity: Float = (paused || targetLevel == .low) ? 0 : 1
+        let targetIntensity = Self.targetIntensity(level: targetLevel, paused: paused, ambient: ambientEnabled)
         let targetMix: Float = targetLevel == .high ? 1 : 0
 
         let dt = Float(min(0.1, lastRender == 0 ? 0.033 : now - lastRender))
         let fadeSpeed: Float = targetLevel == .low ? 2.0 : 1.25
-        intensity += (targetIntensity - intensity) * min(1, dt * fadeSpeed)
-        modeMix += (targetMix - modeMix) * min(1, dt * 1.25)
+        let reduceMotion = s.reduceMotion
+        let fade = reduceMotion ? Float(1) : 1 - exp(-dt * fadeSpeed * 3)
+        intensity += (targetIntensity - intensity) * fade
+        modeMix += (targetMix - modeMix) * (reduceMotion ? 1 : 1 - exp(-dt * 3))
+        warningMix += ((overheat ? Float(1) : 0) - warningMix) * (reduceMotion ? 1 : 1 - exp(-dt * 2))
+        let parameterFade: Float = reduceMotion ? 1 : 1 - exp(-dt * 18)
+        let brightness = Float(s.glowIntensity)
+        let scale = Float(s.glowScale)
+        let opacity = Float(s.mediumAlpha)
+        smoothedBrightness = (smoothedBrightness ?? brightness) + (brightness - (smoothedBrightness ?? brightness)) * parameterFade
+        smoothedScale = (smoothedScale ?? scale) + (scale - (smoothedScale ?? scale)) * parameterFade
+        smoothedOpacity = (smoothedOpacity ?? opacity) + (opacity - (smoothedOpacity ?? opacity)) * parameterFade
+        if !reduceMotion { animationTime += dt }
         lastRender = now
 
-        // 完全隐藏 → 通知宿主暂停 displaylink
-        if intensity < 0.004, targetIntensity == 0 {
-            intensity = 0
-            isIdle = true
-            return
-        }
+        // 完全隐藏 → 通知宿主暂停 Timer
+        let finishingFade = intensity < 0.004 && targetIntensity == 0
+        if finishingFade { intensity = 0 }
         isIdle = false
 
+        // Under GPU pressure, skip a frame instead of waiting on the UI thread.
+        guard framesInFlight.wait(timeout: .now()) == .success else { return }
+        var submitted = false
+        defer { if !submitted { framesInFlight.signal() } }
         guard let drawable = layer.nextDrawable() else { return }
         let drawableSize = layer.drawableSize
 
-        // 过热红闪调度：3–5s 随机间隔触发一次，1.2s 线性衰减
-        if overheat, !paused, intensity > 0.15 {
-            if now >= nextRedAt {
-                redFlash = 1
-                nextRedAt = now + 3.0 + Double.random(in: 0...2)
-            }
-        }
-        if redFlash > 0 {
-            redFlash = max(0, redFlash - Float(dt) / 1.2)
-        }
-        if overheat, debugCount < 5 {
-            debugCount += 1
-            NSLog("PeakGlow: OH now=\(now) nextRed=\(nextRedAt) rf=\(redFlash) intensity=\(intensity) paused=\(paused)")
-        }
-
-        let baseBoost = 1.0 + (headroom - 1.0) * Float(s.hdrFactor)
-        let userTrim = (Float(s.hdrFactor) - 3.0) * 0.5
+        // Never generate an EDR gain below SDR white or beyond screen headroom.
+        let available = max(1, headroom)
+        let baseBoost = min(available, 1 + (available - 1) * Float(s.hdrFactor) * 0.35)
 
         var uniforms = Uniforms(
             resolution: SIMD2<Float>(Float(drawableSize.width), Float(drawableSize.height)),
             notchCenter: SIMD2<Float>(Float(notchCenterPixels.x), Float(notchCenterPixels.y)),
-            time: Float(CFAbsoluteTimeGetCurrent() - startTime),
-            intensity: intensity * Float(s.glowIntensity),
+            notchSize: SIMD2<Float>(Float(notchSizePixels.width), Float(notchSizePixels.height)),
+            time: animationTime,
+            intensity: intensity * (smoothedBrightness ?? brightness),
             modeMix: modeMix,
-            hdrBoost: baseBoost + userTrim,
+            hdrBoost: baseBoost,
             pulseHz: Float(s.pulseHz),
-            glowScale: Float(drawableSize.height),
-            mediumAlpha: Float(s.mediumAlpha),
-            redFlash: redFlash * Float(s.glowIntensity),
-            redGain: Float(s.overheatGain),
+            glowScale: (smoothedScale ?? scale) * Float(layer.contentsScale),
+            mediumAlpha: smoothedOpacity ?? opacity,
+            warningMix: warningMix,
+            redGain: overheatGain,
             redScale: Float(s.overheatScale))
 
         let pass = MTLRenderPassDescriptor()
@@ -139,8 +171,13 @@ final class GlowRenderer {
         encoder.setFragmentBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: 0)
         encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
         encoder.endEncoding()
+        let completionGate = framesInFlight
+        cmd.addCompletedHandler { _ in completionGate.signal() }
         cmd.present(drawable)
+        submitted = true
         cmd.commit()
+        // Submit a truly transparent final frame before stopping the display link.
+        if finishingFade { isIdle = true }
     }
 }
 
@@ -148,6 +185,7 @@ final class GlowRenderer {
 struct Uniforms {
     var resolution: SIMD2<Float>
     var notchCenter: SIMD2<Float>
+    var notchSize: SIMD2<Float>
     var time: Float
     var intensity: Float
     var modeMix: Float
@@ -155,7 +193,8 @@ struct Uniforms {
     var pulseHz: Float
     var glowScale: Float
     var mediumAlpha: Float
-    var redFlash: Float
+    var warningMix: Float
     var redGain: Float
     var redScale: Float
 }
+

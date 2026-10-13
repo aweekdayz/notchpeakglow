@@ -5,6 +5,26 @@ import Foundation
 /// 调用方式与开源项目 stats 一致：selector=2 (kernelIndex)，data8 承载子命令。
 /// 用户态 IOKit 调用，无需任何权限。
 final class PowerSampler {
+    var onSample: ((Double?) -> Void)?
+    private var timer: Timer?
+
+    func start(interval: TimeInterval) {
+        stop()
+        onSample?(readWatts())
+        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            self.onSample?(self.readWatts())
+        }
+        timer.tolerance = min(0.05, interval * 0.1)
+        self.timer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    func stop() {
+        timer?.invalidate()
+        timer = nil
+    }
+
     // 与 SMC 驱动约定的结构体布局（字段顺序/类型不可改动）
     private struct SMCKeyData {
         typealias SMCBytes = (
@@ -49,6 +69,7 @@ final class PowerSampler {
 
     private var conn: io_connect_t = 0
     private var opened = false
+    private var keyInfoCache: [UInt32: SMCKeyData.KeyInfo] = [:]
 
     private static let kernelIndex: UInt8 = 2
     private static let readKeyInfo: UInt8 = 9
@@ -78,20 +99,30 @@ final class PowerSampler {
         var input = SMCKeyData()
         var output = SMCKeyData()
 
-        // 第一步：查 keyInfo（大小/类型）
+        // Metadata is stable for this connection; only read values each sample.
         input.key = key
-        input.data8 = Self.readKeyInfo
-        var kr = call(Self.kernelIndex, input: &input, output: &output)
-        guard kr == KERN_SUCCESS, output.keyInfo.dataSize > 0 else { return nil }
+        let info: SMCKeyData.KeyInfo
+        if let cached = keyInfoCache[key] {
+            info = cached
+        } else {
+            input.data8 = Self.readKeyInfo
+            guard call(Self.kernelIndex, input: &input, output: &output) == KERN_SUCCESS,
+                  output.result == 0, output.keyInfo.dataSize >= 4,
+                  output.keyInfo.dataSize <= 32, output.keyInfo.dataType == Self.typeFloat else { return nil }
+            info = output.keyInfo
+            keyInfoCache[key] = info
+        }
 
         // 第二步：读数据
-        let size = Int(min(output.keyInfo.dataSize, 32))
-        let dataType = output.keyInfo.dataType
-        input.keyInfo.dataSize = output.keyInfo.dataSize
+        let size = Int(info.dataSize)
+        input.keyInfo.dataSize = info.dataSize
         input.data8 = Self.readBytes
-        kr = call(Self.kernelIndex, input: &input, output: &output)
-        guard kr == KERN_SUCCESS else { return nil }
-        guard dataType == Self.typeFloat else { return nil }
+        output = SMCKeyData()
+        guard call(Self.kernelIndex, input: &input, output: &output) == KERN_SUCCESS,
+              output.result == 0 else {
+            keyInfoCache.removeValue(forKey: key)
+            return nil
+        }
 
         return withUnsafeBytes(of: output.bytes) { raw in
             Array(raw.prefix(size))
@@ -127,8 +158,10 @@ final class PowerSampler {
     }
 
     deinit {
+        timer?.invalidate()
         if conn != 0 {
             IOServiceClose(conn)
         }
     }
 }
+

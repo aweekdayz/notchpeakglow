@@ -2,178 +2,417 @@ import AppKit
 import SwiftUI
 import ServiceManagement
 
-/// 独立设置窗口（单例）
 final class SettingsWindowController {
     static let shared = SettingsWindowController()
-
-    private var panel: NSPanel?
+    private var window: NSWindow?
 
     func show() {
-        if let panel {
-            panel.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
+        // Establish active-app appearance before the initially selected row is rendered.
+        NSApp.activate(ignoringOtherApps: true)
+        if let window {
+            window.makeKeyAndOrderFront(nil)
             return
         }
-        let p = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 460, height: 520),
-            styleMask: [.titled, .closable],
-            backing: .buffered,
-            defer: false)
-        p.title = "PeakGlow 设置"
-        p.isReleasedWhenClosed = false
-        p.level = .floating
-        p.contentView = NSHostingView(rootView: SettingsView())
-        p.center()
-        p.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        panel = p
+        let w = SettingsWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 760, height: 560),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered, defer: false)
+        w.title = "PeakGlow Settings"
+        w.isReleasedWhenClosed = false
+        w.minSize = NSSize(width: 700, height: 540)
+        w.toolbarStyle = .unified
+        w.setFrameAutosaveName("PeakGlowSettings")
+        w.alphaValue = 0
+        let hosting = NSHostingView(rootView: SettingsView(onReady: { [weak w] in
+            // Publish initial selection after mounting, then reveal its settled layout.
+            DispatchQueue.main.async { [weak w] in
+                guard let w else { return }
+                w.contentView?.needsLayout = true
+                w.contentView?.layoutSubtreeIfNeeded()
+                w.contentView?.displayIfNeeded()
+                w.alignResetToolbar()
+                w.alphaValue = 1
+            }
+        }))
+        // The window owns its bounds. Avoid repeated min/ideal/max content measurements.
+        hosting.sizingOptions = []
+        w.contentView = hosting
+        w.center()
+        w.makeKeyAndOrderFront(nil)
+        window = w
+    }
+}
+
+/// The AppKit window owns native toolbar spacing; SwiftUI owns the controls.
+private final class SettingsWindow: NSWindow {
+    override func update() {
+        super.update()
+        alignResetToolbar()
+    }
+
+    func alignResetToolbar() {
+        guard let toolbar, toolbar.items.count >= 2 else { return }
+        if !toolbar.centeredItemIdentifiers.isEmpty { toolbar.centeredItemIdentifiers = [] }
+        let actionIndex = toolbar.items.count - 1
+        // Reset is the final action. Use NSToolbar's real flexible-space item,
+        // rather than a hosted SwiftUI spacer with an intrinsic view width.
+        if toolbar.items[actionIndex - 1].itemIdentifier != .flexibleSpace {
+            toolbar.insertItem(withItemIdentifier: .flexibleSpace, at: actionIndex)
+        }
     }
 }
 
 struct SettingsView: View {
-    @ObservedObject private var app = AppState.shared
-    private let s = AppSettings.shared
+    var onReady: () -> Void = {}
+    @ObservedObject private var s = AppSettings.shared
+    @State private var selection: SettingsPage?
+    @State private var initializedSelection = false
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    @FocusState private var sidebarFocused: Bool
+    @State private var loginEnabled = Self.loginRequested
+    @State private var loginNeedsApproval = SMAppService.mainApp.status == .requiresApproval
+    @State private var loginError: String?
+    @State private var confirmReset = false
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                // 负载
-                GroupBox("负载（整机功率）") {
-                    Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 10) {
-                        sliderRow("中档阈值", mediumW, range: 8...50, format: "%.0fW")
-                        sliderRow("高档阈值", highW, range: 20...90, format: "%.0fW")
-                        sliderRow("滞回区间", hyst, range: 1...10, format: "%.0fW")
-                        sliderRow("切换保持时间", hold, range: 0.5...10, format: "%.1fs")
-                        sliderRow("采样周期", interval, range: 0.2...3, format: "%.1fs")
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            List(selection: $selection) {
+                ForEach(SettingsPage.allCases) { page in
+                    NavigationLink(value: page) {
+                        Label(page.title, systemImage: page.symbol)
                     }
-                    .padding(8)
-                    HStack(spacing: 6) {
-                        Image(systemName: "chip")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text("\(MachineProfile.current.summary) · 建议 \(Int(MachineProfile.current.suggestedMediumWatts))W/\(Int(MachineProfile.current.suggestedHighWatts))W")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                        Spacer()
-                        Button("应用建议值") {
-                            s.mediumWatts = MachineProfile.current.suggestedMediumWatts
-                            s.highWatts = MachineProfile.current.suggestedHighWatts
-                        }
-                        .controlSize(.small)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.bottom, 8)
-                }
-
-                // 外观
-                GroupBox("外观") {
-                    Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 10) {
-                        sliderRow("光晕大小", scaleB, range: 0.4...1.6, format: "%.0f%%")
-                        sliderRow("光晕强度", intensity, range: 0.2...2, format: "%.1f×")
-                        sliderRow("中档透明度", alpha, range: 0.2...0.8, format: "%.0f%%")
-                        sliderRow("呼吸频率", pulse, range: 0.2...2, format: "%.1fHz")
-                        sliderRow("HDR 强度系数", hdr, range: 1...8, format: "%.1f×")
-                        sliderRow("过热红光增益", redGainB, range: 0.5...8.0, format: "%.2f×")
-                        sliderRow("过热红光大小", redScaleB, range: 0.6...1.8, format: "%.2f×")
-                        sliderRow("帧率上限", fps, range: 15...60, format: "%.0ffps")
-                    }
-                    .padding(8)
-                }
-
-                // 行为
-                GroupBox("行为") {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Toggle("过热降频提醒（温度过高时红光闪烁）", isOn: overheatAlert)
-                        sliderRow("悬停驻留时长", dwell, range: 0.2...1.5, format: "%.1fs")
-                        Toggle("登录时启动", isOn: launchAtLogin)
-                    }
-                    .padding(8)
-                }
-
-
-                HStack {
-                    Spacer()
-                    Button("恢复默认") { s.resetAll() }
+                    .tag(page)
                 }
             }
-            .padding(16)
-        }
-        .frame(width: 460, height: 520)
-    }
-
-    // MARK: - 绑定
-
-    private var mediumW: Binding<Double> {
-        Binding(get: { s.mediumWatts }, set: { s.mediumWatts = $0 })
-    }
-    private var highW: Binding<Double> {
-        Binding(get: { s.highWatts }, set: { s.highWatts = $0 })
-    }
-    private var hyst: Binding<Double> {
-        Binding(get: { s.hysteresisWatts }, set: { s.hysteresisWatts = $0 })
-    }
-    private var hold: Binding<Double> {
-        Binding(get: { s.holdOnSeconds }, set: { s.holdOnSeconds = $0 })
-    }
-    private var interval: Binding<Double> {
-        Binding(get: { s.sampleInterval }, set: { s.sampleInterval = $0 })
-    }
-    private var scaleB: Binding<Double> {
-        Binding(get: { s.glowScale }, set: { s.glowScale = $0 })
-    }
-    private var intensity: Binding<Double> {
-        Binding(get: { s.glowIntensity }, set: { s.glowIntensity = $0 })
-    }
-    private var alpha: Binding<Double> {
-        Binding(get: { s.mediumAlpha }, set: { s.mediumAlpha = $0 })
-    }
-    private var pulse: Binding<Double> {
-        Binding(get: { s.pulseHz }, set: { s.pulseHz = $0 })
-    }
-    private var hdr: Binding<Double> {
-        Binding(get: { s.hdrFactor }, set: { s.hdrFactor = $0 })
-    }
-    private var redGainB: Binding<Double> {
-        Binding(get: { s.overheatGain }, set: { s.overheatGain = $0 })
-    }
-    private var redScaleB: Binding<Double> {
-        Binding(get: { s.overheatScale }, set: { s.overheatScale = $0 })
-    }
-    private var fps: Binding<Double> {
-        Binding(get: { s.frameRate }, set: { s.frameRate = $0 })
-    }
-    private var dwell: Binding<Double> {
-        Binding(get: { s.hoverDwell }, set: { s.hoverDwell = $0 })
-    }
-    private var overheatAlert: Binding<Bool> {
-        Binding(get: { s.overheatAlertEnabled }, set: { s.overheatAlertEnabled = $0 })
-    }
-    private var launchAtLogin: Binding<Bool> {
-        Binding(get: { SMAppService.mainApp.status == .enabled },
-                set: { on in
-                    do {
-                        if on {
-                            try SMAppService.mainApp.register()
-                        } else {
-                            try SMAppService.mainApp.unregister()
-                        }
-                    } catch {
-                        NSLog("PeakGlow: SMAppService error \(error)")
+            .listStyle(.sidebar)
+            .toolbar(removing: .sidebarToggle)
+            .focused($sidebarFocused)
+            .navigationSplitViewColumnWidth(180)
+        } detail: {
+            Form {
+                switch selection ?? .appearance {
+                case .appearance:
+                Section("Device") {
+                    LabeledContent("Model") {
+                        Text(MachineProfile.current.summary)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.trailing)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                })
+                }
+                Section {
+                    Toggle("Show glow at low load", isOn: binding(\.ambientGlow))
+                    slider("Glow size", binding(\.glowScale), in: 0.4...1.6,
+                           value: "\(Int(s.glowScale * 100))%")
+                    slider("Brightness", binding(\.glowIntensity), in: 0.2...2,
+                           value: "\(Int(s.glowIntensity * 100))%")
+                    Button { s.resetAppearance() } label: {
+                        Text("Use Soft Appearance").foregroundStyle(.primary)
+                    }
+                    .nativeGlassAction()
+                } header: {
+                    Text("Glow")
+                } footer: {
+                    SettingsNote("Auto follows system power. High load adds an ice-blue glow.")
+                }
+                case .power:
+                Section {
+                    slider("Full glow threshold", Binding(get: { s.mediumWatts },
+                        set: { s.mediumWatts = min($0, s.highWatts - 1) }),
+                        in: 8...60, value: "\(Int(s.mediumWatts)) W", step: 1, unit: "W")
+                    slider("Boost threshold", Binding(get: { s.highWatts },
+                        set: { s.highWatts = max($0, s.mediumWatts + 1) }),
+                        in: 9...90, value: "\(Int(s.highWatts)) W", step: 1, unit: "W")
+                    Button {
+                        s.mediumWatts = MachineProfile.current.suggestedMediumWatts
+                        s.highWatts = MachineProfile.current.suggestedHighWatts
+                    } label: {
+                        Text("Use Recommended Thresholds").foregroundStyle(.primary)
+                    }
+                    .nativeGlassAction()
+                } header: {
+                    Text("Power thresholds")
+                } footer: {
+                    SettingsNote("In Auto, full glow begins at the lower threshold. Boost begins at the higher threshold.")
+                }
+                case .behavior:
+                Section("Startup") {
+                    Toggle("Launch at login", isOn: $loginEnabled)
+                        .onChange(of: loginEnabled) { _, enabled in
+                            updateLogin(enabled)
+                        }
+                    if loginNeedsApproval {
+                        SettingsNote("Allow PeakGlow in System Settings to launch at login.")
+                        Button("Open Login Items…") {
+                            SMAppService.openSystemSettingsLoginItems()
+                        }
+                        .nativeGlassAction()
+                    }
+                    if let loginError {
+                        Text(loginError)
+                            .font(.callout)
+                            .foregroundStyle(.red)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Section {
+                    Toggle("Temperature alerts", isOn: binding(\.overheatAlertEnabled))
+                } header: {
+                    Text("Alerts")
+                } footer: {
+                    SettingsNote("A warm glow highlights elevated temperatures.")
+                }
+                Section {
+                    slider("Hover delay", binding(\.hoverDwell), in: 0...0.8,
+                           value: String(format: "%.0f ms", s.hoverDwell * 1000), step: 0.01, unit: "ms", scale: 1000,
+                           explanation: "Time over the notch before controls appear.")
+                } header: {
+                    Text("Interaction")
+                } footer: {
+                    SettingsNote("Move away or press Esc to close the controls. In Auto, a game controller pauses the glow; previews remain available.")
+                }
+                case .advanced:
+                Section("Rendering") {
+                        slider("Soft glow opacity", binding(\.mediumAlpha), in: 0.2...0.8,
+                               value: "\(Int(s.mediumAlpha * 100))%")
+                        slider("Breathing rate", binding(\.pulseHz), in: 0.1...2,
+                               value: String(format: "%.1f Hz", s.pulseHz), step: 0.1, unit: "Hz")
+                        slider("HDR gain", binding(\.hdrFactor), in: 1...8,
+                               value: String(format: "%.1f×", s.hdrFactor), step: 0.1, unit: "×", explanation: "Brightness above standard white. HDR headroom depends on your display and its brightness.")
+                        slider("Frame rate", binding(\.frameRate), in: 15...60,
+                               value: "\(Int(s.frameRate)) fps", step: 1, unit: "fps")
+                }
+                Section("Temperature alerts") {
+                    slider("Alert brightness", binding(\.overheatGain), in: 0.5...8,
+                           value: String(format: "%.1f×", s.overheatGain), step: 0.1, unit: "×")
+                    slider("Alert size", binding(\.overheatScale), in: 0.6...1.8,
+                           value: "\(Int(s.overheatScale * 100))%")
+                }
+                Section("Load response") {
+                        slider("Dimming margin", binding(\.hysteresisWatts), in: 1...10,
+                               value: String(format: "%.1f W", s.hysteresisWatts), step: 0.1, unit: "W", explanation: "Power must drop this far below a threshold before the glow dims.")
+                        slider("Transition delay", binding(\.holdOnSeconds), in: 0.5...10,
+                               value: String(format: "%.1f s", s.holdOnSeconds), step: 0.1, unit: "s", explanation: "Time above a threshold before brightening. Dimming waits 2 seconds longer.")
+                        slider("Sampling interval", binding(\.sampleInterval), in: 0.2...3,
+                               value: String(format: "%.1f s", s.sampleInterval), step: 0.1, unit: "s", explanation: "Time between power readings. Shorter intervals update more often and use more resources.")
+                }
+                }
+            }
+            .formStyle(.grouped)
+            .toolbar(removing: .sidebarToggle)
+            .navigationTitle((selection ?? .appearance).title)
+        }
+        .toolbar(removing: .sidebarToggle)
+        .toolbar {
+            // Both toolbar items keep the same identity through sidebar transitions.
+            ToolbarItem(id: "PeakGlowSidebarToggle", placement: .navigation) { sidebarToggle }
+            ToolbarItem(id: "PeakGlowReset", placement: .automatic) {
+                resetButton
+            }
+        }
+        .task {
+            guard !initializedSelection else { return }
+            initializedSelection = true
+            selection = .appearance
+            sidebarFocused = true
+            onReady()
+        }
+        // Selection does not imply keyboard focus. Initialize the native sidebar
+        // as the focus target without overriding later user-directed navigation.
+        .defaultFocus($sidebarFocused, true)
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            refreshLoginStatus()
+        }
+        .navigationSplitViewStyle(.prominentDetail)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .alert("Reset settings?", isPresented: $confirmReset) {
+            Button("Cancel", role: .cancel) {}
+            Button("Reset") {
+                s.resetAll()
+                AppState.shared.preview = .auto
+            }
+        } message: {
+            Text("Restore the default appearance and recommended load thresholds.")
+        }
     }
 
-    private func sliderRow(_ title: String, _ value: Binding<Double>,
-                           range: ClosedRange<Double>, format: String) -> some View {
-        GridRow {
-            Text(title)
-            Slider(value: value, in: range)
-            Text(String(format: format, value.wrappedValue))
-                .monospacedDigit()
-                .frame(width: 52, alignment: .trailing)
-                .foregroundStyle(.secondary)
+    private var sidebarToggle: some View {
+        Button {
+            withAnimation {
+                columnVisibility = columnVisibility == .detailOnly ? .all : .detailOnly
+            }
+        } label: {
+            Label("Toggle Sidebar", systemImage: "sidebar.left")
         }
+        .labelStyle(.iconOnly)
+        .help(columnVisibility == .detailOnly ? "Show sidebar" : "Hide sidebar")
+        .accessibilityLabel(columnVisibility == .detailOnly ? "Show sidebar" : "Hide sidebar")
+    }
+
+    private var resetButton: some View {
+        Button { confirmReset = true } label: {
+            Label("Reset…", systemImage: "arrow.counterclockwise")
+                .foregroundStyle(.primary)
+        }
+        .nativeGlassAction()
+        .help("Reset all settings")
+    }
+
+    private func binding<T>(_ keyPath: ReferenceWritableKeyPath<AppSettings, T>) -> Binding<T> {
+        Binding(get: { s[keyPath: keyPath] }, set: { s[keyPath: keyPath] = $0 })
+    }
+
+    private func slider(_ title: String, _ value: Binding<Double>,
+                        in range: ClosedRange<Double>, value text: String,
+                        step: Double? = nil, unit: String = "", scale: Double = 1,
+                        explanation: String? = nil) -> some View {
+        NativeSettingsSlider(title: title, value: value, range: range, formattedValue: text,
+                             step: step, unit: unit, scale: scale, explanation: explanation)
+    }
+
+    private static var loginRequested: Bool {
+        let status = SMAppService.mainApp.status
+        return status == .enabled || status == .requiresApproval
+    }
+
+    private func refreshLoginStatus() {
+        loginNeedsApproval = SMAppService.mainApp.status == .requiresApproval
+        loginEnabled = Self.loginRequested
+    }
+
+    private func updateLogin(_ enabled: Bool) {
+        guard enabled != Self.loginRequested else { return }
+        do {
+            if enabled { try SMAppService.mainApp.register() }
+            else { try SMAppService.mainApp.unregister() }
+            loginError = nil
+        } catch {
+            loginError = "Could not update login item: \(error.localizedDescription)"
+        }
+        refreshLoginStatus()
+    }
+
+}
+
+
+private enum SettingsPage: String, CaseIterable, Identifiable {
+    case appearance, power, behavior, advanced
+    var id: Self { self }
+    var symbol: String {
+        switch self {
+        case .appearance: "sparkles"
+        case .power: "bolt"
+        case .behavior: "cursorarrow.motionlines"
+        case .advanced: "slider.horizontal.3"
+        }
+    }
+    var title: String {
+        switch self {
+        case .appearance: "Appearance"
+        case .power: "Power"
+        case .behavior: "Behavior"
+        case .advanced: "Advanced"
+        }
+    }
+}
+
+private extension View {
+    func nativeGlassAction() -> some View {
+        self.buttonStyle(.glass)
+    }
+}
+
+/// One readable secondary text style for inline help and native section footers.
+private struct SettingsNote: View {
+    let text: String
+
+    init(_ text: String) { self.text = text }
+
+    var body: some View {
+        Text(text)
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .lineSpacing(2)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// Keeps the system slider intact, including its thumb, tracking, and keyboard behavior.
+private struct NativeSettingsSlider: View {
+    let title: String
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    let formattedValue: String
+    let step: Double?
+    let unit: String
+    let scale: Double
+    let explanation: String?
+
+    private var sliderValue: Binding<Double> {
+        Binding(get: { value }, set: { input in
+            guard input.isFinite else { return }
+            let adjusted = unit == "fps" ? input.rounded() : input
+            value = min(range.upperBound, max(range.lowerBound, adjusted))
+        })
+    }
+
+    private var numericValue: Binding<Double> {
+        Binding(get: { value * scale }, set: { input in
+            guard input.isFinite else { return }
+            let clamped = min(range.upperBound, max(range.lowerBound, input / scale))
+            let rounded = step.map { range.lowerBound + ((clamped - range.lowerBound) / $0).rounded() * $0 } ?? clamped
+            value = min(range.upperBound, max(range.lowerBound, rounded))
+        })
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(title)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .layoutPriority(1)
+                Spacer(minLength: 12)
+                if step != nil {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        TextField("", value: numericValue,
+                                  format: .number.precision(.fractionLength(0...1)))
+                            // The row already has a title; don't let Form render
+                            // a second label inside this compact numeric field.
+                            .labelsHidden()
+                            .textFieldStyle(.roundedBorder)
+                            .multilineTextAlignment(.trailing)
+                            .monospacedDigit()
+                            .frame(width: 64)
+                            .help("Allowed range: \(range.lowerBound * scale)–\(range.upperBound * scale) \(unit)")
+                            .accessibilityLabel("\(title), numeric value")
+                            .accessibilityValue(formattedValue)
+                        Text(unit)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 24, alignment: .leading)
+                    }
+                    .fixedSize(horizontal: true, vertical: false)
+                } else {
+                    Text(formattedValue)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .frame(width: 94, alignment: .trailing)
+                }
+            }
+            // Entry precision is not a set of meaningful visual stops.
+            // Keep the system's unmarked track; numeric entry supplies precision.
+            Slider(value: sliderValue, in: range) { Text(title) }
+                .labelsHidden()
+                .controlSize(.regular)
+                .tint(.accentColor)
+                .help(formattedValue)
+                .accessibilityLabel(title)
+                .accessibilityValue(formattedValue)
+            if let explanation {
+                SettingsNote(explanation)
+            }
+        }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .contain)
     }
 }

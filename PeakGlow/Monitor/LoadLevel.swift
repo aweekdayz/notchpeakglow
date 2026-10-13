@@ -7,9 +7,9 @@ enum LoadLevel: Int {
 
     var label: String {
         switch self {
-        case .low: return "低"
-        case .medium: return "中"
-        case .high: return "高"
+        case .low: return "Low"
+        case .medium: return "Soft"
+        case .high: return "Boost"
         }
     }
 }
@@ -26,6 +26,12 @@ final class LoadLevelStateMachine {
         candidate = nil
         candidateSince = nil
         level = .low
+    }
+
+    /// Missing data must not count toward a continuous transition dwell.
+    func discardPendingTransition() {
+        candidate = nil
+        candidateSince = nil
     }
 
     /// - Parameter watts: 滑动平均整机功率（W）
@@ -70,3 +76,4 @@ final class LoadLevelStateMachine {
         }
     }
 }
+

@@ -2,11 +2,11 @@ import AppKit
 import Metal
 import QuartzCore
 
-/// CAMetalLayer 宿主视图：主线程 Timer 驱动渲染（common mode，空闲自动停止）
+/// CAMetalLayer 宿主视图：主线程 CADisplayLink 驱动渲染（common mode，空闲自动停止）
 final class GlowMetalView: NSView {
     override var wantsUpdateLayer: Bool { true }
     private(set) var renderer: GlowRenderer?
-    private var renderTimer: Timer?
+    private var renderLink: CADisplayLink?
     private var timerHz: Double = 0
 
     override init(frame: NSRect) {
@@ -57,41 +57,30 @@ final class GlowMetalView: NSView {
     /// 档位变化时由外部调用：唤醒渲染
     func wake() {
         renderer?.wake()
-        startTimerIfNeeded()
+        guard renderer?.isIdle == false else { return }
+        startDisplayLinkIfNeeded()
     }
 
     func sleep() {
-        renderTimer?.invalidate()
-        renderTimer = nil
+        renderLink?.invalidate()
+        renderLink = nil
     }
 
-    private func startTimerIfNeeded() {
-        let hz = AppSettings.shared.frameRate
-        if renderTimer != nil, timerHz == hz { return }
-        renderTimer?.invalidate()
-        let t = Timer(timeInterval: 1.0 / hz, target: self,
-                      selector: #selector(renderTick(_:)),
-                      userInfo: nil, repeats: true)
-        t.tolerance = 0.004
-        RunLoop.main.add(t, forMode: .common)
-        renderTimer = t
-        timerHz = hz
+    private func startDisplayLinkIfNeeded() {
+        let hz = Float(AppSettings.shared.frameRate)
+        if renderLink != nil, timerHz == Double(hz) { return }
+        sleep()
+        let link = self.displayLink(target: self, selector: #selector(renderTick(_:)))
+        link.preferredFrameRateRange = CAFrameRateRange(minimum: min(15, hz), maximum: hz, preferred: hz)
+        link.add(to: .main, forMode: .common)
+        renderLink = link
+        timerHz = Double(hz)
     }
-    private var tickCount = 0
 
-    @objc private func renderTick(_ timer: Timer) {
-        tickCount += 1
-        guard let renderer else {
-            timer.invalidate()
-            renderTimer = nil
-            return
-        }
-        renderer.renderFrame(now: CACurrentMediaTime())
-        // 完全淡出后停止（零 CPU/GPU）
-        if renderer.isIdle {
-            timer.invalidate()
-            renderTimer = nil
-        }
+    @objc private func renderTick(_ link: CADisplayLink) {
+        guard let renderer else { sleep(); return }
+        renderer.renderFrame(now: link.timestamp)
+        if renderer.isIdle { sleep() }
     }
 
     /// notch 中心 → 本视图像素坐标（左上原点）。
@@ -102,10 +91,11 @@ final class GlowMetalView: NSView {
         guard let winFrame = window?.frame else { return }
         let scale = metalLayer.contentsScale
         let x = (notchRectGlobal.midX - winFrame.minX) * scale
-        // 中心上移半个刘海高度（光晕锚定屏幕顶边，围绕刘海下半与两侧）
+        // Preserve physical notch geometry; the shader lights its outer contour.
         let y = (winFrame.maxY - notchRectGlobal.midY) * scale
-            - notchRectGlobal.height * 0.5 * scale
         renderer?.notchCenterPixels = CGPoint(x: x, y: y)
+        renderer?.notchSizePixels = CGSize(width: notchRectGlobal.width * scale,
+                                          height: notchRectGlobal.height * scale)
     }
 
     private var lastNotchRect: CGRect?
@@ -117,3 +107,4 @@ final class GlowMetalView: NSView {
         }
     }
 }
+

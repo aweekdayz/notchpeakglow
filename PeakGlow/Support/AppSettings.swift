@@ -1,25 +1,36 @@
 import Foundation
+import Combine
 
 enum PreviewLevel: Int, CaseIterable {
     case low = 0, medium = 1, high = 2, auto = 3, overheat = 4
 
     var label: String {
         switch self {
-        case .low: return "关闭"
-        case .medium: return "中"
-        case .high: return "高"
-        case .auto: return "自动"
-        case .overheat: return "降频"
+        case .low: return "Off"
+        case .medium: return "Soft"
+        case .high: return "Boost"
+        case .auto: return "Auto"
+        case .overheat: return "Warm"
         }
     }
 }
 
 /// 设置存取（全部主线程访问：采样Timer/CADisplayLink渲染/SwiftUI均在主线程，无需锁）
-final class AppSettings {
+final class AppSettings: ObservableObject {
     static let shared = AppSettings()
     static let changedNotification = Notification.Name("AppSettingsChanged")
 
     private let d = UserDefaults.standard
+
+    private init() {
+        // Migrate the previous factory delay once; preserve custom delays.
+        if !d.bool(forKey: "responsiveHoverV1") {
+            if let delay = d.object(forKey: "hoverDwell") as? Double, abs(delay - 0.3) < 0.001 {
+                d.set(Defaults.hoverDwell, forKey: "hoverDwell")
+            }
+            d.set(true, forKey: "responsiveHoverV1")
+        }
+    }
 
     // MARK: - Keys
     private enum Key {
@@ -28,6 +39,7 @@ final class AppSettings {
         static let holdOnSeconds = "holdOnSeconds"
         static let hysteresisWatts = "hysteresisWatts"
         static let sampleInterval = "sampleInterval"
+        static let ambientGlow = "ambientGlow"
         static let glowScale = "glowScale"
         static let glowIntensity = "glowIntensity"
         static let mediumAlpha = "mediumAlpha"
@@ -52,16 +64,16 @@ final class AppSettings {
         static let holdOnSeconds = 1.2
         static let hysteresisWatts = 4.0
         static let sampleInterval = 0.5
-        static let glowScale = 0.68
-        static let glowIntensity = 0.73
-        static let mediumAlpha = 0.75
-        static let pulseHz = 0.5
-        static let hdrFactor = 2.1
-        static let overheatGain = 4.5
-        static let overheatScale = 1.3
-        // 呼吸/渐变均为慢效果，15fps 视觉无差别且 GPU/能耗减半
-        static let frameRate = 15.0
-        static let hoverDwell = 0.3
+        static let glowScale = 0.90
+        static let glowIntensity = 0.80
+        static let mediumAlpha = 0.48
+        static let pulseHz = 0.22
+        static let hdrFactor = 1.2
+        static let overheatGain = 1.1
+        static let overheatScale = 1.0
+        // Only renders while visible; 30 fps keeps transitions smooth.
+        static let frameRate = 30.0
+        static let hoverDwell = 0.08
         static let previewLevel = PreviewLevel.auto.rawValue
         static let powerTuned = false
         static let firstRunDone = false
@@ -72,7 +84,9 @@ final class AppSettings {
         return (v as? T) ?? fallback
     }
 
-    private func set<T>(_ value: T, _ key: String) {
+    private func set<T: Equatable>(_ value: T, _ key: String) {
+        guard (d.object(forKey: key) as? T) != value else { return }
+        objectWillChange.send()
         d.set(value, forKey: key)
         NotificationCenter.default.post(name: Self.changedNotification, object: nil)
     }
@@ -101,6 +115,11 @@ final class AppSettings {
 
     // MARK: - 外观
     /// 光晕整体缩放（0.4–1.6，长宽等比）
+    var ambientGlow: Bool {
+        get { get(Key.ambientGlow, true) }
+        set { set(newValue, Key.ambientGlow) }
+    }
+
     var glowScale: Double {
         get { get(Key.glowScale, Defaults.glowScale) }
         set { set(Double(newValue), Key.glowScale) }
@@ -168,12 +187,9 @@ final class AppSettings {
 
     var preview: PreviewLevel { PreviewLevel(rawValue: previewLevelRaw) ?? .auto }
 
-    func resetAll() {
-        mediumWatts = Defaults.mediumWatts
-        highWatts = Defaults.highWatts
-        holdOnSeconds = Defaults.holdOnSeconds
-        hysteresisWatts = Defaults.hysteresisWatts
-        sampleInterval = Defaults.sampleInterval
+    /// Apply the new visual defaults without touching power thresholds or behavior.
+    func resetAppearance() {
+        ambientGlow = true
         glowScale = Defaults.glowScale
         glowIntensity = Defaults.glowIntensity
         mediumAlpha = Defaults.mediumAlpha
@@ -182,8 +198,18 @@ final class AppSettings {
         overheatGain = Defaults.overheatGain
         overheatScale = Defaults.overheatScale
         frameRate = Defaults.frameRate
+    }
+
+    func resetAll() {
+        mediumWatts = Defaults.mediumWatts
+        highWatts = Defaults.highWatts
+        holdOnSeconds = Defaults.holdOnSeconds
+        hysteresisWatts = Defaults.hysteresisWatts
+        sampleInterval = Defaults.sampleInterval
+        resetAppearance()
         hoverDwell = Defaults.hoverDwell
         previewLevelRaw = Defaults.previewLevel
         powerTuned = Defaults.powerTuned
     }
 }
+

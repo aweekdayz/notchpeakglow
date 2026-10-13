@@ -17,9 +17,10 @@ final class CPUSampler {
         window.removeAll()
         // 首次立即采样建立基线
         tick()
-        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+        timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             self?.tick()
         }
+        if let timer { RunLoop.main.add(timer, forMode: .common) }
     }
 
     func stop() {
@@ -77,3 +78,4 @@ final class CPUSampler {
         return (idle, total)
     }
 }
+

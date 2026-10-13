@@ -3,25 +3,29 @@ import SwiftUI
 
 /// 首次启动引导窗口：告知用户无 Dock/菜单栏图标，通过刘海交互
 enum FirstRunWindow {
+    private static var retainedPanel: NSPanel?
     static func showIfNeeded() {
         guard !AppSettings.shared.firstRunDone else { return }
 
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 420, height: 300),
+            contentRect: NSRect(x: 0, y: 0, width: 420, height: 340),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false)
-        panel.title = "欢迎使用 PeakGlow"
+        panel.title = "Welcome to PeakGlow"
+        panel.titlebarAppearsTransparent = true
         panel.isReleasedWhenClosed = false
         panel.level = .floating
 
         let view = FirstRunContentView {
             panel.orderOut(nil)
+            retainedPanel = nil
         }
         panel.contentView = NSHostingView(rootView: view)
         panel.center()
         panel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        retainedPanel = panel
 
         AppSettings.shared.firstRunDone = true
     }
@@ -34,41 +38,44 @@ private struct FirstRunContentView: View {
         VStack(spacing: 16) {
             Image(nsImage: NSApplication.shared.applicationIconImage)
                 .resizable()
-                .frame(width: 96, height: 96)
+                .frame(width: 72, height: 72)
 
-            Text("PeakGlow 已在后台运行")
-                .font(.title2.bold())
+            Text("A little light. A sense of load.")
+                .font(.title2.weight(.semibold))
 
             VStack(alignment: .leading, spacing: 10) {
                 Label {
-                    Text("本应用没有 Dock 图标，也不占用菜单栏空间")
+                    Text("Runs quietly in the background, without a Dock or menu bar icon.")
                 } icon: {
                     Image(systemName: "eye.slash")
                         .foregroundStyle(.secondary)
                 }
                 Label {
-                    Text("将鼠标指针移到屏幕顶部的刘海（摄像头区域）并停留片刻，即可呼出控制气泡")
+                    Text("Hover over the notch to see power usage and preview the glow.")
                 } icon: {
                     Image(systemName: "camera.metering.center")
                         .foregroundStyle(.secondary)
                 }
                 Label {
-                    Text("气泡中可预览效果、调整设置或退出应用")
+                    Text("Open Settings to adjust the glow and power thresholds.")
                 } icon: {
                     Image(systemName: "slider.horizontal.3")
                         .foregroundStyle(.secondary)
                 }
             }
             .font(.callout)
+            .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
 
-            Button("我知道了") {
+            Button("Get Started") {
                 onClose()
             }
             .keyboardShortcut(.defaultAction)
+            .buttonStyle(.borderedProminent)
             .padding(.top, 4)
         }
         .padding(24)
-        .frame(width: 420)
+        .frame(width: 420, height: 340)
     }
 }
+

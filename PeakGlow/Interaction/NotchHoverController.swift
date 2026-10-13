@@ -4,14 +4,20 @@ import AppKit
 final class NotchHoverController {
     var onShowBubble: (() -> Void)?
     var onHideBubble: (() -> Void)?
+    var onEngageBubble: ((Bool) -> Void)?
     /// 气泡全局 frame 提供者（AppKit 全局坐标，与 NSEvent.mouseLocation 同系）
     var bubbleFrameProvider: (() -> CGRect?)?
 
     private var hoverPanel: NSPanel?
     private var dwellTimer: Timer?
     private var outsidePoll: Timer?
-    private var outsideSince: Date?
+    private var outsideSince: CFTimeInterval?
+    private var menuTracking = false
     private var globalClickMonitor: Any?
+    private var escapeMonitor: Any?
+    private var localClickMonitor: Any?
+    private var engaged = false
+    private var keyboardEngaged = false
     private var watchdogTimer: Timer?
     private var pendingReposition: Timer?
     private var bubbleVisible = false
@@ -21,6 +27,11 @@ final class NotchHoverController {
 
     func start() {
         reposition()
+        NotificationCenter.default.addObserver(forName: NSMenu.didBeginTrackingNotification, object: nil, queue: .main) { [weak self] _ in self?.menuTracking = true }
+        NotificationCenter.default.addObserver(forName: NSMenu.didEndTrackingNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.menuTracking = false
+            self?.outsideSince = nil
+        }
         // 唤醒/切空间/屏幕参数变化会成串触发（3~6次/秒），
         // 全部合并防抖：此前每次都销毁重建 NSPanel，唤醒瞬间产生大量
         // WindowServer 窗口创建/销毁 RPC，造成数秒 CPU 尖峰
@@ -88,7 +99,8 @@ final class NotchHoverController {
             p.hasShadow = false
             p.hidesOnDeactivate = false   // 关键：锁屏/切 App 时系统默认会收起面板
             p.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.statusWindow)))
-            p.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+            // The hit target must also join the foreground app's fullscreen Space.
+            p.collectionBehavior = [.canJoinAllSpaces, .canJoinAllApplications, .stationary, .ignoresCycle]
             p.isMovable = false
 
             let view = HoverTargetView(frame: NSRect(origin: .zero, size: notch.size))
@@ -109,17 +121,45 @@ final class NotchHoverController {
         hideBubble()
     }
 
+    func openForInteraction() {
+        dwellTimer?.invalidate()
+        dwellTimer = nil
+        if !bubbleVisible { showBubble() }
+        engage(forKeyboard: true)
+    }
+
+    private func engage(forKeyboard: Bool = false) {
+        guard !engaged || (forKeyboard && !keyboardEngaged) else { return }
+        engaged = true
+        keyboardEngaged = keyboardEngaged || forKeyboard
+        outsideSince = nil
+        if outsidePoll == nil { startOutsideWatch() }
+        onEngageBubble?(forKeyboard)
+    }
+
     // MARK: - 内部
 
     fileprivate func mouseEnteredNotch() {
         cancelOutsideWatch()
         guard !bubbleVisible else { return }
         dwellTimer?.invalidate()
-        dwellTimer = Timer.scheduledTimer(
-            withTimeInterval: AppSettings.shared.hoverDwell,
-            repeats: false) { [weak self] _ in
-            guard let self, !self.bubbleVisible else { return }
+        let timer = Timer(timeInterval: max(0, AppSettings.shared.hoverDwell), repeats: false) { [weak self] _ in
+            guard let self, !self.bubbleVisible, self.notchFrame.insetBy(dx: -4, dy: -4).contains(NSEvent.mouseLocation) else { return }
+            self.dwellTimer = nil
             self.showBubble()
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        dwellTimer = timer
+    }
+
+    fileprivate func clickNotch() {
+        dwellTimer?.invalidate()
+        dwellTimer = nil
+        if bubbleVisible && engaged {
+            hideBubble()
+        } else {
+            if !bubbleVisible { showBubble() }
+            engage()
         }
     }
 
@@ -139,8 +179,12 @@ final class NotchHoverController {
     }
 
     private func hideBubble() {
+        dwellTimer?.invalidate()
+        dwellTimer = nil
         guard bubbleVisible else { return }
         bubbleVisible = false
+        engaged = false
+        keyboardEngaged = false
         cancelOutsideWatch()
         removeClickMonitor()
         onHideBubble?()
@@ -150,11 +194,14 @@ final class NotchHoverController {
 
     private func startOutsideWatch() {
         outsidePoll?.invalidate()
+        outsidePoll = nil
         outsideSince = nil
-        outsidePoll = Timer.scheduledTimer(
-            withTimeInterval: 0.15, repeats: true) { [weak self] _ in
+        outsidePoll = Timer(
+            timeInterval: 0.04, repeats: true) { [weak self] _ in
             self?.checkOutside()
         }
+        if let outsidePoll { RunLoop.main.add(outsidePoll, forMode: .common) }
+        outsidePoll?.tolerance = 0.004
     }
 
     private func cancelOutsideWatch() {
@@ -166,6 +213,10 @@ final class NotchHoverController {
     private func checkOutside() {
         guard bubbleVisible else {
             cancelOutsideWatch()
+            return
+        }
+        guard !menuTracking, NSEvent.pressedMouseButtons == 0 else {
+            outsideSince = nil
             return
         }
         let loc = NSEvent.mouseLocation
@@ -187,18 +238,30 @@ final class NotchHoverController {
             outsideSince = nil
             return
         }
-        let now = Date()
+        let now = CACurrentMediaTime()
         if outsideSince == nil {
             outsideSince = now
             return
         }
-        if now.timeIntervalSince(outsideSince!) >= 1.0 {
+        if now - outsideSince! >= 0.18 {
             hideBubble()
         }
     }
 
     private func installClickMonitor() {
         guard globalClickMonitor == nil else { return }
+        escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard event.keyCode == 53, self?.bubbleVisible == true else { return event }
+            self?.hideBubble()
+            return nil
+        }
+        localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            guard let self, self.bubbleVisible, !self.menuTracking else { return event }
+            let location = NSEvent.mouseLocation
+            if self.bubbleFrameProvider?()?.contains(location) == true { self.engage() }
+            else if !self.notchFrame.contains(location) { self.hideBubble() }
+            return event
+        }
         globalClickMonitor = NSEvent.addGlobalMonitorForEvents(
             matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
             // 点击了其他 App 的窗口 → 立即收起
@@ -207,6 +270,14 @@ final class NotchHoverController {
     }
 
     private func removeClickMonitor() {
+        if let monitor = localClickMonitor {
+            NSEvent.removeMonitor(monitor)
+            localClickMonitor = nil
+        }
+        if let monitor = escapeMonitor {
+            NSEvent.removeMonitor(monitor)
+            escapeMonitor = nil
+        }
         if let m = globalClickMonitor {
             NSEvent.removeMonitor(m)
             globalClickMonitor = nil
@@ -230,6 +301,10 @@ private final class HoverTargetView: NSView {
         tracking = t
     }
 
+    override func mouseDown(with event: NSEvent) {
+        controller?.clickNotch()
+    }
+
     override func mouseEntered(with event: NSEvent) {
         controller?.mouseEnteredNotch()
     }
@@ -238,3 +313,4 @@ private final class HoverTargetView: NSView {
         controller?.mouseExitedNotch()
     }
 }
+
