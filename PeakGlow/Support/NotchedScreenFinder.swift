@@ -1,6 +1,6 @@
 import AppKit
 
-enum NotchedScreenFinder {
+@MainActor enum NotchedScreenFinder {
     /// Locate a built-in display with valid notch geometry, regardless of main display.
     static func find() -> NSScreen? {
         NSScreen.screens.first { screen in

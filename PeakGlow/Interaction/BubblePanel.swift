@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 /// Native control panel anchored beneath the notch.
-final class BubblePanelController: NSObject {
+@MainActor final class BubblePanelController: NSObject {
     private var panel: NSPanel?
     private let hover: NotchHoverController
     /// Interruptible presentation animation; generation guards prevent stale completions.

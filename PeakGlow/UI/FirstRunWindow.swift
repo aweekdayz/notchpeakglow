@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 /// Initial guidance for accessing the background application through the notch.
-enum FirstRunWindow {
+@MainActor enum FirstRunWindow {
     private static var retainedPanel: NSPanel?
     static func showIfNeeded() {
         guard !AppSettings.shared.firstRunDone else { return }

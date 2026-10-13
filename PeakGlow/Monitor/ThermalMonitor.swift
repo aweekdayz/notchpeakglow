@@ -10,7 +10,7 @@ import IOKit
 ///
 /// Source: maximum available Tp* die-temperature reading.
 /// Fallback: the system thermal state becomes critical.
-final class OverheatDetector {
+@MainActor final class OverheatDetector {
     var onOverheatChange: ((Bool) -> Void)?
 
     private(set) var overheat = false
@@ -42,7 +42,7 @@ final class OverheatDetector {
         update()
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
-            self?.update()
+            MainActor.assumeIsolated { self?.update() }
         }
     }
 
@@ -125,7 +125,7 @@ final class OverheatDetector {
 }
 
 /// Two-step SMC reader for available Tp* die-temperature keys.
-final class ThermalSMC {
+@MainActor final class ThermalSMC {
     static let shared = ThermalSMC()
     private var conn: io_connect_t = 0
     private var nextOpenAttempt: TimeInterval = 0

@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 import ServiceManagement
 
-final class SettingsWindowController {
+@MainActor final class SettingsWindowController {
     static let shared = SettingsWindowController()
     private var window: NSWindow?
 

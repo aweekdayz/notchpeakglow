@@ -2,7 +2,7 @@ import Foundation
 import Combine
 
 /// Observable state shared by the controls.
-final class AppState: ObservableObject {
+@MainActor final class AppState: ObservableObject {
     static let shared = AppState()
 
     /// Publish streaming power only while controls are visible.
@@ -53,7 +53,7 @@ final class AppState: ObservableObject {
 
 
 /// Sampling changes only the measurement subtree, never the native controls.
-final class PowerReadingState: ObservableObject {
+@MainActor final class PowerReadingState: ObservableObject {
     struct Reading: Equatable {
         var watts: Double = 0
         var availability: AppState.PowerAvailability = .waiting

@@ -4,7 +4,7 @@ import AppKit
 
 /// Detect the MacBook family and suggest initial power thresholds.
 /// Presets are not calibrated or verified for every chip and core configuration.
-struct MachineProfile {
+@MainActor struct MachineProfile {
     enum Family: String {
         case air, pro14, pro16, unknown
     }
@@ -78,7 +78,7 @@ struct MachineProfile {
         guard sysctlbyname(name, nil, &size, nil, 0) == 0, size > 0 else { return nil }
         var buf = [CChar](repeating: 0, count: size)
         guard sysctlbyname(name, &buf, &size, nil, 0) == 0 else { return nil }
-        return String(cString: buf).trimmingCharacters(in: .whitespacesAndNewlines)
+        return String(decoding: buf.prefix(while: { $0 != 0 }).map { UInt8(bitPattern: $0) }, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private static func sysctlInt(_ name: String) -> Int {
