@@ -130,7 +130,8 @@ final class NotchHoverController {
     private func engage() {
         guard !engaged else { return }
         engaged = true
-        cancelOutsideWatch()
+        outsideSince = nil
+        if outsidePoll == nil { startOutsideWatch() }
         onEngageBubble?()
     }
 
@@ -187,7 +188,6 @@ final class NotchHoverController {
         outsidePoll?.invalidate()
         outsidePoll = nil
         outsideSince = nil
-        guard !engaged else { return }
         outsidePoll = Timer(
             timeInterval: 0.04, repeats: true) { [weak self] _ in
             self?.checkOutside()
@@ -207,7 +207,7 @@ final class NotchHoverController {
             cancelOutsideWatch()
             return
         }
-        guard !engaged, !menuTracking, NSEvent.pressedMouseButtons == 0 else {
+        guard !menuTracking, NSEvent.pressedMouseButtons == 0 else {
             outsideSince = nil
             return
         }

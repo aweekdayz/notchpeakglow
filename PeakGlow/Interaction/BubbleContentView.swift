@@ -160,58 +160,23 @@ private struct BubbleFooter: View {
   }
 }
 
-/// A system segmented control, not a drawn replacement. AppKit exposes equal segment
-/// distribution and the macOS 27 tabs role to SwiftUI hosting.
-private struct NativeGlowSelector: NSViewRepresentable {
+/// Keep the native tabs-style selector in SwiftUI's active-appearance environment.
+private struct NativeGlowSelector: View {
   @Binding var selection: PreviewLevel
   private static let modes: [PreviewLevel] = [.auto, .low, .medium, .high, .overheat]
-  private static let labels = ["Auto", "Off", "Soft", "Boost", "Warm"]
-  private static let help = [
-    "Adapt glow to system load", "Turn glow off", "Preview soft glow",
-    "Preview boost glow", "Preview the warm temperature-alert glow",
-  ]
 
-  func makeCoordinator() -> Coordinator { Coordinator(selection: $selection) }
-
-  func makeNSView(context: Context) -> NSSegmentedControl {
-    let control = NSSegmentedControl(
-      labels: Self.labels, trackingMode: .selectOne,
-      target: context.coordinator, action: #selector(Coordinator.select(_:)))
-    control.role = .tabs
-    control.segmentStyle = .automatic
-    control.borderShape = .capsule
-    control.segmentDistribution = .fillEqually
-    control.controlSize = .regular
-    control.setAccessibilityLabel("Glow mode")
-    for index in Self.modes.indices {
-      control.setToolTip(Self.help[index], forSegment: index)
+  var body: some View {
+    Picker("Glow mode", selection: $selection) {
+      ForEach(Self.modes, id: \.self) { mode in
+        Text(mode.label).tag(mode)
+      }
     }
-    control.selectedSegment = Self.modes.firstIndex(of: selection) ?? 0
-    return control
-  }
-
-  func updateNSView(_ control: NSSegmentedControl, context: Context) {
-    context.coordinator.selection = $selection
-    let index = Self.modes.firstIndex(of: selection) ?? 0
-    // Tracking already set the selected segment. Avoid resetting it during the
-    // state publication, which can invalidate native metrics mid-interaction.
-    if control.selectedSegment != index { control.selectedSegment = index }
-  }
-
-  func sizeThatFits(
-    _ proposal: ProposedViewSize, nsView: NSSegmentedControl,
-    context: Context
-  ) -> CGSize? {
-    CGSize(width: proposal.width ?? 288, height: nsView.intrinsicContentSize.height)
-  }
-
-  final class Coordinator: NSObject {
-    var selection: Binding<PreviewLevel>
-    init(selection: Binding<PreviewLevel>) { self.selection = selection }
-    @objc func select(_ sender: NSSegmentedControl) {
-      guard NativeGlowSelector.modes.indices.contains(sender.selectedSegment) else { return }
-      let mode = NativeGlowSelector.modes[sender.selectedSegment]
-      if selection.wrappedValue != mode { selection.wrappedValue = mode }
-    }
+    .pickerStyle(.tabs)
+    .labelsHidden()
+    .controlSize(.regular)
+    .frame(maxWidth: .infinity)
+    .environment(\.appearsActive, true)
+    .help("Choose Auto to follow system load, or preview a glow mode")
+    .accessibilityLabel("Glow mode")
   }
 }

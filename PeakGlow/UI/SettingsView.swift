@@ -149,7 +149,7 @@ struct SettingsView: View {
                     Toggle("Temperature alerts", isOn: binding(\.overheatAlertEnabled))
                     slider("Hover delay", binding(\.hoverDwell), in: 0...0.8,
                            value: String(format: "%.0f ms", s.hoverDwell * 1000), step: 0.01, unit: "ms", scale: 1000,
-                           explanation: "Hover to preview controls. Click to keep them open for keyboard use; press Esc to close.")
+                           explanation: "Hover to show controls. Click for keyboard use; move away or press Esc to close.")
                     Text("Auto pauses the glow while a game controller is connected. Preview modes remain available.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
