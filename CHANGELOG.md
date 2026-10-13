@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Break the temperature-plateau window and the load-transition dwell when samples are interrupted (for example by system sleep), so a plateau or transition must be observed continuously after waking.
+- Clamp the stored sampling interval (0.2–3 s) and frame rate (15–60 fps) to their Settings ranges.
+- Verified by an optimized executable compile only; not tested on hardware or exercised interactively.
+
 ## 1.6.2 — October 13, 2026 (Build 39)
 
 - Identify aweekdayz as the maintainer in project presentation and bundle metadata.

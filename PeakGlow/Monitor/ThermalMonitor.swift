@@ -27,6 +27,7 @@ final class OverheatDetector {
 
     private var win: [(t: TimeInterval, v: Double)] = []
     private var pinSince: Date?
+    private var lastSampleAt: Date?
 
     func start(interval: TimeInterval = 1.0) {
         switch MachineProfile.current.family {
@@ -74,7 +75,14 @@ final class OverheatDetector {
             return
         }
 
-        let now = Date().timeIntervalSince1970
+        // A long gap (for example system sleep) breaks continuity; observe the plateau afresh.
+        let sampleDate = Date()
+        if let last = lastSampleAt, sampleDate.timeIntervalSince(last) > Self.maxSampleGap {
+            resetWindow()
+        }
+        lastSampleAt = sampleDate
+
+        let now = sampleDate.timeIntervalSince1970
         win.append((now, t))
         while let first = win.first, now - first.t > 15.0 {
             win.removeFirst()
@@ -99,9 +107,13 @@ final class OverheatDetector {
         }
     }
 
+    /// Longest interval between samples that still counts as continuous observation.
+    private static let maxSampleGap: TimeInterval = 5
+
     private func resetWindow() {
         win.removeAll()
         pinSince = nil
+        lastSampleAt = nil
     }
 
     private func setOverheat(_ on: Bool) {

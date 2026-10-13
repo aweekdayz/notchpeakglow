@@ -21,10 +21,12 @@ final class LoadLevelStateMachine {
 
     private var candidate: LoadLevel?
     private var candidateSince: Date?
+    private var lastUpdate: Date?
 
     func reset() {
         candidate = nil
         candidateSince = nil
+        lastUpdate = nil
         level = .low
     }
 
@@ -32,6 +34,7 @@ final class LoadLevelStateMachine {
     func discardPendingTransition() {
         candidate = nil
         candidateSince = nil
+        lastUpdate = nil
     }
 
     /// - Parameter watts: Smoothed system power in watts.
@@ -41,6 +44,14 @@ final class LoadLevelStateMachine {
         let hyst = settings.hysteresisWatts
         let holdOn = settings.holdOnSeconds
         let holdOff = max(1.0, settings.holdOnSeconds + 2.0)
+
+        // A gap between samples (for example system sleep) breaks the continuous dwell.
+        let now = Date()
+        if let last = lastUpdate, now.timeIntervalSince(last) > max(2, settings.sampleInterval * 3) {
+            candidate = nil
+            candidateSince = nil
+        }
+        lastUpdate = now
 
         // Use thresholds to enter a level and a lower hysteresis boundary to leave it.
         let target: LoadLevel
