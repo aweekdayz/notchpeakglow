@@ -94,9 +94,9 @@ final class BubblePanelController: NSObject {
         let p: NSPanel
         if let panel { p = panel }
         else { p = makePanel(notch: notch); panel = p }
-        // Pointer presentations stay non-key throughout all control clicks.
-        (p as? BubbleControlPanel)?.allowsKeyboardFocus = false
-        if p.isKeyWindow { p.resignKey() }
+        // Establish the requested post-click appearance before the first visible frame.
+        // The nonactivating panel keeps the foreground application active.
+        (p as? BubbleControlPanel)?.allowsKeyboardFocus = true
         let destination = CGRect(x: notch.midX - p.frame.width / 2,
                                  y: notch.minY - p.frame.height - 8,
                                  width: p.frame.width, height: p.frame.height)
@@ -120,6 +120,7 @@ final class BubblePanelController: NSObject {
         }
         let overlayLevel = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.statusWindow)) + 2)
         if p.level != overlayLevel { p.level = overlayLevel }
+        if !p.isKeyWindow { p.makeKeyAndOrderFront(nil) }
         p.orderFrontRegardless()
         if !needsPreparation {
             animate(to: destination, alpha: 1, closing: false)
@@ -218,8 +219,7 @@ private final class BubbleHostingView: NSHostingView<BubbleContentView> {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }
 
-/// Pointer interaction preserves appearance and focus in the foreground app.
-/// Explicit Window-menu presentation enables native keyboard navigation.
+/// Presentations establish key appearance before revealing the nonactivating panel.
 private final class BubbleControlPanel: NSPanel {
     var allowsKeyboardFocus = false
     override var canBecomeKey: Bool { allowsKeyboardFocus }
