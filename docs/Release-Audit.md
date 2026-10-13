@@ -1,6 +1,6 @@
 # Release audit — October 12, 2026
 
-Historical audit of 1.6.1 / Build 38 (never published separately; its changes shipped in 1.6.2). **Current public release: 1.6.2 / Build 39** — see the follow-up sections below, which supersede earlier status lines.
+Historical audit of 1.6.1 / Build 38 (never published separately; its changes shipped in 1.6.2). **Current public release: 1.6.3 / Build 40** — see the follow-up sections below, which supersede earlier status lines.
 
 ## Checks completed
 
@@ -60,3 +60,7 @@ Current source: 1.6.2 / Build 39. On October 13 the user rebuilt it with the sta
 Project presentation and bundle metadata identify aweekdayz as maintainer. The identifier is `com.aweekdayz.peakglow`; the previous namespace is referenced only by a one-time, allowlisted preference migration. A focused migration check confirmed that new settings win, unknown keys and transient alerts are excluded, and a false Boolean value is preserved. The check does not modify user defaults.
 
 A native About panel reads the bundled Credits.rtf. RTF parsing, plist/project syntax, resource references and optimized Swift compilation passed. No application was launched for UI testing. Credits acknowledge provenance without assigning the original code's copyright to the maintainer; unresolved redistribution permission remains explicit.
+
+## 1.6.3 follow-up — October 13, 2026
+
+Build 40 adds sample-gap continuity for temperature and load detection, clamps stored timing settings, adopts the Swift 6 language mode, completes the menu bar and shows the menu bar while Settings is open. The ZIP was built with `scripts/build-release.sh` and its extracted contents were inspected: version 1.6.3 / Build 40, `com.aweekdayz.peakglow`, arm64, SDK and minimum OS 27.0, English, compiled shader, layered icon and Credits resources, strict signature validation and checksum. Signing is ad-hoc with hardened runtime; there is no Developer ID signature or notarization (see [Notarization](Notarization.md)). The maintainer tested the package on a Mac. Hardware coverage across models and display configurations, sleep/wake behavior on other Macs, upstream redistribution permission and App Store eligibility remain unverified or unresolved.

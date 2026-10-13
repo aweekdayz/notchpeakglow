@@ -1,16 +1,13 @@
 # Changelog
 
-## Unreleased
-
-- Show the menu bar while Settings is open: the app switches to a regular activation policy (menu bar and Dock icon) with the Settings window and returns to accessory mode when it closes. Previously the menus existed but could never be displayed.
-
-## 1.6.3 — Build 40 (not yet published)
+## 1.6.3 — October 13, 2026 (Build 40)
 
 - Break the temperature-plateau window and the load-transition dwell when samples are interrupted (for example by system sleep), so a plateau or transition must be observed continuously after waking.
 - Clamp the stored sampling interval (0.2–3 s) and frame rate (15–60 fps) to their Settings ranges.
 - Build in the Swift 6 language mode: main-thread types are annotated `@MainActor` and run-loop callbacks assert main-actor isolation. Replace a deprecated `String(cString:)` use.
 - Complete the menu bar: Hide Others, Show All, Minimize (⌘M), Zoom, and a shortcut (⌥⌘P) for Show PeakGlow Controls. These work only while PeakGlow is active; no global shortcut is registered.
-- Verified by a full Xcode Release build (unsigned) and a Swift 6 type-check without warnings; not tested on hardware or exercised interactively.
+- Show the menu bar while Settings is open: the app switches to a regular activation policy (menu bar and Dock icon) with the Settings window and returns to accessory mode when it closes. Previously the menus existed but could never be displayed.
+- Verified: full Xcode release build through `scripts/build-release.sh` (ad-hoc, hardened runtime, not notarized), extracted-package inspection and a Swift 6 type-check without warnings. The maintainer tested the package on a Mac; there are no automated interactive tests or multi-model hardware results.
 
 ## 1.6.2 — October 13, 2026 (Build 39)
 
