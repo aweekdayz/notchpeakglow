@@ -19,7 +19,9 @@ fi
 
 staging="$(mktemp -d "${TMPDIR:-/tmp}/peakglow-release.XXXXXX")"
 trap 'rm -rf "$staging"' EXIT
-build_arguments=()
+# Positional arguments also work with Bash 3.2 nounset; empty arrays do not.
+set -- -project PeakGlow.xcodeproj -scheme PeakGlow -configuration Release \
+  -derivedDataPath "$staging/DerivedData" CODE_SIGNING_ALLOWED=NO
 if [[ -n "$metal_toolchain" ]]; then
   # Restricted runners may not query the installed MobileAsset component.
   # Compile the current shader with the explicitly selected Apple compiler;
@@ -29,10 +31,9 @@ if [[ -n "$metal_toolchain" ]]; then
     -isysroot "$(xcrun --sdk macosx --show-sdk-path)" \
     "$repo_root/PeakGlow/Glow/Shaders.metal" -o "$staging/Shaders.air"
   "$metal_toolchain/usr/bin/metallib" "$staging/Shaders.air" -o "$staging/default.metallib"
-  build_arguments+=("EXCLUDED_SOURCE_FILE_NAMES=Shaders.metal")
+  set -- "$@" "EXCLUDED_SOURCE_FILE_NAMES=Shaders.metal"
 fi
-xcodebuild -project PeakGlow.xcodeproj -scheme PeakGlow -configuration Release \
-  -derivedDataPath "$staging/DerivedData" CODE_SIGNING_ALLOWED=NO "${build_arguments[@]}" build
+xcodebuild "$@" build
 app="$staging/PeakGlow.app"
 ditto "$staging/DerivedData/Build/Products/Release/PeakGlow.app" "$app"
 if [[ -n "$metal_toolchain" ]]; then
