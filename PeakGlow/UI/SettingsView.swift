@@ -375,8 +375,11 @@ private struct NativeSettingsSlider: View {
                 Spacer(minLength: 12)
                 if step != nil {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        TextField(title, value: numericValue,
+                        TextField("", value: numericValue,
                                   format: .number.precision(.fractionLength(0...1)))
+                            // The row already has a title; don't let Form render
+                            // a second label inside this compact numeric field.
+                            .labelsHidden()
                             .textFieldStyle(.roundedBorder)
                             .multilineTextAlignment(.trailing)
                             .monospacedDigit()
