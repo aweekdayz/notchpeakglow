@@ -128,6 +128,9 @@ import ServiceManagement
         settings.target = self
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Hide PeakGlow", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        let hideOthers = appMenu.addItem(withTitle: "Hide Others", action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h")
+        hideOthers.keyEquivalentModifierMask = [.command, .option]
+        appMenu.addItem(withTitle: "Show All", action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: "")
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Quit PeakGlow", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
 
@@ -148,7 +151,11 @@ import ServiceManagement
         let windowMenu = NSMenu(title: "Window")
         windowItem.submenu = windowMenu
         menu.addItem(windowItem)
-        let controls = windowMenu.addItem(withTitle: "Show PeakGlow Controls", action: #selector(openControls), keyEquivalent: "")
+        windowMenu.addItem(withTitle: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
+        windowMenu.addItem(withTitle: "Zoom", action: #selector(NSWindow.performZoom(_:)), keyEquivalent: "")
+        windowMenu.addItem(.separator())
+        let controls = windowMenu.addItem(withTitle: "Show PeakGlow Controls", action: #selector(openControls), keyEquivalent: "p")
+        controls.keyEquivalentModifierMask = [.command, .option]
         controls.target = self
         let close = windowMenu.addItem(withTitle: "Close Window", action: #selector(closeActiveWindow), keyEquivalent: "w")
         close.target = self
