@@ -1,6 +1,6 @@
 # Release audit — October 12, 2026
 
-Source revision: 1.6.1, Build 38 (unreleased). Current public binary: 1.6.0, Build 37.
+Source revision: 1.6.1, Build 38 (packaged locally; not publicly released). Current public binary: 1.6.0, Build 37.
 
 ## Checks completed
 
@@ -25,12 +25,15 @@ All application Swift and Metal source files, bundle metadata, Xcode project, pr
 - Optimized direct Swift compilation against the macOS 27 SDK, targeting arm64 macOS 27, passed.
 - Linked SDK and minimum-system metadata guards passed.
 - Shell syntax, property-list syntax, whitespace and non-English-source scans passed.
-- The default `xcrun metal` lookup reports a missing toolchain, but this was misleading in this restricted environment. The matching toolchain is installed and mounted; invoking its real compiler succeeds.
-- The component query/download failed in the restricted runner. The user successfully ran the download command, and the installed Apple Metal compiler (32023.921) and linker were subsequently invoked directly. Current shader compilation and metallib linking passed.
-- The complete Xcode pipeline was retried with the freshly compiled shader. It progressed to layered-icon compilation and failed: `Icon export exited with status 255` / `Failed to create a catalog from the Icon Studio document`. Copying the icon source to a temporary directory and clearing file attributes did not resolve it. The icon JSON parses and its PNG references exist, but native export remains unverified. The logs also contain restricted-service connection failures; the icon error cannot yet be definitively attributed to environment versus source.
+- In the restricted runner, default Metal component discovery misleadingly reported a missing toolchain; its installed Apple compiler and linker successfully compiled the current shader when selected directly.
+- The restricted full build then failed at native layered-icon export, including from a cleaned temporary icon copy.
+- The user ran the same release script in their normal terminal. An initial Bash 3.2 empty-array/nounset error was corrected; default and explicit-toolchain argument assembly were checked using the system Bash.
+- On October 12 at approximately 23:20 local time, the user reported `BUILD SUCCEEDED` and successful packaging of 1.6.1 / Build 38. No icon source change was necessary between the restricted export failure and the successful normal-terminal build.
+- The resulting ZIP was extracted and independently inspected: it contains the freshly compiled `default.metallib`, compiled `Assets.car` and `AppIcon.icns`; the plist declares `CFBundleIconName=AppIcon`, English, version 1.6.1, Build 38 and macOS 27.
+- Its executable is arm64 with linked SDK 27.0 and minimum OS 27.0. Strict deep signature verification and the archive SHA-256 check passed. The signature is ad-hoc with hardened runtime and no TeamIdentifier; it is not Developer ID-signed or Apple-notarized.
 - No application was launched for interactive testing, and no physical-device matrix or energy benchmark was performed.
 
-The previous 1.6.0 package signature and checksum were verified during publication. Those checks do not verify a 1.6.1 package, which does not yet exist.
+The previous 1.6.0 package signature and checksum were verified during publication. The 1.6.1 package has now been independently checked as described above; it has not been published as a GitHub Release.
 
 ## Hardware coverage
 
@@ -42,7 +45,7 @@ Power presets remain 13/19 W for Air and 30/55 W for Pro/unknown. They are adjus
 
 ## Remaining release requirements
 
-1. Resolve the layered-icon export failure, then complete `bash scripts/build-release.sh`. No further Metal Toolchain installation is required. In a restricted runner, `PEAKGLOW_METAL_TOOLCHAIN` can select the already mounted Apple toolchain explicitly; the script compiles the current shader separately and still builds Swift and the icon through Xcode.
+1. Full source/resource build and local packaging are complete. No further Metal Toolchain installation is required. Restricted runners can optionally use `PEAKGLOW_METAL_TOOLCHAIN` to select the mounted Apple compiler, but native icon export may still require a normal terminal environment.
 2. Have the user assess the new application without claiming automated UI coverage.
 3. Confirm permission to redistribute upstream code and any relevant third-party obligations. Do not add a license on the upstream author's behalf.
 4. For normal direct public distribution, supply a Developer ID identity and complete Apple notarization. Current ad-hoc signing does not provide either.

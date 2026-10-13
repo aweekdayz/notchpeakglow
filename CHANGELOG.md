@@ -15,7 +15,7 @@
 - Match the alert-brightness control to the shader's actual 0.5–2× multiplier range.
 - Document family presets, unverified hardware coverage, current build limitations and unresolved upstream licensing.
 
-No new release binary has been published for these changes. The current shader compiles with the installed Metal Toolchain. The full resource build remains blocked by layered-icon export.
+A complete Xcode source/resource build and local package succeeded on October 12, 2026. The 1.6.1 archive contains newly compiled shader and layered-icon resources; version, architecture, SDK, checksum and ad-hoc hardened-runtime signature checks passed. The package is not notarized and has not been publicly released.
 
 ## 1.6.0 — 2026-10-12
 
