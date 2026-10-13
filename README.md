@@ -21,7 +21,7 @@ PeakGlow 是一款 macOS 菜单栏常驻小工具（好吧，其实它连菜单�
 
 ## 特性
 
-- **零界面侵入** —— 无 Dock 图标、无菜单栏图标。鼠标移到刘海停留 0.4s 呼出控制气泡（预览 / 设置 / 退出）
+- **零界面侵入** —— 无 Dock 图标、无菜单栏图标。鼠标移到刘海停留约 80ms 呼出控制气泡（预览 / 设置 / 退出）
 - **真实整机功耗信号** —— 直接读取 SMC `PSTR` 传感器（与开源工具 stats 同源方案），无需 root、无需任何系统权限弹窗
 - **机型自适应** —— 自动识别 MacBook Air / Pro 14" / Pro 16"（含芯片与核心数），首次启动自动写入匹配的阈值：
   | 机型 | 中档阈值 | 高档阈值 |
@@ -41,7 +41,7 @@ PeakGlow 是一款 macOS 菜单栏常驻小工具（好吧，其实它连菜单�
 - 光晕沿真实刘海轮廓扩散，以青、紫、粉色柔光带缓慢交融；高负载过渡为冰蓝色，温度提醒使用持续暖色。
 - 控制面板以 macOS 27 为基线，材质使用 SwiftUI 原生 glassEffect，自动适配系统外观与辅助功能设置。
 - 预览采用之前确认的 macOS 27 原生 NSSegmentedControl（tabs 角色、等宽分段），Quit 使用直接可点的电源图标按钮。面板在淡入前建立 key 状态，统一成原先点击后的外观；不激活整个应用，移开鼠标或按 Esc 自动收起。设置采用 SwiftUI 原生侧栏导航与分组表单，工具栏及操作按钮使用系统玻璃样式，技术参数收进 Advanced 页面。
-- 鼠标悬停呼出的控制面板使用原生跨应用覆盖窗口行为，支持全屏及 Stage Manager；悬停显示时不抢走当前应用的焦点。
+- 鼠标悬停呼出的控制面板使用原生跨应用覆盖窗口行为，支持全屏及 Stage Manager；淡入前建立面板焦点，但不激活整个应用。
 - 遵循系统“减少动态效果”；HDR 增益限定在屏幕可用 headroom 内，Air 使用 SDR。
 - 性能优化：直接采样功耗、缓存传感器元数据和渲染参数，关闭光晕后提交透明帧并停止渲染；呼出/收起的反向动画从当前透明度继续。
 - 已保存的个人参数保持不变。想体验新的默认外观，可在设置中选择“Use Soft Appearance”，保留已有负载阈值。
@@ -55,7 +55,11 @@ PeakGlow 是一款 macOS 菜单栏常驻小工具（好吧，其实它连菜单�
 - macOS 27.0+
 - HDR 效果需要 XDR 显示屏（MacBook Pro 14"/16"）；Air 上自动回退 SDR
 
-## 构建与安装
+## 下载与安装
+
+[下载最新版](https://github.com/aweekdayz/notchpeakglow/releases/latest)（macOS 27+、Apple Silicon）。解压后将 PeakGlow.app 拖到 Applications。发布包为 ad-hoc 本地签名，未经 Apple 公证；首次打开可能受到 Gatekeeper 限制。
+
+## 源码构建
 
 ```bash
 git clone https://github.com/aweekdayz/notchpeakglow.git
@@ -70,29 +74,18 @@ xcodebuild -project PeakGlow.xcodeproj -scheme PeakGlow -configuration Release b
 ## 使用
 
 1. 启动后无任何图标 —— 这是正常的
-2. **鼠标移到屏幕顶部刘海（摄像头区域）停留约 0.4s**，呼出控制气泡
-3. 气泡内容：当前档位与实时功率、效果预览（关闭 / 中 / 高 / 自动）、设置、退出
+2. **鼠标移到屏幕顶部刘海（摄像头区域）停留约 80ms**，呼出控制气泡
+3. 气泡内容：当前档位与实时功率、效果预览（Auto / Off / Soft / Boost / Warm）、设置、退出
 4. 拖动设置中的阈值滑杆可实时观察效果变化
 
 ## 工作原理
 
-```
-SMC PSTR (整机功率 W)
-   │  IOKit 用户态调用（AppleSMC，selector 2 两步读取）
-   ▼
-5 样本滑动平均 ──► 滞回状态机 (低/中/高 + 保持时间)
-                        │
-                        ▼
-              GlowWindow（刘海顶部 720×210pt 透明窗口）
-              └─ CAMetalLayer + EDR，主线程 Timer 驱动
-                 ├─ 中档：HSV 彩虹 + fbm 噪声流动，×0.5 EDR 增益
-                 └─ 高档：蓝色 ×满 EDR 增益 + 0.5Hz 呼吸脉冲
-```
+直接读取 SMC PSTR 整机功率，用五次采样的滑动平均、滞回和保持时间判断负载。Metal 沿真实刘海轮廓渲染柔光，CADisplayLink 驱动动画；可用 EDR headroom 限定 HDR 增益。光晕完全淡出后提交透明帧并停止渲染。
 
-- 功率读取：`IOServiceMatching("AppleSMC")` → `readKeyInfo(9)` 查询 → `readBytes(5)` 读取，`flt` 类型小端解析
-- 刘海定位：`NSScreen.auxiliaryTopLeftArea / auxiliaryTopRightArea` 精确计算刘海矩形
-- 悬停热区：仅覆盖刘海本身的透明窗口，不遮挡两侧菜单栏图标
-- 全屏处理：窗口不含 `.fullScreenAuxiliary`，原生全屏空间中系统级不可见
+- 功率读取：缓存传感器元数据，每次采样仅读取数值。
+- 刘海定位：使用内建显示器的辅助顶部区域计算刘海轮廓。
+- 悬停热区：仅覆盖刘海，不遮挡两侧菜单栏图标。
+- 控制面板：支持其他应用的全屏及 Stage Manager，移开鼠标自动收起。
 
 ## 设置项一览
 
@@ -105,7 +98,7 @@ SMC PSTR (整机功率 W)
 ## 已知限制
 
 - "整机功耗"来自 SMC 传感器，适配器充电功率的瞬时波动可能短暂抬升读数（滑动平均已大幅缓解）
-- 无刘海机型（外接屏使用/老机型）不显示光晕，仅气泡可用
+- 光晕与悬停控制面板以带刘海的内建显示器为基准；外接显示器不显示光晕
 - 未签名分发时首次运行需右键打开（或 `xattr -cr` 去除隔离属性）
 
 ## 致谢
