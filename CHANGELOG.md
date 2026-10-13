@@ -1,13 +1,13 @@
 # Changelog
 
-## 1.6.2 — Packaged October 13, 2026; release draft (Build 39)
+## 1.6.2 — October 13, 2026 (Build 39)
 
 - Identify aweekdayz as the maintainer in project presentation and bundle metadata.
 - Use the maintainer's application identifier and import recognized legacy preferences without overwriting new settings.
 - Add a native About panel with bundled Credits and retain original project attribution in CREDITS.md.
 - Preserve the approved glow and interface. Recheck launch-at-login registration after replacing an older app.
 - Keep Git provenance and unresolved redistribution/licensing status explicit.
-- Full Xcode package verified with the new bundle identity, compiled shader/icon/Credits resources, strict ad-hoc hardened-runtime signature and SHA-256 checksum. Uploaded as a release draft; not publicly released.
+- Full Xcode package verified with the new bundle identity, compiled shader/icon/Credits resources, strict ad-hoc hardened-runtime signature and SHA-256 checksum. Published as the latest GitHub release.
 
 
 ## 1.6.1 — Unreleased (Build 38)

@@ -55,7 +55,7 @@ Xcode's interface is optional for routine command-line builds. Its installed com
 
 ## Maintainer identity follow-up — October 13, 2026
 
-Current source: 1.6.2 / Build 39. On October 13 the user rebuilt it with the standard release script. The resulting 1.6.2 ZIP was independently extracted and verified: new bundle identifier and maintainer metadata, English, compiled shader and layered-icon assets, bundled Credits, strict signature and checksum. Signing remains ad-hoc with hardened runtime and no Developer ID or notarization. A GitHub release draft holds the ZIP and checksum; the public latest release remains 1.6.0.
+Current source: 1.6.2 / Build 39. On October 13 the user rebuilt it with the standard release script. The resulting 1.6.2 ZIP was independently extracted and verified: new bundle identifier and maintainer metadata, English, compiled shader and layered-icon assets, bundled Credits, strict signature and checksum. Signing remains ad-hoc with hardened runtime and no Developer ID or notarization. The ZIP and checksum were published as the latest GitHub release, v1.6.2, on October 13 at the user's explicit request. Original licensing status remains unchanged.
 
 Project presentation and bundle metadata identify aweekdayz as maintainer. The identifier is `com.aweekdayz.peakglow`; the previous namespace is referenced only by a one-time, allowlisted preference migration. A focused migration check confirmed that new settings win, unknown keys and transient alerts are excluded, and a false Boolean value is preserved. The check does not modify user defaults.
 
