@@ -55,7 +55,12 @@ recorded_sdk="$(otool -l "$app/Contents/MacOS/PeakGlow" | awk '/LC_BUILD_VERSION
 
 # Clear file-provider/Finder attributes only in this temporary packaging copy.
 /usr/bin/xattr -cr "$app"
-codesign --force --options runtime --sign "${PEAKGLOW_SIGN_IDENTITY:--}" "$app"
+# A secure timestamp is required for notarization; ad-hoc signatures cannot carry one.
+if [[ -n "${PEAKGLOW_SIGN_IDENTITY:-}" ]]; then
+  codesign --force --options runtime --timestamp --sign "$PEAKGLOW_SIGN_IDENTITY" "$app"
+else
+  codesign --force --options runtime --sign - "$app"
+fi
 codesign --verify --deep --strict "$app"
 archive="PeakGlow-$version-macOS-arm64.zip"
 ditto -c -k --sequesterRsrc --keepParent "$app" "$staging/$archive"
