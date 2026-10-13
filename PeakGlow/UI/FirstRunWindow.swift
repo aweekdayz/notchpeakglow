@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// 首次启动引导窗口：告知用户无 Dock/菜单栏图标，通过刘海交互
+/// Initial guidance for accessing the background application through the notch.
 enum FirstRunWindow {
     private static var retainedPanel: NSPanel?
     static func showIfNeeded() {
@@ -33,6 +33,7 @@ enum FirstRunWindow {
 
 private struct FirstRunContentView: View {
     var onClose: () -> Void
+    private var notchAvailable: Bool { NotchedScreenFinder.find() != nil }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -51,7 +52,9 @@ private struct FirstRunContentView: View {
                         .foregroundStyle(.secondary)
                 }
                 Label {
-                    Text("Hover over the notch to see power usage and preview the glow.")
+                    Text(notchAvailable
+                         ? "Hover over the notch to see power usage and preview the glow."
+                         : "Glow and hover controls require an available built-in notch display.")
                 } icon: {
                     Image(systemName: "camera.metering.center")
                         .foregroundStyle(.secondary)

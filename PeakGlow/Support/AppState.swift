@@ -1,11 +1,11 @@
 import Foundation
 import Combine
 
-/// 全局可观察状态（气泡显示用）
+/// Observable state shared by the controls.
 final class AppState: ObservableObject {
     static let shared = AppState()
 
-    /// 气泡是否可见：不可见时冻结 @Published 更新，避免 SwiftUI 每秒空转重渲染
+    /// Publish streaming power only while controls are visible.
     var bubbleVisible = false
     var latestWatts: Double = 0
     private var lastPowerSample: Date?
@@ -15,7 +15,7 @@ final class AppState: ObservableObject {
     @Published var gamepadConnected = false
 
     func recordPower(_ reading: Double?) {
-        if let reading, reading.isFinite, reading > 0 {
+        if let reading, reading.isFinite, reading >= 0 {
             lastPowerSample = Date()
             latestWatts = reading
             latestPowerAvailability = .current
@@ -40,7 +40,7 @@ final class AppState: ObservableObject {
         if power.reading != reading { power.reading = reading }
     }
     @Published var effectiveLevel: LoadLevel = .low
-    /// 真实过热降频告警激活中（区分于普通高档）
+    /// Actual temperature warning, independent of the Warm preview.
     @Published var overheatAlarm = false
     @Published var preview: PreviewLevel {
         didSet { AppSettings.shared.previewLevelRaw = preview.rawValue }

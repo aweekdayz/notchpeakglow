@@ -16,7 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var glowGeometry = SIMD2<Double>(AppSettings.shared.glowScale, AppSettings.shared.overheatScale)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // 机型自动调优：仅首次启动写入建议阈值（不覆盖手动调整）
+        // Apply family presets on first launch without replacing custom thresholds.
         if !AppSettings.shared.powerTuned {
             let mp = MachineProfile.current
             AppSettings.shared.mediumWatts = mp.suggestedMediumWatts
@@ -34,12 +34,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let state = AppState.shared
 
             state.recordPower(reading)
-            guard let w = reading, w.isFinite, w > 0 else {
+            guard let w = reading, w.isFinite, w >= 0 else {
                 wattWindow.removeAll()
                 stateMachine.discardPendingTransition()
+                if self.lastAutoLevel != .low {
+                    self.stateMachine.reset()
+                    self.lastAutoLevel = .low
+                    self.applyLevel()
+                }
                 return
             }
-            // 5 样本滑动平均（默认 0.5s 采样 = 2.5s 窗口），滤除瞬时尖峰
+            // Five-sample average filters transient power spikes.
             wattWindow.append(w)
             if wattWindow.count > 5 { wattWindow.removeFirst() }
             stateMachine.update(watts: wattWindow.reduce(0, +) / Double(wattWindow.count))
@@ -50,7 +55,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.applyLevel()
         }
 
-        // 设置变化：光晕宽度/预览即时生效
+        // Coalesce settings changes before updating the glow.
         NotificationCenter.default.addObserver(
             forName: AppSettings.changedNotification,
             object: nil, queue: .main) { [weak self] _ in
@@ -64,20 +69,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0 / 60.0, execute: update)
         }
 
-        // 手柄检测：连接任意手柄 → 暂停光晕（游戏中不打扰）
+        // A connected controller pauses automatic glow.
         gamepad.onGamepadChange = { [weak self] connected in
             AppState.shared.gamepadConnected = connected
             self?.glow.setPaused(connected)
         }
 
-        // 过热监测：真实过热时自动开启红闪（预览"热"档外的叠加通道）
+        // Temperature warnings add a steady warm tint independently of previews.
         thermal.onOverheatChange = { [weak self] hot in
             guard let self else { return }
             AppSettings.shared.overheatAlarm = hot
             self.applyLevel()
         }
 
-        // 屏幕睡眠/唤醒
+        // Display sleep and wake.
         let ws = NSWorkspace.shared.notificationCenter
         ws.addObserver(forName: NSWorkspace.screensDidSleepNotification,
                        object: nil, queue: .main) { [weak self] _ in
@@ -93,15 +98,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         gamepad.start()
         thermal.start()
         powerSampler.start(interval: AppSettings.shared.sampleInterval)
-        applyLevel()   // start 之后再应用一次（renderer 此时已创建）
+        applyLevel()   // Apply again after the renderer has been created.
 
         FirstRunWindow.showIfNeeded()
+        if NotchedScreenFinder.find() == nil { SettingsWindowController.shared.show() }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         settingsUpdate?.cancel()
         glow.shutdown()
         powerSampler.stop()
+        thermal.stop()
     }
 
     private func installMainMenu() {
@@ -175,8 +182,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
-    /// 预览优先，否则自动档位；温度预览叠加平滑暖色提醒
-    /// 真实过热（SMC Tp 温度 ≥96°C / thermalState critical）在非关闭档下叠加暖色提醒
+    /// Previews override automatic load; Warm previews the temperature tint.
+    /// Actual warnings are heuristic temperature indicators, not proof of throttling.
     private func applyLevel() {
         var overheat = false
         let effective: LoadLevel
@@ -185,7 +192,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             effective = lastAutoLevel
             overheat = AppSettings.shared.overheatAlarm
         case .overheat:
-            effective = .high          // 蓝色呼吸基底 + 红闪
+            effective = .high          // Boost base with the warm warning tint.
             overheat = true
         case .low, .medium, .high:
             effective = LoadLevel(rawValue: AppSettings.shared.preview.rawValue) ?? lastAutoLevel
@@ -193,7 +200,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if AppState.shared.effectiveLevel != effective {
             AppState.shared.effectiveLevel = effective
         }
-        // 真实过热（非预览）时同步给气泡 UI 做状态区分
+        // Distinguish real warnings from the Warm preview in the controls.
         let alarm = overheat && AppSettings.shared.preview != .overheat
             && AppSettings.shared.overheatAlarm
         if AppState.shared.overheatAlarm != alarm { AppState.shared.overheatAlarm = alarm }

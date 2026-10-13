@@ -14,7 +14,7 @@ enum LoadLevel: Int {
     }
 }
 
-/// 带滞回 + 保持时间的分级状态机
+/// Load state machine with hysteresis and continuous dwell.
 final class LoadLevelStateMachine {
     private(set) var level: LoadLevel = .low
     var onLevelChange: ((LoadLevel) -> Void)?
@@ -34,7 +34,7 @@ final class LoadLevelStateMachine {
         candidateSince = nil
     }
 
-    /// - Parameter watts: 滑动平均整机功率（W）
+    /// - Parameter watts: Smoothed system power in watts.
     func update(watts: Double, settings: AppSettings = .shared) {
         let medium = settings.mediumWatts
         let high = settings.highWatts
@@ -42,7 +42,7 @@ final class LoadLevelStateMachine {
         let holdOn = settings.holdOnSeconds
         let holdOff = max(1.0, settings.holdOnSeconds + 2.0)
 
-        // 计算目标档位（进入用原阈值，维持允许低 hyst —— 滞回）
+        // Use thresholds to enter a level and a lower hysteresis boundary to leave it.
         let target: LoadLevel
         switch level {
         case .low:

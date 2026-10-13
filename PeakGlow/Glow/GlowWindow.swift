@@ -1,6 +1,6 @@
 import AppKit
 
-/// 刘海顶部光晕窗口：全穿透、不截图、非全屏空间
+/// Transparent, pointer-pass-through glow anchored to the built-in notch.
 final class GlowWindow {
     private var panel: NSPanel?
     private var metalView: GlowMetalView?
@@ -10,8 +10,10 @@ final class GlowWindow {
     private var pendingLevel: LoadLevel?
     private var pausedByGamepad = false
     private var screenAsleep = false
+    private var pendingOverheat = false
+    private var pendingOverheatGain: Float = 1.5
 
-    // MARK: - 生命周期
+    // MARK: - Lifecycle
 
     func start() {
         reposition()
@@ -21,11 +23,12 @@ final class GlowWindow {
 
     func shutdown() {
         headroomTimer?.invalidate()
+        screenChangeDebounce?.invalidate()
         metalView?.sleep()
         panel?.orderOut(nil)
     }
 
-    // MARK: - 对外
+    // MARK: - State
 
     func setLevel(_ level: LoadLevel) {
         pendingLevel = level
@@ -34,6 +37,8 @@ final class GlowWindow {
     }
 
     func setOverheat(_ on: Bool, gainBoost: Float = 1.5) {
+        pendingOverheat = on
+        pendingOverheatGain = gainBoost
         if let r = metalView?.renderer { r.overheatGain = gainBoost }
         metalView?.renderer?.overheat = on
     }
@@ -45,27 +50,35 @@ final class GlowWindow {
 
     func setScreenAsleep(_ asleep: Bool) {
         screenAsleep = asleep
-        syncPauseState()
+        if asleep { syncPauseState() }
+        else { reposition() }
     }
 
-    /// 实际暂停 = 手柄暂停 && 当前为自动档。
-    /// 暂停时不直接停 Timer：由 renderer.paused 驱动淡出动画，
-    /// 淡出完成后 renderTick 检测 isIdle 自行停止（避免光晕冻结在屏幕上）。
+    /// Pause automatic glow while a controller is connected.
+    /// Let the renderer fade to transparent before stopping its display link.
+    /// Display sleep or an unavailable notch display stops rendering immediately.
     private func syncPauseState() {
+        guard currentScreen != nil, !screenAsleep else {
+            metalView?.sleep()
+            panel?.orderOut(nil)
+            return
+        }
         let effective = screenAsleep || (pausedByGamepad && AppSettings.shared.preview == .auto)
         if let r = metalView?.renderer {
             r.paused = effective
             r.ambientEnabled = AppSettings.shared.preview == .auto && AppSettings.shared.ambientGlow
         }
-        metalView?.wake()   // 确保 Timer 在跑以完成淡出；已 idle 时下一帧即自停
+        metalView?.wake()   // Wake the display link only when needed to render or finish a fade.
     }
 
-    // MARK: - 布局
+    // MARK: - Layout
 
     func reposition() {
         guard let screen = NotchedScreenFinder.find(),
               let notch = NotchedScreenFinder.notchRect(of: screen) else {
             panel?.orderOut(nil)
+            metalView?.sleep()
+            currentScreen = nil
             return
         }
         currentScreen = screen
@@ -77,13 +90,13 @@ final class GlowWindow {
         let height = notch.height + padding
         let frame = CGRect(
             x: notch.midX - width / 2,
-            y: screen.frame.maxY - height,   // 贴屏幕顶端（窗口坐标原点左下）
+            y: screen.frame.maxY - height,   // Anchor at the top of the display in bottom-left AppKit coordinates.
             width: width,
             height: height)
 
         let isNewPanel = (panel == nil)
         if let panel {
-            // 帧未变化时跳过 setFrame，避免渲染中无谓的层变更
+            // Skip redundant frame updates.
             if panel.frame != frame {
                 panel.setFrame(frame, display: true)
             }
@@ -99,7 +112,7 @@ final class GlowWindow {
             p.ignoresMouseEvents = true
             p.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.statusWindow)) + 1)
             p.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
-            p.sharingType = .none          // 不出现在截图/录屏
+            p.sharingType = .none          // Request capture exclusion; capture behavior depends on macOS and the capture API.
             p.isMovable = false
 
             let view = GlowMetalView(frame: NSRect(origin: .zero, size: frame.size))
@@ -110,20 +123,22 @@ final class GlowWindow {
         }
 
         metalView?.setup(screen: screen, notchRectGlobal: notch)
-        // 应用 pending 档位（renderer 可能刚创建）
+        metalView?.renderer?.overheat = pendingOverheat
+        metalView?.renderer?.overheatGain = pendingOverheatGain
+        // Restore the pending level when a renderer is first created.
         if let lvl = pendingLevel {
             metalView?.renderer?.targetLevel = lvl
         }
         syncPauseState()
 
-        // EDR/HDR 配置（仅窗口创建时一次）
+        // Configure the EDR layer once, then refresh headroom on reposition.
         if isNewPanel, let metalLayer = metalView?.layer as? CAMetalLayer {
             metalLayer.wantsExtendedDynamicRangeContent = true
             metalLayer.colorspace = CGColorSpace(name: CGColorSpace.extendedLinearSRGB)
-            updateHeadroom(screen: screen)
         }
+        updateHeadroom(screen: screen)
 
-        panel?.orderFrontRegardless()
+        if !screenAsleep { panel?.orderFrontRegardless() }
     }
 
     private func updateHeadroom(screen: NSScreen) {
@@ -138,7 +153,7 @@ final class GlowWindow {
             if let s = self.currentScreen {
                 self.updateHeadroom(screen: s)
             }
-            // 自愈：睡眠/唤醒后 stationary 窗口可能被系统收起
+            // Restore an occluded stationary panel after wake or Space changes.
             if let p = self.panel, p.isVisible, !p.occlusionState.contains(.visible) {
                 p.orderFrontRegardless()
             }
@@ -151,7 +166,7 @@ final class GlowWindow {
             object: nil, queue: .main) { [weak self] _ in
                 self?.metalView?.wake()
             }
-        // 唤醒时屏幕参数通知成串到达，合并防抖避免反复 setFrame/重建 drawable
+        // Coalesce display-change notifications to avoid redundant drawable resizing.
         NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
             object: nil, queue: .main) { [weak self] _ in

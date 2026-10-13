@@ -1,11 +1,11 @@
 import AppKit
 
-/// 刘海悬停检测：驻留触发气泡；收起依据"真实鼠标位置轮询"（刘海∪气泡∪间隙之外持续1s）
+/// Notch hover detection with dwell-to-open and pointer-based dismissal after 180 ms.
 final class NotchHoverController {
     var onShowBubble: (() -> Void)?
     var onHideBubble: (() -> Void)?
     var onEngageBubble: ((Bool) -> Void)?
-    /// 气泡全局 frame 提供者（AppKit 全局坐标，与 NSEvent.mouseLocation 同系）
+    /// Panel bounds in global AppKit coordinates, matching NSEvent.mouseLocation.
     var bubbleFrameProvider: (() -> CGRect?)?
 
     private var hoverPanel: NSPanel?
@@ -23,7 +23,7 @@ final class NotchHoverController {
     private var bubbleVisible = false
     private var notchFrame: CGRect = .zero
 
-    // MARK: - 生命周期
+    // MARK: - Lifecycle
 
     func start() {
         reposition()
@@ -32,27 +32,27 @@ final class NotchHoverController {
             self?.menuTracking = false
             self?.outsideSince = nil
         }
-        // 唤醒/切空间/屏幕参数变化会成串触发（3~6次/秒），
-        // 全部合并防抖：此前每次都销毁重建 NSPanel，唤醒瞬间产生大量
-        // WindowServer 窗口创建/销毁 RPC，造成数秒 CPU 尖峰
+        // Wake, Space and display notifications can arrive in bursts.
+        // Coalesce them and reuse the panel instead of rebuilding it.
+        // This avoids unnecessary WindowServer window creation.
         NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
             object: nil, queue: .main) { [weak self] _ in self?.scheduleReposition() }
 
-        // 睡眠唤醒/空间切换后，系统可能隐藏 stationary 面板 → 主动恢复
+        // Restore stationary panels after display wake or Space changes.
         let ws = NSWorkspace.shared.notificationCenter
         ws.addObserver(forName: NSWorkspace.screensDidWakeNotification,
                        object: nil, queue: .main) { [weak self] _ in self?.scheduleReposition() }
         ws.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification,
                        object: nil, queue: .main) { [weak self] _ in self?.scheduleReposition() }
 
-        // 看门狗：周期自检悬停热区仍在屏（兜底上述通知未覆盖的场景）
+        // Periodically check the hover target in case a notification was missed.
         watchdogTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
             self?.ensureVisible()
         }
     }
 
-    /// 合并 0.5s 内的连续 reposition 请求为一次
+    /// Coalesce reposition requests over 0.5 seconds.
     private func scheduleReposition() {
         pendingReposition?.invalidate()
         pendingReposition = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self] _ in
@@ -61,7 +61,7 @@ final class NotchHoverController {
         }
     }
 
-    /// 悬停热区健康检查：不可见/被遮蔽时恢复
+    /// Restore the hover target if hidden or occluded.
     func ensureVisible() {
         guard let p = hoverPanel else {
             reposition()
@@ -77,12 +77,15 @@ final class NotchHoverController {
     }
 
     func reposition() {
-        // 复用已有面板：仅 setFrame/orderFront，不做销毁重建
+        // Reuse the existing panel rather than destroy and recreate it.
         guard let screen = NotchedScreenFinder.find(),
               let notch = NotchedScreenFinder.notchRect(of: screen) else {
-            hoverPanel?.orderOut(nil)   // 仅隐藏；屏幕恢复后由 reposition 重新显示
+            dismissNow()
+            notchFrame = .zero
+            hoverPanel?.orderOut(nil)   // Hide until a notch display becomes available again.
             return
         }
+        if bubbleVisible, notchFrame != notch { dismissNow() }
         notchFrame = notch
 
         let p: NSPanel
@@ -97,7 +100,7 @@ final class NotchHoverController {
             p.isOpaque = false
             p.backgroundColor = .clear
             p.hasShadow = false
-            p.hidesOnDeactivate = false   // 关键：锁屏/切 App 时系统默认会收起面板
+            p.hidesOnDeactivate = false   // Keep the hit target present when another application activates.
             p.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.statusWindow)))
             // The hit target must also join the foreground app's fullscreen Space.
             p.collectionBehavior = [.canJoinAllSpaces, .canJoinAllApplications, .stationary, .ignoresCycle]
@@ -115,13 +118,17 @@ final class NotchHoverController {
         p.orderFrontRegardless()
     }
 
-    // MARK: - 对外
+    // MARK: - Public actions
 
     func dismissNow() {
         hideBubble()
     }
 
     func openForInteraction() {
+        guard NotchedScreenFinder.find() != nil else {
+            SettingsWindowController.shared.show()
+            return
+        }
         dwellTimer?.invalidate()
         dwellTimer = nil
         if !bubbleVisible { showBubble() }
@@ -137,7 +144,7 @@ final class NotchHoverController {
         onEngageBubble?(forKeyboard)
     }
 
-    // MARK: - 内部
+    // MARK: - Pointer interaction
 
     fileprivate func mouseEnteredNotch() {
         cancelOutsideWatch()
@@ -171,7 +178,7 @@ final class NotchHoverController {
 
     private func showBubble() {
         bubbleVisible = true
-        // 触控板 haptic 反馈（Magic Trackpad/内建触控板有效，鼠标静默）
+        // Alignment feedback on supported trackpads.
         NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
         onShowBubble?()
         startOutsideWatch()
@@ -190,7 +197,7 @@ final class NotchHoverController {
         onHideBubble?()
     }
 
-    // MARK: - 外部监测
+    // MARK: - Outside interaction
 
     private func startOutsideWatch() {
         outsidePoll?.invalidate()
@@ -224,7 +231,7 @@ final class NotchHoverController {
         var inside = notchFrame.insetBy(dx: -6, dy: -6).contains(loc)
         if !inside, let bf = bubbleFrameProvider?() {
             inside = bf.insetBy(dx: -8, dy: -8).contains(loc)
-            // 刘海与气泡之间的空隙带也算"在内"（移动路径）
+            // Include the gap between the notch and panel in the pointer travel region.
             if !inside {
                 let gap = CGRect(
                     x: bf.minX, y: bf.maxY,
@@ -264,7 +271,7 @@ final class NotchHoverController {
         }
         globalClickMonitor = NSEvent.addGlobalMonitorForEvents(
             matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-            // 点击了其他 App 的窗口 → 立即收起
+            // An outside click in another application dismisses the controls.
             self?.hideBubble()
         }
     }
@@ -285,7 +292,7 @@ final class NotchHoverController {
     }
 }
 
-/// 纯热区视图
+/// Invisible view providing the notch hit target.
 private final class HoverTargetView: NSView {
     weak var controller: NotchHoverController?
     private var tracking: NSTrackingArea?

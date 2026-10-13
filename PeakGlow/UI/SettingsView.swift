@@ -73,6 +73,7 @@ struct SettingsView: View {
     @State private var loginNeedsApproval = SMAppService.mainApp.status == .requiresApproval
     @State private var loginError: String?
     @State private var confirmReset = false
+    @State private var notchDisplayAvailable = NotchedScreenFinder.find() != nil
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -92,13 +93,21 @@ struct SettingsView: View {
             Form {
                 switch selection ?? .appearance {
                 case .appearance:
-                Section("Device") {
+                Section {
                     LabeledContent("Model") {
                         Text(MachineProfile.current.summary)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.trailing)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                    LabeledContent("Display", value: notchDisplayAvailable
+                                   ? "Built-in notch display available" : "Notch display unavailable")
+                } header: {
+                    Text("Device")
+                } footer: {
+                    SettingsNote(notchDisplayAvailable
+                        ? "Power presets depend on the MacBook family. Adjust thresholds for your chip and workload."
+                        : "Glow and hover controls require a built-in notch display. External displays and closed-display mode are not supported.")
                 }
                 Section {
                     Toggle("Show glow at low load", isOn: binding(\.ambientGlow))
@@ -183,7 +192,7 @@ struct SettingsView: View {
                                value: "\(Int(s.frameRate)) fps", step: 1, unit: "fps")
                 }
                 Section("Temperature alerts") {
-                    slider("Alert brightness", binding(\.overheatGain), in: 0.5...8,
+                    slider("Alert brightness", binding(\.overheatGain), in: 0.5...2,
                            value: String(format: "%.1f×", s.overheatGain), step: 0.1, unit: "×")
                     slider("Alert size", binding(\.overheatScale), in: 0.6...1.8,
                            value: "\(Int(s.overheatScale * 100))%")
@@ -222,6 +231,9 @@ struct SettingsView: View {
         .defaultFocus($sidebarFocused, true)
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             refreshLoginStatus()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)) { _ in
+            notchDisplayAvailable = NotchedScreenFinder.find() != nil
         }
         .navigationSplitViewStyle(.prominentDetail)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -287,7 +299,8 @@ struct SettingsView: View {
             else { try SMAppService.mainApp.unregister() }
             loginError = nil
         } catch {
-            loginError = "Could not update login item: \(error.localizedDescription)"
+            let detail = error as NSError
+            loginError = "Could not update launch at login. Try again or check Login Items in System Settings. (\(detail.domain), code \(detail.code))"
         }
         refreshLoginStatus()
     }

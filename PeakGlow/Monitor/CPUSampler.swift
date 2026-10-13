@@ -1,6 +1,6 @@
 import Foundation
 
-/// Mach API CPU 采样：总占用率 + 滑动平均
+/// Legacy Mach CPU sampler; not used by the current power-only load pipeline.
 final class CPUSampler {
     var onSample: ((Double) -> Void)?
 
@@ -15,7 +15,7 @@ final class CPUSampler {
         stop()
         hasPrev = false
         window.removeAll()
-        // 首次立即采样建立基线
+        // Sample immediately to establish a baseline.
         tick()
         timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             self?.tick()
@@ -47,12 +47,12 @@ final class CPUSampler {
         onSample?(avg)
     }
 
-    /// 返回 (idle ticks, total ticks)
+    /// Return idle ticks and total ticks.
     private static func readTicks() -> (UInt64, UInt64)? {
         var count = natural_t(0)
         var pointer: processor_info_array_t?
         var infoCount = mach_msg_type_number_t(0)
-        // mach_host_self() 返回 +1 引用的发送权限，必须释放，否则每秒泄漏 2 个端口权限
+        // Release the send right returned by mach_host_self to prevent port leaks.
         let host = mach_host_self()
         defer { mach_port_deallocate(mach_task_self_, host) }
         let result = host_processor_info(

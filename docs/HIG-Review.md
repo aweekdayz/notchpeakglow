@@ -1,5 +1,7 @@
 # PeakGlow HIG review
 
+Current source audit: [Release-Audit.md](Release-Audit.md). The entries below record historical review and implementation iterations; they do not establish cross-device testing, Apple approval or release readiness.
+
 Reviewed: October 11, 2026. Baseline: preview Build 10.
 
 ## Scope and evidence

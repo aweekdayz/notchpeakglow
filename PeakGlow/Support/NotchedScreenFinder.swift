@@ -1,15 +1,20 @@
 import AppKit
 
 enum NotchedScreenFinder {
-    /// 找到带刘海的内建屏幕（auxiliaryTopLeftArea 仅刘海屏非 nil）
+    /// Locate a built-in display with valid notch geometry, regardless of main display.
     static func find() -> NSScreen? {
-        NSScreen.screens.first { $0.auxiliaryTopLeftArea != nil }
+        NSScreen.screens.first { screen in
+            guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber,
+                  CGDisplayIsBuiltin(CGDirectDisplayID(number.uint32Value)) != 0 else { return false }
+            return notchRect(of: screen) != nil
+        }
     }
 
-    /// 刘海精确矩形（全局 AppKit 坐标，屏幕坐标系原点在左下）
+    /// Notch bounds in global AppKit coordinates, with the origin at bottom left.
     static func notchRect(of screen: NSScreen) -> CGRect? {
         guard let left = screen.auxiliaryTopLeftArea,
               let right = screen.auxiliaryTopRightArea else { return nil }
+        guard right.minX > left.maxX, left.height > 0 else { return nil }
         return CGRect(
             x: left.maxX,
             y: left.minY,
@@ -17,7 +22,7 @@ enum NotchedScreenFinder {
             height: left.height)
     }
 
-    /// 刘海中心 x（全局坐标）
+    /// Horizontal notch center in global coordinates.
     static func notchCenterX(of screen: NSScreen) -> CGFloat? {
         notchRect(of: screen)?.midX
     }
