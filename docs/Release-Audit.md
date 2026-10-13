@@ -25,8 +25,9 @@ All application Swift and Metal source files, bundle metadata, Xcode project, pr
 - Optimized direct Swift compilation against the macOS 27 SDK, targeting arm64 macOS 27, passed.
 - Linked SDK and minimum-system metadata guards passed.
 - Shell syntax, property-list syntax, whitespace and non-English-source scans passed.
-- A full Release Xcode build was attempted and failed at Metal compilation: the Metal Toolchain is missing.
-- `xcodebuild -downloadComponent MetalToolchain` was attempted and failed fetching its component catalog in the restricted execution environment. This did not install the component.
+- The default `xcrun metal` lookup reports a missing toolchain, but this was misleading in this restricted environment. The matching toolchain is installed and mounted; invoking its real compiler succeeds.
+- The component query/download failed in the restricted runner. The user successfully ran the download command, and the installed Apple Metal compiler (32023.921) and linker were subsequently invoked directly. Current shader compilation and metallib linking passed.
+- The complete Xcode pipeline was retried with the freshly compiled shader. It progressed to layered-icon compilation and failed: `Icon export exited with status 255` / `Failed to create a catalog from the Icon Studio document`. Copying the icon source to a temporary directory and clearing file attributes did not resolve it. The icon JSON parses and its PNG references exist, but native export remains unverified. The logs also contain restricted-service connection failures; the icon error cannot yet be definitively attributed to environment versus source.
 - No application was launched for interactive testing, and no physical-device matrix or energy benchmark was performed.
 
 The previous 1.6.0 package signature and checksum were verified during publication. Those checks do not verify a 1.6.1 package, which does not yet exist.
@@ -41,7 +42,7 @@ Power presets remain 13/19 W for Air and 30/55 W for Pro/unknown. They are adjus
 
 ## Remaining release requirements
 
-1. Install the Metal Toolchain, then run `bash scripts/build-release.sh` for a complete source-to-package build, including the layered icon.
+1. Resolve the layered-icon export failure, then complete `bash scripts/build-release.sh`. No further Metal Toolchain installation is required. In a restricted runner, `PEAKGLOW_METAL_TOOLCHAIN` can select the already mounted Apple toolchain explicitly; the script compiles the current shader separately and still builds Swift and the icon through Xcode.
 2. Have the user assess the new application without claiming automated UI coverage.
 3. Confirm permission to redistribute upstream code and any relevant third-party obligations. Do not add a license on the upstream author's behalf.
 4. For normal direct public distribution, supply a Developer ID identity and complete Apple notarization. Current ad-hoc signing does not provide either.

@@ -68,7 +68,7 @@ If the Metal Toolchain is missing, install it using Xcode's Components settings 
 xcodebuild -downloadComponent MetalToolchain
 ```
 
-The build script intentionally fails when required tools are absent. It does not silently substitute an old shader or icon. It compiles the layered `AppIcon.icon`, checks bundle metadata and required resources, signs the staged app and creates a ZIP and checksum in `build/release/`.
+The build script intentionally fails when required tools are absent. If a restricted runner cannot discover an already installed Metal component, `PEAKGLOW_METAL_TOOLCHAIN=/absolute/path/to/Metal.xctoolchain` selects its real compiler and linker. In that mode, the current shader is compiled separately while Xcode builds Swift and the layered icon. It does not silently substitute an old shader or icon. It compiles the layered `AppIcon.icon`, checks bundle metadata and required resources, signs the staged app and creates a ZIP and checksum in `build/release/`.
 
 By default signing is ad-hoc. For a Developer ID build, set `PEAKGLOW_SIGN_IDENTITY` to an installed Developer ID Application identity. Apple notarization is a separate step and is not performed by this script. A Mac App Store submission needs its own signing, sandbox and API compatibility review.
 

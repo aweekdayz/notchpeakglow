@@ -9,17 +9,35 @@ if [[ "${sdk_version%%.*}" -lt 27 ]]; then
   echo "PeakGlow requires macOS SDK 27 or later; found $sdk_version." >&2
   exit 1
 fi
-if ! xcrun --sdk macosx metal --version; then
+metal_toolchain="${PEAKGLOW_METAL_TOOLCHAIN:-}"
+if [[ -n "$metal_toolchain" ]]; then
+  "$metal_toolchain/usr/bin/metal" --version
+elif ! xcrun --sdk macosx metal --version; then
   echo "Install the Metal Toolchain in Xcode Components or run: xcodebuild -downloadComponent MetalToolchain" >&2
   exit 1
 fi
 
 staging="$(mktemp -d "${TMPDIR:-/tmp}/peakglow-release.XXXXXX")"
 trap 'rm -rf "$staging"' EXIT
+build_arguments=()
+if [[ -n "$metal_toolchain" ]]; then
+  # Restricted runners may not query the installed MobileAsset component.
+  # Compile the current shader with the explicitly selected Apple compiler;
+  # Xcode still compiles Swift and the layered icon from the current sources.
+  "$metal_toolchain/usr/bin/metal" -c -target air64-apple-macos27.0 \
+    -fmodules-cache-path="$staging/MetalModuleCache" \
+    -isysroot "$(xcrun --sdk macosx --show-sdk-path)" \
+    "$repo_root/PeakGlow/Glow/Shaders.metal" -o "$staging/Shaders.air"
+  "$metal_toolchain/usr/bin/metallib" "$staging/Shaders.air" -o "$staging/default.metallib"
+  build_arguments+=("EXCLUDED_SOURCE_FILE_NAMES=Shaders.metal")
+fi
 xcodebuild -project PeakGlow.xcodeproj -scheme PeakGlow -configuration Release \
-  -derivedDataPath "$staging/DerivedData" CODE_SIGNING_ALLOWED=NO build
+  -derivedDataPath "$staging/DerivedData" CODE_SIGNING_ALLOWED=NO "${build_arguments[@]}" build
 app="$staging/PeakGlow.app"
 ditto "$staging/DerivedData/Build/Products/Release/PeakGlow.app" "$app"
+if [[ -n "$metal_toolchain" ]]; then
+  cp "$staging/default.metallib" "$app/Contents/Resources/default.metallib"
+fi
 plist="$app/Contents/Info.plist"
 version="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$plist")"
 build_number="$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$plist")"

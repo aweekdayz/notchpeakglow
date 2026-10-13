@@ -15,7 +15,7 @@
 - Match the alert-brightness control to the shader's actual 0.5–2× multiplier range.
 - Document family presets, unverified hardware coverage, current build limitations and unresolved upstream licensing.
 
-No new release binary has been published for these changes. The full resource build remains blocked by the missing Metal Toolchain.
+No new release binary has been published for these changes. The current shader compiles with the installed Metal Toolchain. The full resource build remains blocked by layered-icon export.
 
 ## 1.6.0 — 2026-10-12
 
