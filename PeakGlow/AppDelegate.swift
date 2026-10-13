@@ -9,6 +9,7 @@ import ServiceManagement
     private let hover = NotchHoverController()
     private let gamepad = GamepadDetector()
     private var bubble: BubblePanelController?
+    private var statusItem: NSStatusItem?
 
     private var lastAutoLevel: LoadLevel = .low
     private var samplingInterval = AppSettings.shared.sampleInterval
@@ -26,6 +27,7 @@ import ServiceManagement
         }
 
         installMainMenu()
+        updateStatusItem()
         bubble = BubblePanelController(hover: hover)
         // Sample power directly; unused CPU readings must not gate this callback.
         var wattWindow: [Double] = []
@@ -178,6 +180,27 @@ import ServiceManagement
 
     @objc private func openControls() { hover.openForInteraction() }
 
+    /// A menu bar icon gives pointer-free access to the controls, Settings and Quit.
+    private func updateStatusItem() {
+        guard AppSettings.shared.menuBarIcon else {
+            if let statusItem { NSStatusBar.system.removeStatusItem(statusItem) }
+            statusItem = nil
+            return
+        }
+        guard statusItem == nil else { return }
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        item.button?.image = NSImage(systemSymbolName: "waveform.path", accessibilityDescription: "PeakGlow")
+        let menu = NSMenu(title: "PeakGlow")
+        let controls = menu.addItem(withTitle: "Show PeakGlow Controls", action: #selector(openControls), keyEquivalent: "")
+        controls.target = self
+        let settings = menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: "")
+        settings.target = self
+        menu.addItem(.separator())
+        menu.addItem(withTitle: "Quit PeakGlow", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
+        item.menu = menu
+        statusItem = item
+    }
+
     @objc private func closeActiveWindow() {
         if bubble?.isKey == true { hover.dismissNow() }
         else { NSApp.keyWindow?.performClose(nil) }
@@ -191,6 +214,7 @@ import ServiceManagement
             glow.reposition()
         }
         applyLevel()
+        updateStatusItem()
         if samplingInterval != s.sampleInterval {
             samplingInterval = s.sampleInterval
             powerSampler.start(interval: samplingInterval)

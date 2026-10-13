@@ -65,6 +65,7 @@ enum PreviewLevel: Int, CaseIterable {
         static let firstRunDone = "firstRunDone"
         static let overheatAlarm = "overheatAlarm"
         static let overheatAlertEnabled = "overheatAlertEnabled"
+        static let menuBarIcon = "menuBarIcon"
         static let migratable = [mediumWatts, highWatts, holdOnSeconds, hysteresisWatts,
             sampleInterval, ambientGlow, glowScale, glowIntensity, mediumAlpha, pulseHz,
             hdrFactor, overheatGain, overheatScale, frameRate, hoverDwell, previewLevel,
@@ -208,6 +209,12 @@ enum PreviewLevel: Int, CaseIterable {
     var overheatAlertEnabled: Bool {
         get { get(Key.overheatAlertEnabled, true) }
         set { set(newValue, Key.overheatAlertEnabled) }
+    }
+
+    /// Whether the menu bar icon, a keyboard- and VoiceOver-reachable way to the controls, is shown.
+    var menuBarIcon: Bool {
+        get { get(Key.menuBarIcon, true) }
+        set { set(newValue, Key.menuBarIcon) }
     }
 
     var preview: PreviewLevel { PreviewLevel(rawValue: previewLevelRaw) ?? .auto }

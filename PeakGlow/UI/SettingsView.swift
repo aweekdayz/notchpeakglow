@@ -152,6 +152,13 @@ struct SettingsView: View {
                     SettingsNote("In Auto, full glow begins at the lower threshold. Boost begins at the higher threshold.")
                 }
                 case .behavior:
+                Section {
+                    Toggle("Show menu bar icon", isOn: binding(\.menuBarIcon))
+                } header: {
+                    Text("Menu bar")
+                } footer: {
+                    SettingsNote("The menu bar icon opens the controls, Settings and Quit without the pointer. Hovering the notch still opens the controls.")
+                }
                 Section("Startup") {
                     Toggle("Launch at login", isOn: $loginEnabled)
                         .onChange(of: loginEnabled) { _, enabled in
