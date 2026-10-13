@@ -25,7 +25,7 @@ final class BubblePanelController: NSObject {
         hover.onShowBubble = { [weak self] in self?.show() }
         hover.onHideBubble = { [weak self] in self?.hide() }
         hover.onEngageBubble = { [weak self] in
-            NSApp.activate(ignoringOtherApps: true)
+            // A nonactivating panel can receive keys without activating the app.
             self?.panel?.makeKeyAndOrderFront(nil)
         }
         hover.bubbleFrameProvider = { [weak self] in self?.panel?.frame }
@@ -68,10 +68,15 @@ final class BubblePanelController: NSObject {
         let view = BubbleContentView(onClose: { [weak self] in
             self?.hover.dismissNow()
         })
-        let hosting = NSHostingView(rootView: view)
+        let hosting = BubbleHostingView(rootView: view)
         // The borderless glass panel has no rectangular host-level focus outline.
         // Child controls retain their native keyboard focus indicators.
         hosting.focusRingType = .none
+        hosting.wantsLayer = true
+        hosting.layer?.backgroundColor = NSColor.clear.cgColor
+        hosting.layer?.cornerRadius = 24
+        hosting.layer?.cornerCurve = .continuous
+        hosting.layer?.masksToBounds = true
         hosting.sizingOptions = []
         hosting.frame = NSRect(origin: .zero, size: size)
         hosting.autoresizingMask = [.width, .height]
@@ -201,6 +206,11 @@ final class BubblePanelController: NSObject {
         }
     }
 
+}
+
+/// Clip the complete composited host, including any focus-time backing surface.
+private final class BubbleHostingView: NSHostingView<BubbleContentView> {
+    override var isOpaque: Bool { false }
 }
 
 /// Hover never takes focus; clicking a control can enable native keyboard navigation.

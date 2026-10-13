@@ -37,6 +37,8 @@ struct BubbleContentView: View {
     .padding(20)
     .frame(width: 328, height: 258)
     .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24))
+    // This utility surface is interactive even when the foreground app stays active.
+    .environment(\.appearsActive, true)
   }
 }
 
