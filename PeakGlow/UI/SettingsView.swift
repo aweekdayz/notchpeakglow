@@ -7,6 +7,9 @@ import ServiceManagement
     private var window: NSWindow?
 
     func show() {
+        // An accessory app has no menu bar. Present as a regular app while Settings is open,
+        // so the menu bar and its commands are visible; revert when the window closes.
+        NSApp.setActivationPolicy(.regular)
         // Establish active-app appearance before the initially selected row is rendered.
         NSApp.activate(ignoringOtherApps: true)
         if let window {
@@ -37,6 +40,10 @@ import ServiceManagement
         // The window owns its bounds. Avoid repeated min/ideal/max content measurements.
         hosting.sizingOptions = []
         w.contentView = hosting
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification, object: w, queue: .main) { _ in
+            MainActor.assumeIsolated { _ = NSApp.setActivationPolicy(.accessory) }
+        }
         w.center()
         w.makeKeyAndOrderFront(nil)
         window = w
