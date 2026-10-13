@@ -133,7 +133,8 @@ final class AppSettings: ObservableObject {
         set { set(Double(newValue), Key.hysteresisWatts) }
     }
     var sampleInterval: Double {
-        get { get(Key.sampleInterval, Defaults.sampleInterval) }
+        // Match the Settings range so a stored out-of-range value cannot stall or flood the timer.
+        get { min(3, max(0.2, get(Key.sampleInterval, Defaults.sampleInterval))) }
         set { set(Double(newValue), Key.sampleInterval) }
     }
 
@@ -175,7 +176,7 @@ final class AppSettings: ObservableObject {
         set { set(Double(newValue), Key.overheatScale) }
     }
     var frameRate: Double {
-        get { get(Key.frameRate, Defaults.frameRate) }
+        get { min(60, max(15, get(Key.frameRate, Defaults.frameRate))) }
         set { set(Double(newValue), Key.frameRate) }
     }
 
