@@ -4,7 +4,7 @@ import QuartzCore
 
 /// Metal renderer driven by the main-run-loop CADisplayLink.
 /// Interpolate load and appearance changes without rebuilding the pipeline.
-final class GlowRenderer {
+@MainActor final class GlowRenderer {
     // Accessed on the main thread only.
     var targetLevel: LoadLevel = .low   // Auto may retain a subtle ambient glow.
     var headroom: Float = 1.0
@@ -24,7 +24,7 @@ final class GlowRenderer {
     private var settings = RenderingSettings()
 
     /// Read preferences on state changes, not from the display-link hot path.
-    private struct RenderingSettings {
+    @MainActor private struct RenderingSettings {
         let frameRate: Double
         let glowIntensity: Double
         let glowScale: Double

@@ -16,7 +16,7 @@ enum PreviewLevel: Int, CaseIterable {
 }
 
 /// Preferences accessed by main-thread sampling, rendering and SwiftUI controls.
-final class AppSettings: ObservableObject {
+@MainActor final class AppSettings: ObservableObject {
     static let shared = AppSettings()
     static let changedNotification = Notification.Name("AppSettingsChanged")
 
@@ -82,7 +82,7 @@ final class AppSettings: ObservableObject {
 
     // MARK: - Defaults
     // Factory defaults; power thresholds depend on the detected family.
-    struct Defaults {
+    @MainActor struct Defaults {
         static let mediumWatts = MachineProfile.current.suggestedMediumWatts
         static let highWatts = MachineProfile.current.suggestedHighWatts
         static let holdOnSeconds = 1.2

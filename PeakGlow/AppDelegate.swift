@@ -1,7 +1,7 @@
 import AppKit
 import ServiceManagement
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+@MainActor final class AppDelegate: NSObject, NSApplicationDelegate {
     private let powerSampler = PowerSampler()
     private let thermal = OverheatDetector()
     private let stateMachine = LoadLevelStateMachine()
@@ -59,14 +59,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.addObserver(
             forName: AppSettings.changedNotification,
             object: nil, queue: .main) { [weak self] _ in
-            guard let self, self.settingsUpdate == nil else { return }
-            let update = DispatchWorkItem { [weak self] in
-                guard let self else { return }
-                self.settingsUpdate = nil
-                self.applySettings()
+            MainActor.assumeIsolated {
+                guard let self, self.settingsUpdate == nil else { return }
+                let update = DispatchWorkItem { [weak self] in
+                    MainActor.assumeIsolated {
+                        guard let self else { return }
+                        self.settingsUpdate = nil
+                        self.applySettings()
+                    }
+                }
+                self.settingsUpdate = update
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0 / 60.0, execute: update)
             }
-            self.settingsUpdate = update
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0 / 60.0, execute: update)
         }
 
         // A connected controller pauses automatic glow.
@@ -86,11 +90,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let ws = NSWorkspace.shared.notificationCenter
         ws.addObserver(forName: NSWorkspace.screensDidSleepNotification,
                        object: nil, queue: .main) { [weak self] _ in
-            self?.glow.setScreenAsleep(true)
+            MainActor.assumeIsolated { self?.glow.setScreenAsleep(true) }
         }
         ws.addObserver(forName: NSWorkspace.screensDidWakeNotification,
                        object: nil, queue: .main) { [weak self] _ in
-            self?.glow.setScreenAsleep(false)
+            MainActor.assumeIsolated { self?.glow.setScreenAsleep(false) }
         }
 
         glow.start()

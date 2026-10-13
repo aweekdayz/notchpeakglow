@@ -1,7 +1,7 @@
 import AppKit
 
 /// Transparent, pointer-pass-through glow anchored to the built-in notch.
-final class GlowWindow {
+@MainActor final class GlowWindow {
     private var panel: NSPanel?
     private var metalView: GlowMetalView?
     private var currentScreen: NSScreen?
@@ -149,13 +149,15 @@ final class GlowWindow {
     private func startHeadroomPolling() {
         headroomTimer?.invalidate()
         headroomTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
-            guard let self else { return }
-            if let s = self.currentScreen {
-                self.updateHeadroom(screen: s)
-            }
-            // Restore an occluded stationary panel after wake or Space changes.
-            if let p = self.panel, p.isVisible, !p.occlusionState.contains(.visible) {
-                p.orderFrontRegardless()
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                if let s = self.currentScreen {
+                    self.updateHeadroom(screen: s)
+                }
+                // Restore an occluded stationary panel after wake or Space changes.
+                if let p = self.panel, p.isVisible, !p.occlusionState.contains(.visible) {
+                    p.orderFrontRegardless()
+                }
             }
         }
     }
@@ -164,17 +166,21 @@ final class GlowWindow {
         NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification,
             object: nil, queue: .main) { [weak self] _ in
-                self?.metalView?.wake()
+                MainActor.assumeIsolated { self?.metalView?.wake() }
             }
         // Coalesce display-change notifications to avoid redundant drawable resizing.
         NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
             object: nil, queue: .main) { [weak self] _ in
-            guard let self else { return }
-            self.screenChangeDebounce?.invalidate()
-            self.screenChangeDebounce = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self] _ in
-                self?.screenChangeDebounce = nil
-                self?.reposition()
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.screenChangeDebounce?.invalidate()
+                self.screenChangeDebounce = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self] _ in
+                    MainActor.assumeIsolated {
+                        self?.screenChangeDebounce = nil
+                        self?.reposition()
+                    }
+                }
             }
         }
     }

@@ -5,7 +5,7 @@ import GameController
 /// Use controller connection and disconnection notifications only.
 /// Do not perform active Bluetooth discovery.
 /// Check already connected devices when starting.
-final class GamepadDetector {
+@MainActor final class GamepadDetector {
     var onGamepadChange: ((Bool) -> Void)?
 
     private(set) var hasGamepad = false
@@ -14,12 +14,12 @@ final class GamepadDetector {
         NotificationCenter.default.addObserver(
             forName: .GCControllerDidConnect, object: nil, queue: .main
         ) { [weak self] _ in
-            self?.refresh()
+            MainActor.assumeIsolated { self?.refresh() }
         }
         NotificationCenter.default.addObserver(
             forName: .GCControllerDidDisconnect, object: nil, queue: .main
         ) { [weak self] _ in
-            self?.refresh()
+            MainActor.assumeIsolated { self?.refresh() }
         }
         refresh()   // Synchronize the current connection state at startup.
     }

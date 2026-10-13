@@ -1,7 +1,7 @@
 import Foundation
 
 /// Legacy Mach CPU sampler; not used by the current power-only load pipeline.
-final class CPUSampler {
+@MainActor final class CPUSampler {
     var onSample: ((Double) -> Void)?
 
     private var timer: Timer?
@@ -18,7 +18,7 @@ final class CPUSampler {
         // Sample immediately to establish a baseline.
         tick()
         timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
-            self?.tick()
+            MainActor.assumeIsolated { self?.tick() }
         }
         if let timer { RunLoop.main.add(timer, forMode: .common) }
     }

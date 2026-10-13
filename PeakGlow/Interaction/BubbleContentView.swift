@@ -205,7 +205,7 @@ private struct NativeGlowSelector: NSViewRepresentable {
     CGSize(width: proposal.width ?? 288, height: nsView.intrinsicContentSize.height)
   }
 
-  final class Coordinator: NSObject {
+  @MainActor final class Coordinator: NSObject {
     var selection: Binding<PreviewLevel>
     init(selection: Binding<PreviewLevel>) { self.selection = selection }
     @objc func select(_ sender: NSSegmentedControl) {

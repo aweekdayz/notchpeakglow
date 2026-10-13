@@ -1,7 +1,7 @@
 import AppKit
 
 /// Notch hover detection with dwell-to-open and pointer-based dismissal after 180 ms.
-final class NotchHoverController {
+@MainActor final class NotchHoverController {
     var onShowBubble: (() -> Void)?
     var onHideBubble: (() -> Void)?
     var onEngageBubble: ((Bool) -> Void)?
@@ -27,28 +27,30 @@ final class NotchHoverController {
 
     func start() {
         reposition()
-        NotificationCenter.default.addObserver(forName: NSMenu.didBeginTrackingNotification, object: nil, queue: .main) { [weak self] _ in self?.menuTracking = true }
+        NotificationCenter.default.addObserver(forName: NSMenu.didBeginTrackingNotification, object: nil, queue: .main) { [weak self] _ in MainActor.assumeIsolated { self?.menuTracking = true } }
         NotificationCenter.default.addObserver(forName: NSMenu.didEndTrackingNotification, object: nil, queue: .main) { [weak self] _ in
-            self?.menuTracking = false
-            self?.outsideSince = nil
+            MainActor.assumeIsolated {
+                self?.menuTracking = false
+                self?.outsideSince = nil
+            }
         }
         // Wake, Space and display notifications can arrive in bursts.
         // Coalesce them and reuse the panel instead of rebuilding it.
         // This avoids unnecessary WindowServer window creation.
         NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
-            object: nil, queue: .main) { [weak self] _ in self?.scheduleReposition() }
+            object: nil, queue: .main) { [weak self] _ in MainActor.assumeIsolated { self?.scheduleReposition() } }
 
         // Restore stationary panels after display wake or Space changes.
         let ws = NSWorkspace.shared.notificationCenter
         ws.addObserver(forName: NSWorkspace.screensDidWakeNotification,
-                       object: nil, queue: .main) { [weak self] _ in self?.scheduleReposition() }
+                       object: nil, queue: .main) { [weak self] _ in MainActor.assumeIsolated { self?.scheduleReposition() } }
         ws.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification,
-                       object: nil, queue: .main) { [weak self] _ in self?.scheduleReposition() }
+                       object: nil, queue: .main) { [weak self] _ in MainActor.assumeIsolated { self?.scheduleReposition() } }
 
         // Periodically check the hover target in case a notification was missed.
         watchdogTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
-            self?.ensureVisible()
+            MainActor.assumeIsolated { self?.ensureVisible() }
         }
     }
 
@@ -56,8 +58,10 @@ final class NotchHoverController {
     private func scheduleReposition() {
         pendingReposition?.invalidate()
         pendingReposition = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self] _ in
-            self?.pendingReposition = nil
-            self?.reposition()
+            MainActor.assumeIsolated {
+                self?.pendingReposition = nil
+                self?.reposition()
+            }
         }
     }
 
@@ -151,9 +155,11 @@ final class NotchHoverController {
         guard !bubbleVisible else { return }
         dwellTimer?.invalidate()
         let timer = Timer(timeInterval: max(0, AppSettings.shared.hoverDwell), repeats: false) { [weak self] _ in
-            guard let self, !self.bubbleVisible, self.notchFrame.insetBy(dx: -4, dy: -4).contains(NSEvent.mouseLocation) else { return }
-            self.dwellTimer = nil
-            self.showBubble()
+            MainActor.assumeIsolated {
+                guard let self, !self.bubbleVisible, self.notchFrame.insetBy(dx: -4, dy: -4).contains(NSEvent.mouseLocation) else { return }
+                self.dwellTimer = nil
+                self.showBubble()
+            }
         }
         RunLoop.main.add(timer, forMode: .common)
         dwellTimer = timer
@@ -205,7 +211,7 @@ final class NotchHoverController {
         outsideSince = nil
         outsidePoll = Timer(
             timeInterval: 0.04, repeats: true) { [weak self] _ in
-            self?.checkOutside()
+            MainActor.assumeIsolated { self?.checkOutside() }
         }
         if let outsidePoll { RunLoop.main.add(outsidePoll, forMode: .common) }
         outsidePoll?.tolerance = 0.004

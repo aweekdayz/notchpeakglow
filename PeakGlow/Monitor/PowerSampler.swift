@@ -4,16 +4,19 @@ import Foundation
 /// Sample the AppleSMC PSTR float sensor in watts.
 /// Two-step driver protocol: selector 2, with subcommands in data8.
 /// This driver protocol is not a documented public power-measurement API.
-final class PowerSampler {
+@MainActor final class PowerSampler {
     var onSample: ((Double?) -> Void)?
-    private var timer: Timer?
+    // Accessed from deinit, which is nonisolated; the timer is only otherwise touched on the main actor.
+    nonisolated(unsafe) private var timer: Timer?
 
     func start(interval: TimeInterval) {
         stop()
         onSample?(readWatts())
         let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
-            guard let self else { return }
-            self.onSample?(self.readWatts())
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.onSample?(self.readWatts())
+            }
         }
         timer.tolerance = min(0.05, interval * 0.1)
         self.timer = timer

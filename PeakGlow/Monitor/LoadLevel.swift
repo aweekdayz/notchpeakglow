@@ -15,7 +15,7 @@ enum LoadLevel: Int {
 }
 
 /// Load state machine with hysteresis and continuous dwell.
-final class LoadLevelStateMachine {
+@MainActor final class LoadLevelStateMachine {
     private(set) var level: LoadLevel = .low
     var onLevelChange: ((LoadLevel) -> Void)?
 
