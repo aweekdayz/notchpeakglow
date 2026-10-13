@@ -2,7 +2,7 @@ import AppKit
 import Metal
 import QuartzCore
 
-/// CAMetalLayer 宿主视图：主线程 CADisplayLink 驱动渲染（common mode，空闲自动停止）
+/// CAMetalLayer host driven by a main-run-loop CADisplayLink that stops when idle.
 final class GlowMetalView: NSView {
     override var wantsUpdateLayer: Bool { true }
     private(set) var renderer: GlowRenderer?
@@ -28,7 +28,7 @@ final class GlowMetalView: NSView {
     func setup(screen: NSScreen, notchRectGlobal: CGRect) {
         guard let metalLayer = layer as? CAMetalLayer else { return }
         metalLayer.contentsScale = screen.backingScaleFactor
-        // 显式同步 bounds（AppKit 可能不替我们更新自定义 backing layer）
+        // Explicitly synchronize the custom backing layer bounds.
         if metalLayer.bounds != bounds {
             metalLayer.bounds = bounds
         }
@@ -39,7 +39,7 @@ final class GlowMetalView: NSView {
         updateNotchCenter(notchRectGlobal: notchRectGlobal)
     }
 
-    /// macOS 的 CAMetalLayer.drawableSize 不随 bounds 自动更新，必须手动同步
+    /// Keep drawable pixel size synchronized with bounds and display scale.
     private func updateDrawableSize() {
         guard let metalLayer = layer as? CAMetalLayer else { return }
         let size = CGSize(width: bounds.width * metalLayer.contentsScale,
@@ -54,7 +54,7 @@ final class GlowMetalView: NSView {
         updateDrawableSize()
     }
 
-    /// 档位变化时由外部调用：唤醒渲染
+    /// Resume rendering after a level or settings change.
     func wake() {
         renderer?.wake()
         guard renderer?.isIdle == false else { return }
@@ -83,8 +83,8 @@ final class GlowMetalView: NSView {
         if renderer.isIdle { sleep() }
     }
 
-    /// notch 中心 → 本视图像素坐标（左上原点）。
-    /// 纯算术：不依赖 convert()（实测其在非翻转视图/无边框窗口下结果错误）
+    /// Convert global notch geometry to view pixels with a top-left origin.
+    /// Use window-frame arithmetic for the borderless host.
     func updateNotchCenter(notchRectGlobal: CGRect) {
         guard let metalLayer = layer as? CAMetalLayer else { return }
         lastNotchRect = notchRectGlobal

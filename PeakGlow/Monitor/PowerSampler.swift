@@ -1,9 +1,9 @@
 import IOKit
 import Foundation
 
-/// SMC 整机功率采样（Apple Silicon: "PSTR" 键, flt 类型, 单位 W）。
-/// 调用方式与开源项目 stats 一致：selector=2 (kernelIndex)，data8 承载子命令。
-/// 用户态 IOKit 调用，无需任何权限。
+/// Sample the AppleSMC PSTR float sensor in watts.
+/// Two-step driver protocol: selector 2, with subcommands in data8.
+/// This driver protocol is not a documented public power-measurement API.
 final class PowerSampler {
     var onSample: ((Double?) -> Void)?
     private var timer: Timer?
@@ -25,7 +25,7 @@ final class PowerSampler {
         timer = nil
     }
 
-    // 与 SMC 驱动约定的结构体布局（字段顺序/类型不可改动）
+    // Preserve the driver-compatible field order and types.
     private struct SMCKeyData {
         typealias SMCBytes = (
             UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
@@ -68,7 +68,7 @@ final class PowerSampler {
     }
 
     private var conn: io_connect_t = 0
-    private var opened = false
+    private var nextOpenAttempt: TimeInterval = 0
     private var keyInfoCache: [UInt32: SMCKeyData.KeyInfo] = [:]
 
     private static let kernelIndex: UInt8 = 2
@@ -76,12 +76,12 @@ final class PowerSampler {
     private static let readBytes: UInt8 = 5
     private static let typeFloat: UInt32 = 0x66_6C_74_20  // 'flt '
 
-    /// 返回整机功率（W），不可用返回 nil
+    /// System power in watts; nil when the sensor is unavailable.
     func readWatts() -> Double? {
         guard openIfNeeded() else { return nil }
         guard let data = readKey("PSTR"), data.count >= 4 else { return nil }
 
-        // flt 数据按主机字节序（小端）load（与 stats 的解析一致）
+        // Decode the four-byte little-endian float.
         let bits = UInt32(data[0])
             | UInt32(data[1]) << 8
             | UInt32(data[2]) << 16
@@ -91,7 +91,7 @@ final class PowerSampler {
         return Double(watts)
     }
 
-    // MARK: - SMC 两步读取
+    // MARK: - Two-step SMC reads
 
     private func readKey(_ keyStr: String) -> [UInt8]? {
         let key: UInt32 = keyStr.utf8.reduce(0) { $0 << 8 | UInt32($1) }
@@ -113,7 +113,7 @@ final class PowerSampler {
             keyInfoCache[key] = info
         }
 
-        // 第二步：读数据
+        // Read the current value after obtaining metadata.
         let size = Int(info.dataSize)
         input.keyInfo.dataSize = info.dataSize
         input.data8 = Self.readBytes
@@ -133,7 +133,7 @@ final class PowerSampler {
                       input: inout SMCKeyData, output: inout SMCKeyData) -> kern_return_t {
         let size = MemoryLayout<SMCKeyData>.stride
         var outSize = size
-        return withUnsafeMutablePointer(to: &input) { inPtr in
+        let result = withUnsafeMutablePointer(to: &input) { inPtr in
             withUnsafeMutablePointer(to: &output) { outPtr in
                 IOConnectCallStructMethod(
                     conn, UInt32(index),
@@ -141,11 +141,20 @@ final class PowerSampler {
                     outPtr, &outSize)
             }
         }
+        if result != KERN_SUCCESS {
+            IOServiceClose(conn)
+            conn = 0
+            keyInfoCache.removeAll()
+            nextOpenAttempt = ProcessInfo.processInfo.systemUptime + 30
+        }
+        return result == KERN_SUCCESS && outSize != size ? KERN_FAILURE : result
     }
 
     private func openIfNeeded() -> Bool {
-        if opened { return conn != 0 }
-        opened = true
+        if conn != 0 { return true }
+        let now = ProcessInfo.processInfo.systemUptime
+        guard now >= nextOpenAttempt else { return false }
+        nextOpenAttempt = now + 30
         let service = IOServiceGetMatchingService(
             kIOMainPortDefault, IOServiceMatching("AppleSMC"))
         guard service != IO_OBJECT_NULL else { return false }

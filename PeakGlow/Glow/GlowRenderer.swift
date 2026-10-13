@@ -2,19 +2,19 @@ import AppKit
 import Metal
 import QuartzCore
 
-/// Metal 渲染器：CADisplayLink 主线程驱动（单线程访问，无锁），
-/// 档位间平滑过渡
+/// Metal renderer driven by the main-run-loop CADisplayLink.
+/// Interpolate load and appearance changes without rebuilding the pipeline.
 final class GlowRenderer {
-    // 仅主线程访问
+    // Accessed on the main thread only.
     var targetLevel: LoadLevel = .low   // Auto may retain a subtle ambient glow.
     var headroom: Float = 1.0
     var ambientEnabled = false
-    var paused = false                  // 全屏/睡眠时
+    var paused = false                  // Paused by display or controller state.
     /// Temperature warning fades into a steady warm tint.
     var overheat = false
-    /// 过热红光相对蓝色的额外增益（×），由设置传入
+    /// Temperature-alert brightness multiplier supplied by Settings.
     var overheatGain: Float = 1.5
-    /// 完全淡出后为 true，宿主视图据此暂停 Timer（零功耗）
+    /// True after the final transparent frame; the host stops its display link.
     private(set) var isIdle = true
 
     private let layer: CAMetalLayer
@@ -55,9 +55,9 @@ final class GlowRenderer {
     private var smoothedBrightness: Float?
     private var smoothedScale: Float?
     private var smoothedOpacity: Float?
-    private var warningMix: Float = 0          // 温度暖色过渡 0..1
+    private var warningMix: Float = 0          // Temperature tint interpolation, from zero to one.
 
-    /// notch 中心（像素），由主线程设置
+    /// Notch center in drawable pixels, set on the main thread.
     var notchCenterPixels: CGPoint = .zero
     var notchSizePixels: CGSize = .zero
 
@@ -85,7 +85,7 @@ final class GlowRenderer {
         layer.isOpaque = false
     }
 
-    /// 有新目标（档位变化/恢复）时唤醒
+    /// Resume when the target changes or the display returns.
     func wake() {
         settings = RenderingSettings()
         if isIdle {
@@ -102,7 +102,7 @@ final class GlowRenderer {
         return level == .low ? (ambient ? 0.55 : 0) : 1
     }
 
-    // MARK: - 渲染（主线程，Timer 驱动）
+    // MARK: - Main-thread rendering
 
     func renderFrame(now: CFTimeInterval) {
         let s = settings
@@ -128,7 +128,7 @@ final class GlowRenderer {
         if !reduceMotion { animationTime += dt }
         lastRender = now
 
-        // 完全隐藏 → 通知宿主暂停 Timer
+        // Finish with a transparent frame before stopping rendering.
         let finishingFade = intensity < 0.004 && targetIntensity == 0
         if finishingFade { intensity = 0 }
         isIdle = false
@@ -181,7 +181,7 @@ final class GlowRenderer {
     }
 }
 
-/// 与 shader 中结构体对齐
+/// Memory layout must match the Metal shader uniforms.
 struct Uniforms {
     var resolution: SIMD2<Float>
     var notchCenter: SIMD2<Float>

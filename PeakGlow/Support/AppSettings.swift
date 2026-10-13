@@ -15,7 +15,7 @@ enum PreviewLevel: Int, CaseIterable {
     }
 }
 
-/// 设置存取（全部主线程访问：采样Timer/CADisplayLink渲染/SwiftUI均在主线程，无需锁）
+/// Preferences accessed by main-thread sampling, rendering and SwiftUI controls.
 final class AppSettings: ObservableObject {
     static let shared = AppSettings()
     static let changedNotification = Notification.Name("AppSettingsChanged")
@@ -23,6 +23,8 @@ final class AppSettings: ObservableObject {
     private let d = UserDefaults.standard
 
     private init() {
+        // An alert belongs to the current process, never the previous launch.
+        d.removeObject(forKey: Key.overheatAlarm)
         // Migrate the previous factory delay once; preserve custom delays.
         if !d.bool(forKey: "responsiveHoverV1") {
             if let delay = d.object(forKey: "hoverDwell") as? Double, abs(delay - 0.3) < 0.001 {
@@ -57,7 +59,7 @@ final class AppSettings: ObservableObject {
     }
 
     // MARK: - Defaults
-    // 注：以下为作者实机调校后的出厂默认值
+    // Factory defaults; power thresholds depend on the detected family.
     struct Defaults {
         static let mediumWatts = MachineProfile.current.suggestedMediumWatts
         static let highWatts = MachineProfile.current.suggestedHighWatts
@@ -91,7 +93,7 @@ final class AppSettings: ObservableObject {
         NotificationCenter.default.post(name: Self.changedNotification, object: nil)
     }
 
-    // MARK: - 负载（瓦数阈值）
+    // MARK: - Power thresholds
     var mediumWatts: Double {
         get { get(Key.mediumWatts, Defaults.mediumWatts) }
         set { set(Double(newValue), Key.mediumWatts) }
@@ -113,8 +115,8 @@ final class AppSettings: ObservableObject {
         set { set(Double(newValue), Key.sampleInterval) }
     }
 
-    // MARK: - 外观
-    /// 光晕整体缩放（0.4–1.6，长宽等比）
+    // MARK: - Appearance
+    /// Whether Auto retains a subtle glow at low load.
     var ambientGlow: Bool {
         get { get(Key.ambientGlow, true) }
         set { set(newValue, Key.ambientGlow) }
@@ -140,12 +142,12 @@ final class AppSettings: ObservableObject {
         get { get(Key.hdrFactor, Defaults.hdrFactor) }
         set { set(Double(newValue), Key.hdrFactor) }
     }
-    /// 过热红光相对蓝色的额外增益（×），1.0=与蓝同亮度
+    /// Temperature-alert brightness relative to the normal glow.
     var overheatGain: Double {
-        get { get(Key.overheatGain, Defaults.overheatGain) }
-        set { set(Double(newValue), Key.overheatGain) }
+        get { min(2, max(0.5, get(Key.overheatGain, Defaults.overheatGain))) }
+        set { if newValue.isFinite { set(min(2, max(0.5, newValue)), Key.overheatGain) } }
     }
-    /// 过热红光相对蓝的尺寸倍率（红闪时光晕膨胀）
+    /// Temperature-alert spread relative to the normal glow.
     var overheatScale: Double {
         get { get(Key.overheatScale, Defaults.overheatScale) }
         set { set(Double(newValue), Key.overheatScale) }
@@ -155,7 +157,7 @@ final class AppSettings: ObservableObject {
         set { set(Double(newValue), Key.frameRate) }
     }
 
-    // MARK: - 行为
+    // MARK: - Behavior
     var hoverDwell: Double {
         get { get(Key.hoverDwell, Defaults.hoverDwell) }
         set { set(Double(newValue), Key.hoverDwell) }
@@ -164,22 +166,22 @@ final class AppSettings: ObservableObject {
         get { get(Key.previewLevel, Defaults.previewLevel) }
         set { set(newValue, Key.previewLevel) }
     }
-    /// 机型自动调优是否已应用过（仅首次启动写入建议值，之后不覆盖手动调整）
+    /// Whether initial family presets have been applied; preserve subsequent custom values.
     var powerTuned: Bool {
         get { get(Key.powerTuned, Defaults.powerTuned) }
         set { set(newValue, Key.powerTuned) }
     }
-    /// 首次启动引导是否已展示
+    /// Whether the initial welcome window has been shown.
     var firstRunDone: Bool {
         get { get(Key.firstRunDone, false) }
         set { set(newValue, Key.firstRunDone) }
     }
-    /// 真实过热告警状态（ThermalMonitor 写入，重启后由其重新评估）
+    /// Temperature warning state, refreshed by the detector at launch.
     var overheatAlarm: Bool {
         get { get(Key.overheatAlarm, false) }
         set { set(newValue, Key.overheatAlarm) }
     }
-    /// 过热降频提醒开关（不想被打扰的用户可关闭；关闭后预览"热"档仍可用）
+    /// Disable automatic temperature alerts without disabling the Warm preview.
     var overheatAlertEnabled: Bool {
         get { get(Key.overheatAlertEnabled, true) }
         set { set(newValue, Key.overheatAlertEnabled) }

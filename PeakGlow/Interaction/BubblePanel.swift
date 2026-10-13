@@ -1,11 +1,11 @@
 import AppKit
 import SwiftUI
 
-/// 刘海气泡菜单（Dynamic Island 风格）
+/// Native control panel anchored beneath the notch.
 final class BubblePanelController: NSObject {
     private var panel: NSPanel?
     private let hover: NotchHoverController
-    /// 代数令牌：防止旧隐藏动画的 completion 关掉新弹出的气泡
+    /// Interruptible presentation animation; generation guards prevent stale completions.
     private var motionLink: CADisplayLink?
     private var motionStarted: CFTimeInterval = 0
     private var motionDuration: CFTimeInterval = 0.18
