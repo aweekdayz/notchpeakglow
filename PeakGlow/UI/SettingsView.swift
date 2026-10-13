@@ -92,37 +92,37 @@ struct SettingsView: View {
             Form {
                 switch selection ?? .appearance {
                 case .appearance:
-                Section {
-                    LabeledContent("Device", value: MachineProfile.current.summary)
-                    Text("A subtle glow at low load, brighter as power rises.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
+                Section("Device") {
+                    LabeledContent("Model") {
+                        Text(MachineProfile.current.summary)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.trailing)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
-                Section("Appearance") {
+                Section {
                     Toggle("Show glow at low load", isOn: binding(\.ambientGlow))
                     slider("Glow size", binding(\.glowScale), in: 0.4...1.6,
                            value: "\(Int(s.glowScale * 100))%")
                     slider("Brightness", binding(\.glowIntensity), in: 0.2...2,
                            value: "\(Int(s.glowIntensity * 100))%")
-                    Text("Soft light follows the notch. High load shifts to ice blue.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                     Button { s.resetAppearance() } label: {
                         Text("Use Soft Appearance").foregroundStyle(.primary)
                     }
                     .nativeGlassAction()
+                } header: {
+                    Text("Glow")
+                } footer: {
+                    SettingsNote("Auto follows system power. High load adds an ice-blue glow.")
                 }
                 case .power:
-                Section("Load") {
+                Section {
                     slider("Full glow threshold", Binding(get: { s.mediumWatts },
                         set: { s.mediumWatts = min($0, s.highWatts - 1) }),
                         in: 8...60, value: "\(Int(s.mediumWatts)) W", step: 1, unit: "W")
                     slider("Boost threshold", Binding(get: { s.highWatts },
                         set: { s.highWatts = max($0, s.mediumWatts + 1) }),
                         in: 9...90, value: "\(Int(s.highWatts)) W", step: 1, unit: "W")
-                    Text("Auto uses a subtle glow below the full glow threshold. Boost begins at the higher threshold.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                     Button {
                         s.mediumWatts = MachineProfile.current.suggestedMediumWatts
                         s.highWatts = MachineProfile.current.suggestedHighWatts
@@ -130,32 +130,46 @@ struct SettingsView: View {
                         Text("Use Recommended Thresholds").foregroundStyle(.primary)
                     }
                     .nativeGlassAction()
+                } header: {
+                    Text("Power thresholds")
+                } footer: {
+                    SettingsNote("In Auto, full glow begins at the lower threshold. Boost begins at the higher threshold.")
                 }
                 case .behavior:
-                Section("Behavior") {
+                Section("Startup") {
                     Toggle("Launch at login", isOn: $loginEnabled)
                         .onChange(of: loginEnabled) { _, enabled in
                             updateLogin(enabled)
                         }
                     if loginNeedsApproval {
-                        Text("Launch at login needs your approval in System Settings.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        SettingsNote("Allow PeakGlow in System Settings to launch at login.")
                         Button("Open Login Items…") {
                             SMAppService.openSystemSettingsLoginItems()
                         }
                         .nativeGlassAction()
                     }
+                    if let loginError {
+                        Text(loginError)
+                            .font(.callout)
+                            .foregroundStyle(.red)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Section {
                     Toggle("Temperature alerts", isOn: binding(\.overheatAlertEnabled))
+                } header: {
+                    Text("Alerts")
+                } footer: {
+                    SettingsNote("A warm glow highlights elevated temperatures.")
+                }
+                Section {
                     slider("Hover delay", binding(\.hoverDwell), in: 0...0.8,
                            value: String(format: "%.0f ms", s.hoverDwell * 1000), step: 0.01, unit: "ms", scale: 1000,
-                           explanation: "Hover to show controls. Move away or press Esc to close.")
-                    Text("Auto pauses the glow while a game controller is connected. Preview modes remain available.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    if let loginError {
-                        Text(loginError).font(.caption).foregroundStyle(.red)
-                    }
+                           explanation: "Time over the notch before controls appear.")
+                } header: {
+                    Text("Interaction")
+                } footer: {
+                    SettingsNote("Move away or press Esc to close the controls. In Auto, a game controller pauses the glow; previews remain available.")
                 }
                 case .advanced:
                 Section("Rendering") {
@@ -164,7 +178,7 @@ struct SettingsView: View {
                         slider("Breathing rate", binding(\.pulseHz), in: 0.1...2,
                                value: String(format: "%.1f Hz", s.pulseHz), step: 0.1, unit: "Hz")
                         slider("HDR gain", binding(\.hdrFactor), in: 1...8,
-                               value: String(format: "%.1f×", s.hdrFactor), step: 0.1, unit: "×", explanation: "Brightness above standard white on HDR displays. Available headroom depends on your display and brightness.")
+                               value: String(format: "%.1f×", s.hdrFactor), step: 0.1, unit: "×", explanation: "Brightness above standard white. HDR headroom depends on your display and its brightness.")
                         slider("Frame rate", binding(\.frameRate), in: 15...60,
                                value: "\(Int(s.frameRate)) fps", step: 1, unit: "fps")
                 }
@@ -175,12 +189,12 @@ struct SettingsView: View {
                            value: "\(Int(s.overheatScale * 100))%")
                 }
                 Section("Load response") {
-                        slider("Hysteresis", binding(\.hysteresisWatts), in: 1...10,
-                               value: String(format: "%.1f W", s.hysteresisWatts), step: 0.1, unit: "W", explanation: "Power must fall this far below a threshold before the glow returns to a lower level.")
+                        slider("Dimming margin", binding(\.hysteresisWatts), in: 1...10,
+                               value: String(format: "%.1f W", s.hysteresisWatts), step: 0.1, unit: "W", explanation: "Power must drop this far below a threshold before the glow dims.")
                         slider("Transition delay", binding(\.holdOnSeconds), in: 0.5...10,
-                               value: String(format: "%.1f s", s.holdOnSeconds), step: 0.1, unit: "s", explanation: "Power must stay above a threshold for this long before the glow increases. Decreases wait at least 1 second and 2 seconds longer than this setting.")
+                               value: String(format: "%.1f s", s.holdOnSeconds), step: 0.1, unit: "s", explanation: "Time above a threshold before brightening. Dimming waits 2 seconds longer.")
                         slider("Sampling interval", binding(\.sampleInterval), in: 0.2...3,
-                               value: String(format: "%.1f s", s.sampleInterval), step: 0.1, unit: "s", explanation: "Time between power readings. Shorter intervals refresh more often and use more resources.")
+                               value: String(format: "%.1f s", s.sampleInterval), step: 0.1, unit: "s", explanation: "Time between power readings. Shorter intervals update more often and use more resources.")
                 }
                 }
             }
@@ -308,6 +322,22 @@ private extension View {
     }
 }
 
+/// One readable secondary text style for inline help and native section footers.
+private struct SettingsNote: View {
+    let text: String
+
+    init(_ text: String) { self.text = text }
+
+    var body: some View {
+        Text(text)
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .lineSpacing(2)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 /// Keeps the system slider intact, including its thumb, tracking, and keyboard behavior.
 private struct NativeSettingsSlider: View {
     let title: String
@@ -338,24 +368,32 @@ private struct NativeSettingsSlider: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(title)
-                Spacer()
+                    .fixedSize(horizontal: false, vertical: true)
+                    .layoutPriority(1)
+                Spacer(minLength: 12)
                 if step != nil {
-                    TextField(title, value: numericValue,
-                              format: .number.precision(.fractionLength(0...1)))
-                        .textFieldStyle(.roundedBorder)
-                        .multilineTextAlignment(.trailing)
-                        .monospacedDigit()
-                        .frame(width: 64)
-                        .help("Allowed range: \(range.lowerBound * scale)–\(range.upperBound * scale) \(unit)")
-                        .accessibilityLabel("\(title), numeric value")
-                        .accessibilityValue(formattedValue)
-                    Text(unit).foregroundStyle(.secondary)
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        TextField(title, value: numericValue,
+                                  format: .number.precision(.fractionLength(0...1)))
+                            .textFieldStyle(.roundedBorder)
+                            .multilineTextAlignment(.trailing)
+                            .monospacedDigit()
+                            .frame(width: 64)
+                            .help("Allowed range: \(range.lowerBound * scale)–\(range.upperBound * scale) \(unit)")
+                            .accessibilityLabel("\(title), numeric value")
+                            .accessibilityValue(formattedValue)
+                        Text(unit)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 24, alignment: .leading)
+                    }
+                    .fixedSize(horizontal: true, vertical: false)
                 } else {
                     Text(formattedValue)
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
+                        .frame(width: 94, alignment: .trailing)
                 }
             }
             // Entry precision is not a set of meaningful visual stops.
@@ -368,10 +406,7 @@ private struct NativeSettingsSlider: View {
                 .accessibilityLabel(title)
                 .accessibilityValue(formattedValue)
             if let explanation {
-                Text(explanation)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                SettingsNote(explanation)
             }
         }
         .padding(.vertical, 4)
