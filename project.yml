@@ -1,6 +1,6 @@
 name: PeakGlow
 options:
-  bundleIdPrefix: com.sirosafc
+  bundleIdPrefix: com.aweekdayz
   deploymentTarget:
     macOS: "27.0"
   createIntermediateGroups: true
@@ -22,10 +22,10 @@ targets:
     settings:
       base:
         INFOPLIST_FILE: PeakGlow/Info.plist
-        PRODUCT_BUNDLE_IDENTIFIER: com.sirosafc.peakglow
+        PRODUCT_BUNDLE_IDENTIFIER: com.aweekdayz.peakglow
         PRODUCT_NAME: PeakGlow
-        MARKETING_VERSION: "1.6.1"
-        CURRENT_PROJECT_VERSION: "38"
+        MARKETING_VERSION: "1.6.2"
+        CURRENT_PROJECT_VERSION: "39"
         METAL_ENABLED: "YES"
         GENERATE_INFOPLIST_FILE: "NO"
         ENABLE_HARDENED_RUNTIME: "YES"

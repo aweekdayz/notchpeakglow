@@ -23,6 +23,15 @@ final class AppSettings: ObservableObject {
     private let d = UserDefaults.standard
 
     private init() {
+        if !d.bool(forKey: "aweekdayzPreferencesV1") {
+            // Compatibility-only namespace: preserve settings from the previous app.
+            let legacy = d.persistentDomain(forName: "com.sirosafc.peakglow") ?? [:]
+            let existing = Bundle.main.bundleIdentifier.flatMap { d.persistentDomain(forName: $0) } ?? [:]
+            for (key, value) in Self.preferencesToMigrate(legacy: legacy, existing: existing) {
+                d.set(value, forKey: key)
+            }
+            d.set(true, forKey: "aweekdayzPreferencesV1")
+        }
         // An alert belongs to the current process, never the previous launch.
         d.removeObject(forKey: Key.overheatAlarm)
         // Migrate the previous factory delay once; preserve custom delays.
@@ -56,6 +65,19 @@ final class AppSettings: ObservableObject {
         static let firstRunDone = "firstRunDone"
         static let overheatAlarm = "overheatAlarm"
         static let overheatAlertEnabled = "overheatAlertEnabled"
+        static let migratable = [mediumWatts, highWatts, holdOnSeconds, hysteresisWatts,
+            sampleInterval, ambientGlow, glowScale, glowIntensity, mediumAlpha, pulseHz,
+            hdrFactor, overheatGain, overheatScale, frameRate, hoverDwell, previewLevel,
+            powerTuned, firstRunDone, overheatAlertEnabled, "responsiveHoverV1"]
+    }
+
+    /// Import recognized preferences only; values already in the new domain win.
+    static func preferencesToMigrate(legacy: [String: Any], existing: [String: Any]) -> [String: Any] {
+        var result: [String: Any] = [:]
+        for key in Key.migratable where existing[key] == nil {
+            if let value = legacy[key] { result[key] = value }
+        }
+        return result
     }
 
     // MARK: - Defaults

@@ -1,0 +1,19 @@
+# Credits and provenance
+
+PeakGlow is maintained by **aweekdayz**, who directs the product, interface and release work on this version. Development is assisted by AI.
+
+## Original project
+
+This project originated as a fork of **[lzt66666/notchpeakglow](https://github.com/lzt66666/notchpeakglow)**. Credit goes to the original author for the initial application, notch-power-indicator concept and implementation on which this version builds.
+
+The aweekdayz version adds the native macOS interface refresh, refined pointer interaction and animation, English content, Settings improvements, display/sensor lifecycle fixes and updated build/release workflow. These contributions do not imply ownership of the original author's code.
+
+## SMC reference
+
+The original project identifies **[exelban/stats](https://github.com/exelban/stats)** as a reference for SMC access. Relevant third-party provenance and license obligations must be confirmed before declaring redistribution clearance.
+
+## Licensing status
+
+At the October 12, 2026 review, no upstream license file was found and GitHub reported no detected license. This repository does not relicense upstream code or grant rights on the original author's behalf. Permission and relevant third-party obligations remain unresolved for public redistribution and App Store submission.
+
+The GitHub fork relationship and original Git history are retained as provenance. Product branding and maintenance attribution identify the current maintainer; they do not replace source authorship.

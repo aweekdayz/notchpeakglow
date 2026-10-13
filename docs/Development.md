@@ -4,7 +4,7 @@ This document describes the current implementation. Earlier CPU-based and fullsc
 
 ## Ownership and dependencies
 
-This is an AI-assisted fork of lzt66666/notchpeakglow. It uses Swift, SwiftUI, AppKit, Metal, IOKit, GameController and ServiceManagement without third-party package dependencies. Upstream redistribution rights and the provenance of SMC-related code remain unresolved; see README.
+This version is maintained by aweekdayz with AI-assisted development. See [Credits](../CREDITS.md) for provenance. It uses Swift, SwiftUI, AppKit, Metal, IOKit, GameController and ServiceManagement without third-party package dependencies. Upstream redistribution rights and the provenance of SMC-related code remain unresolved; see Credits.
 
 ## Runtime architecture
 
@@ -64,3 +64,7 @@ The project explicitly targets arm64, uses hardened runtime and declares English
 ## Verification boundaries
 
 Static review and direct optimized Swift compilation are available in the current environment. The installed Metal compiler and linker have compiled the current shader successfully. Component discovery in the restricted runner misleadingly reports it as missing; an explicit `PEAKGLOW_METAL_TOOLCHAIN` path avoids that lookup. The restricted pipeline failed at layered-icon export, but the same source built and packaged successfully in the user's normal terminal. Independent inspection of the 1.6.1 ZIP verified freshly compiled shader and icon resources, bundle/SDK metadata, checksum and strict signature validation. No application was launched for interactive testing. Hardware coverage is an implementation claim only until verified on the relevant MacBooks and display configurations.
+
+## Maintainer identity update — Build 39
+
+The project and bundle use `com.aweekdayz.peakglow`. Recognized preferences are imported once from the previous namespace; existing values in the new namespace win. The old identifier is retained only for compatibility. Automatic launch registration is managed by macOS and may need reenabling. Original credits are bundled as Credits.rtf and displayed in the native About panel; this changes maintenance branding without rewriting source authorship.

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.6.2 — Unreleased (Build 39)
+
+- Identify aweekdayz as the maintainer in project presentation and bundle metadata.
+- Use the maintainer's application identifier and import recognized legacy preferences without overwriting new settings.
+- Add a native About panel with bundled Credits and retain original project attribution in CREDITS.md.
+- Preserve the approved glow and interface. Recheck launch-at-login registration after replacing an older app.
+- Keep Git provenance and unresolved redistribution/licensing status explicit.
+
+
 ## 1.6.1 — Unreleased (Build 38)
 
 - English interface, diagnostic logs, source comments and current documentation.

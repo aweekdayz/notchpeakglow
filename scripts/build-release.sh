@@ -44,9 +44,11 @@ version="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$plist
 build_number="$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$plist")"
 minimum="$(/usr/libexec/PlistBuddy -c 'Print LSMinimumSystemVersion' "$plist")"
 [[ "$minimum" == "27.0" ]]
+[[ "$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$plist")" == "com.aweekdayz.peakglow" ]]
 [[ "$(lipo -archs "$app/Contents/MacOS/PeakGlow")" == "arm64" ]]
 [[ -s "$app/Contents/Resources/default.metallib" ]]
 [[ -s "$app/Contents/Resources/Assets.car" ]]
+[[ -s "$app/Contents/Resources/Credits.rtf" ]]
 [[ "$(/usr/libexec/PlistBuddy -c 'Print CFBundleIconName' "$plist")" == "AppIcon" ]]
 recorded_sdk="$(otool -l "$app/Contents/MacOS/PeakGlow" | awk '/LC_BUILD_VERSION/{found=1} found && $1=="sdk"{print $2; found=0}')"
 [[ "$recorded_sdk" == "$sdk_version" ]]
