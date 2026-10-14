@@ -34,30 +34,48 @@ enum IslandMetrics {
 
 /// A read-only meter. The whole color scale stays visible at low brightness and the part up to the
 /// current power is lit, with ticks at the two thresholds. It has no thumb, so it does not look adjustable.
+/// The lit part follows the reading smoothly, fills up when `revealed` turns on, and a faint edge marks
+/// where it ends. With Reduce Motion on nothing is animated.
 struct PowerMeter: View {
     let watts: Double
     let medium: Double
     let high: Double
     let maximum: Double
     let gradient: Gradient
+    /// False draws the meter empty; turning it on fills it, which the panel uses as it opens.
+    var revealed: Bool = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let barHeight: CGFloat = 8
+    private let edgeWidth: CGFloat = 14
 
     var body: some View {
         VStack(spacing: 6) {
             GeometryReader { geo in
                 let width = geo.size.width
-                let lit = width * min(max(watts / max(maximum, 1), 0), 1)
+                let lit = revealed ? width * min(max(watts / max(maximum, 1), 0), 1) : 0
+                let fill = LinearGradient(gradient: gradient, startPoint: .leading, endPoint: .trailing)
                 ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(LinearGradient(gradient: gradient, startPoint: .leading, endPoint: .trailing))
-                        .opacity(0.28)
-                    Capsule()
-                        .fill(LinearGradient(gradient: gradient, startPoint: .leading, endPoint: .trailing))
+                    Rectangle().fill(fill).opacity(0.28)
+                    Rectangle().fill(fill)
                         .mask(alignment: .leading) { Rectangle().frame(width: lit) }
-                    tick(at: width * medium / max(maximum, 1))
-                    tick(at: width * high / max(maximum, 1))
+                    // A soft highlight on the leading edge of the lit part.
+                    LinearGradient(colors: [.white.opacity(0), .white.opacity(0.45)], startPoint: .leading, endPoint: .trailing)
+                        .frame(width: edgeWidth)
+                        .offset(x: lit - edgeWidth)
+                        .opacity(min(lit / edgeWidth, 1))
                 }
+                .clipShape(Capsule())
+                .overlay(alignment: .leading) {
+                    ZStack(alignment: .leading) {
+                        tick(at: width * medium / max(maximum, 1))
+                        tick(at: width * high / max(maximum, 1))
+                    }
+                }
+                // Readings retarget a running animation, so the motion stays continuous.
+                .animation(reduceMotion ? nil : .smooth(duration: 0.6), value: watts)
+                // Opening fills the meter after the shell has started to open; closing empties it quickly.
+                .animation(reduceMotion ? nil : (revealed ? .smooth(duration: 0.8).delay(0.24) : .easeIn(duration: 0.12)), value: revealed)
                 .frame(height: barHeight)
             }
             .frame(height: barHeight)
@@ -86,7 +104,6 @@ struct PowerMeter: View {
             .offset(x: x - 0.75)
     }
 }
-
 
 /// The controls laid out for the island. The top band beside the notch carries the name and the
 /// live power; the controls sit below it. The black shell behind them is drawn by the renderer.
@@ -135,7 +152,8 @@ struct BubbleContentView: View {
           .islandReveal(motion.expanded, delay: 0.16, reduceMotion: reduceMotion)
         PowerMeter(watts: meterWatts, medium: settings.mediumWatts, high: settings.highWatts,
                    maximum: max(settings.highWatts * 1.4, 1),
-                   gradient: PowerRamp.gradient(medium: settings.mediumWatts, high: settings.highWatts))
+                   gradient: PowerRamp.gradient(medium: settings.mediumWatts, high: settings.highWatts),
+                   revealed: motion.expanded)
           .frame(height: 28)
           .accessibilityHidden(true)
           .islandReveal(motion.expanded, delay: 0.20, reduceMotion: reduceMotion)
