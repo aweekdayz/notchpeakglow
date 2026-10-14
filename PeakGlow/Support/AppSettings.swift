@@ -66,6 +66,7 @@ enum PreviewLevel: Int, CaseIterable {
         static let overheatAlarm = "overheatAlarm"
         static let overheatAlertEnabled = "overheatAlertEnabled"
         static let menuBarIcon = "menuBarIcon"
+        static let glowWallpaper = "glowWallpaper"
         static let migratable = [mediumWatts, highWatts, holdOnSeconds, hysteresisWatts,
             sampleInterval, ambientGlow, glowScale, glowIntensity, mediumAlpha, pulseHz,
             hdrFactor, overheatGain, overheatScale, frameRate, hoverDwell, previewLevel,
@@ -211,6 +212,12 @@ enum PreviewLevel: Int, CaseIterable {
         set { set(newValue, Key.overheatAlertEnabled) }
     }
 
+    /// Which wallpaper the glow is tuned for: 0 follows the system appearance, 1 is a bright wallpaper, 2 a dark one.
+    var glowWallpaper: Int {
+        get { min(2, max(0, get(Key.glowWallpaper, 0))) }
+        set { set(newValue, Key.glowWallpaper) }
+    }
+
     /// Whether the menu bar icon, a keyboard- and VoiceOver-reachable way to the controls, is shown.
     var menuBarIcon: Bool {
         get { get(Key.menuBarIcon, true) }
@@ -222,6 +229,7 @@ enum PreviewLevel: Int, CaseIterable {
     /// Apply the new visual defaults without touching power thresholds or behavior.
     func resetAppearance() {
         ambientGlow = true
+        glowWallpaper = 0
         glowScale = Defaults.glowScale
         glowIntensity = Defaults.glowIntensity
         mediumAlpha = Defaults.mediumAlpha

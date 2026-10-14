@@ -258,6 +258,12 @@ struct SettingsView: View {
                    explanation: "How far the light spreads from the notch.")
             slider("Brightness", binding(\.glowIntensity), in: 0.2...2,
                    value: "\(Int(s.glowIntensity * 100))%")
+            Picker("Wallpaper", selection: binding(\.glowWallpaper)) {
+                Text("Automatic").tag(0)
+                Text("Light").tag(1)
+                Text("Dark").tag(2)
+            }
+            SettingsNote("Automatic follows the system appearance. Choose Light if the glow is hard to see on a bright wallpaper, or Dark for a dark one.")
             Button { s.resetAppearance() } label: {
                 Text("Use Default Look").foregroundStyle(.primary)
             }

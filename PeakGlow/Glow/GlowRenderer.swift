@@ -35,6 +35,8 @@ import QuartzCore
         let pulseHz: Double
         let overheatScale: Double
         let reduceMotion: Bool
+        /// 1 when the glow is tuned for a bright wallpaper, 0 for a dark one.
+        let lightTarget: Float
 
         init() {
             let s = AppSettings.shared
@@ -46,12 +48,20 @@ import QuartzCore
             pulseHz = s.pulseHz
             overheatScale = s.overheatScale
             reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+            switch s.glowWallpaper {
+            case 1: lightTarget = 1
+            case 2: lightTarget = 0
+            default:
+                let match = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua])
+                lightTarget = match == .aqua ? 1 : 0
+            }
         }
     }
 
     private var intensity: Float = 0
     private var modeMix: Float = 0
     private var powerMix: Float = 0
+    private var lightMix: Float = 0
     private var lastRender: CFTimeInterval = 0
     private var animationTime: Float = 0
 
@@ -162,6 +172,7 @@ import QuartzCore
         smoothedOpacity = (smoothedOpacity ?? opacity) + (opacity - (smoothedOpacity ?? opacity)) * parameterFade
         let targetPower = powerFraction ?? Self.fixedPowerFraction(for: targetLevel)
         powerMix += (targetPower - powerMix) * (reduceMotion ? 1 : 1 - exp(-dt * 2.5))
+        lightMix += (s.lightTarget - lightMix) * (reduceMotion ? 1 : 1 - exp(-dt * 3))
         if !reduceMotion { animationTime += dt }
         lastRender = now
 
@@ -195,7 +206,8 @@ import QuartzCore
             warningMix: warningMix,
             redGain: overheatGain,
             redScale: Float(s.overheatScale),
-            powerMix: powerMix)
+            powerMix: powerMix,
+            lightMix: lightMix)
 
         let pass = MTLRenderPassDescriptor()
         pass.colorAttachments[0].texture = drawable.texture
@@ -235,5 +247,6 @@ struct Uniforms {
     var redGain: Float
     var redScale: Float
     var powerMix: Float
+    var lightMix: Float
 }
 

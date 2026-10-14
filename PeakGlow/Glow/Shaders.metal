@@ -16,6 +16,7 @@ struct Uniforms {
     float redGain;
     float redScale;
     float powerMix;
+    float lightMix;
 };
 
 struct FragmentInput { float4 position [[position]]; };
@@ -39,6 +40,10 @@ float roundedBox(float2 p, float2 halfSize, float radius) {
 // The glow follows the hardware notch: its top merges with the screen edge and only the
 // lower corners are rounded. Power drives a monotone colour ramp (blue, cyan, green, yellow)
 // with brightness and bloom width; orange and red are reserved for the temperature warning.
+// The glow follows the hardware notch: its top merges with the screen edge and only the
+// lower corners are rounded. Power drives a monotone colour ramp (blue, cyan, green, yellow)
+// with brightness and bloom width; orange and red are reserved for the temperature warning.
+// On bright wallpapers a deeper, more saturated version of the same ramp keeps its contrast.
 fragment float4 fragmentShader(FragmentInput in [[stage_in]],
                                constant Uniforms &u [[buffer(0)]]) {
     float2 p = in.position.xy - u.notchCenter;
@@ -72,15 +77,30 @@ fragment float4 fragmentShader(FragmentInput in [[stage_in]],
     color = mix(color, c2, smoothstep(0.25, 0.50, tc));
     color = mix(color, c3, smoothstep(0.50, 0.75, tc));
     color = mix(color, c4, smoothstep(0.75, 1.00, tc));
+    // For bright wallpapers the same ramp is deeper and more saturated so it keeps its contrast.
+    float L = clamp(u.lightMix, 0.0, 1.0);
+    float3 l0 = float3(0.12, 0.24, 0.88);   // deep blue
+    float3 l1 = float3(0.00, 0.50, 0.90);   // azure
+    float3 l2 = float3(0.02, 0.58, 0.34);   // green
+    float3 l3 = float3(0.46, 0.56, 0.02);   // olive
+    float3 l4 = float3(0.76, 0.56, 0.00);   // gold
+    float3 lightColor = mix(l0, l1, smoothstep(0.00, 0.25, tc));
+    lightColor = mix(lightColor, l2, smoothstep(0.25, 0.50, tc));
+    lightColor = mix(lightColor, l3, smoothstep(0.50, 0.75, tc));
+    lightColor = mix(lightColor, l4, smoothstep(0.75, 1.00, tc));
+    color = mix(color, lightColor, L);
     float3 warm = mix(float3(1.0, 0.53, 0.22), float3(0.96, 0.28, 0.32), wave * 0.35);
+    warm = mix(warm, float3(0.88, 0.32, 0.04), L);
     color = mix(color, warm, warning);
-    color = mix(color, float3(0.86, 0.93, 1.0), rim * 0.34 * (1.0 - warning));
+    color = mix(color, float3(0.86, 0.93, 1.0), rim * 0.34 * (1.0 - warning) * (1.0 - L));
 
     float envelope = (0.40 * rim + 0.95 * bloom + 0.26 * haze) * mix(0.55, 1.35, t);
     float alpha = envelope * mix(u.mediumAlpha, 0.72, u.modeMix) * u.intensity * outside;
     alpha *= mix(1.0, 0.90 + 0.10 * pulse, u.modeMix);
-    alpha = clamp(alpha, 0.0, 0.85);
+    alpha *= mix(1.0, 1.5, L);
+    alpha = clamp(alpha, 0.0, mix(0.85, 0.92, L));
     float gain = 1.0 + (u.hdrBoost - 1.0) * mix(0.32, 0.64 + 0.12 * pulse, u.modeMix);
+    gain = mix(gain, 1.0, L);
     gain = min(u.hdrBoost, gain * mix(1.0, clamp(u.redGain, 0.5, 2.0), warning));
     return float4(color * gain * alpha, alpha);
 }

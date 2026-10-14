@@ -44,6 +44,8 @@ PeakGlow has no Dock icon. Its menu bar icon shows system power, switches the Gl
 | Boost | Preview a high-power yellow-green glow with gentle breathing |
 | Warm | Preview the steady warm temperature tint |
 
+The glow adapts to the wallpaper: in Settings → Glow → Look, Wallpaper is Automatic by default (it follows the system appearance), and Light uses deeper colors that stay visible on a bright wallpaper.
+
 The controls expose one Settings button and a direct Quit button. In Auto, a connected game controller pauses the glow. Previews remain available. Reopening the application from Finder opens Settings.
 
 Settings uses native SwiftUI forms, sliders, toggles and sidebar navigation. The Glow selector is a native AppKit segmented control hosted in SwiftUI, using the system tabs role. Buttons and the controls surface use system Liquid Glass. macOS decides how native materials appear under accessibility and appearance settings.

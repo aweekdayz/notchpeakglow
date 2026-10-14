@@ -83,6 +83,13 @@ import ServiceManagement
             }
         }
 
+        // Automatic wallpaper tuning follows the system appearance.
+        DistributedNotificationCenter.default().addObserver(
+            forName: Notification.Name("AppleInterfaceThemeChangedNotification"),
+            object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.applyLevel() }
+        }
+
         // A connected controller pauses automatic glow.
         gamepad.onGamepadChange = { [weak self] connected in
             AppState.shared.gamepadConnected = connected

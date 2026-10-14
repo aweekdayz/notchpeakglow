@@ -3,6 +3,7 @@
 ## 1.7.0 — Build 44 (not yet published)
 
 - Redesign Settings into three pages with plainer wording. **General**: open at login, menu bar icon, hover delay, temperature warning. **Glow**: a live power meter that uses the glow's own colors, the two power thresholds ("Brighter glow from", "Strongest glow from") with a recommended-for-this-Mac button, the look (idle glow, size, brightness), and a collapsed Fine-tuning group holding the technical sliders with a short explanation each. **About**: this Mac, Copy Diagnostics, version, credits and a link to the source. Reset stays in the toolbar.
+- The glow adapts to bright wallpapers. A deeper, more saturated version of the same color ramp (deep blue, azure, green, olive, gold) with a slightly higher opacity keeps its contrast on light backgrounds, where the previous colors, yellow especially, nearly disappeared. Settings → Glow → Look → Wallpaper chooses Automatic (follows the system appearance), Light or Dark, and the glow cross-fades when it changes. Copy Diagnostics reports the setting.
 - The power display is a read-only meter with no thumb: the whole color scale stays visible at low brightness, the part up to the current power is lit, and ticks mark the two thresholds. It updates only while Settings is open.
 - Verified by a full Xcode build only; the layout has not been viewed on a Mac.
 
