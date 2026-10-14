@@ -13,6 +13,10 @@ import AppKit
     private var screenAsleep = false
     private var pendingOverheat = false
     private var pendingOverheatGain: Float = 1.5
+    /// Called after the island has contracted into the notch and the window is back to its small size.
+    var onIslandHidden: (() -> Void)?
+    private var islandWindowActive = false
+    private var islandSize: CGSize = .zero
 
     // MARK: - Lifecycle
 
@@ -35,6 +39,32 @@ import AppKit
         pendingLevel = level
         metalView?.renderer?.targetLevel = level
         syncPauseState()
+    }
+
+    /// Whether the renderer is available to draw the island's shell.
+    var canDrawIsland: Bool { metalView?.renderer != nil }
+
+    /// Grow the window to hold the island and its halo, then run the shared spring.
+    func setIsland(expanded: Bool, size: CGSize) {
+        if expanded {
+            islandSize = size
+            if !islandWindowActive {
+                islandWindowActive = true
+                reposition()
+            }
+            metalView?.renderer?.islandSizePoints = size
+            metalView?.renderer?.setIsland(expanded: true)
+            metalView?.wake()
+        } else {
+            metalView?.renderer?.setIsland(expanded: false)
+            metalView?.wake()
+        }
+    }
+
+    private func islandFinished() {
+        islandWindowActive = false
+        reposition()
+        onIslandHidden?()
     }
 
     func setPowerFraction(_ fraction: Float?) {
@@ -92,8 +122,12 @@ import AppKit
         // Keep enough transparent padding for the widest soft halo.
         let scale = CGFloat(AppSettings.shared.glowScale)
         let padding = 150.0 * scale * max(1, CGFloat(AppSettings.shared.overheatScale))
-        let width = notch.width + padding * 2
-        let height = notch.height + padding
+        var width = notch.width + padding * 2
+        var height = notch.height + padding
+        if islandWindowActive {
+            width = max(width, islandSize.width + padding * 2)
+            height = max(height, islandSize.height + padding)
+        }
         let frame = CGRect(
             x: notch.midX - width / 2,
             y: screen.frame.maxY - height,   // Anchor at the top of the display in bottom-left AppKit coordinates.
@@ -136,6 +170,8 @@ import AppKit
             metalView?.renderer?.targetLevel = lvl
         }
         metalView?.renderer?.powerFraction = pendingPowerFraction
+        metalView?.renderer?.islandSizePoints = islandSize
+        metalView?.renderer?.onIslandHidden = { [weak self] in self?.islandFinished() }
         syncPauseState()
 
         // Configure the EDR layer once, then refresh headroom on reposition.

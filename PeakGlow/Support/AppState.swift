@@ -42,7 +42,7 @@ import Combine
         if power.reading != reading { power.reading = reading }
     }
     @Published var effectiveLevel: LoadLevel = .low
-    /// Actual temperature warning, independent of the Warm preview.
+    /// Actual temperature warning, independent of the Hot preview.
     @Published var overheatAlarm = false
     @Published var preview: PreviewLevel {
         didSet { AppSettings.shared.previewLevelRaw = preview.rawValue }

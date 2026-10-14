@@ -41,9 +41,12 @@ import IOKit
         _ = smc.open()
         update()
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+        let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.update() }
         }
+        // Let the system coalesce this wake-up with others; detection uses real timestamps.
+        timer.tolerance = interval * 0.2
+        self.timer = timer
     }
 
     func stop() {
@@ -130,6 +133,9 @@ import IOKit
     private var conn: io_connect_t = 0
     private var nextOpenAttempt: TimeInterval = 0
     private var keyInfoCache: [UInt32: KeyData.Info] = [:]
+    /// Keys the driver answered with no usable float. Sensor keys differ by model, so asking again every
+    /// second only costs time; the set is cleared whenever the connection is rebuilt.
+    private var unavailableKeys: Set<UInt32> = []
 
     private struct KeyData {
         typealias Bytes = (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
@@ -177,15 +183,21 @@ import IOKit
 
     private func readFloat(_ keyName: String) -> Double? {
         let fourcc: UInt32 = keyName.utf8.reduce(0) { $0 << 8 | UInt32($1) }
+        if unavailableKeys.contains(fourcc) { return nil }
         var i = KeyData(), o = KeyData()
         i.key = fourcc
         if let info = keyInfoCache[fourcc] {
             i.keyInfo = info
         } else {
             i.data8 = 9 // readKeyInfo
-            guard call(&i, &o) == KERN_SUCCESS, o.result == 0,
+            let status = call(&i, &o)
+            guard status == KERN_SUCCESS, o.result == 0,
                   o.keyInfo.dataSize >= 4, o.keyInfo.dataSize <= 32,
-                  o.keyInfo.dataType == 0x66_6C_74_20 else { return nil }
+                  o.keyInfo.dataType == 0x66_6C_74_20 else {
+                // A clean answer that is not a float key means this model does not have it.
+                if status == KERN_SUCCESS { unavailableKeys.insert(fourcc) }
+                return nil
+            }
             i.keyInfo = o.keyInfo
             keyInfoCache[fourcc] = o.keyInfo
         }
@@ -215,6 +227,7 @@ import IOKit
             IOServiceClose(conn)
             conn = 0
             keyInfoCache.removeAll()
+            unavailableKeys.removeAll()
             nextOpenAttempt = ProcessInfo.processInfo.systemUptime + 30
         }
         return result == KERN_SUCCESS && outSize != size ? KERN_FAILURE : result
