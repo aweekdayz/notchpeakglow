@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.4 — Build 41 (not yet published)
+
+- Add a menu bar icon with Show PeakGlow Controls, Settings and Quit, so the controls are reachable without the pointer. It can be turned off in Settings → Behavior → Menu bar.
+- Use system text styles in the controls panel. The power readout is 26 pt (`largeTitle`) instead of a fixed 30 pt.
+
 ## 1.6.3 — October 13, 2026 (Build 40)
 
 - Break the temperature-plateau window and the load-transition dwell when samples are interrupted (for example by system sleep), so a plateau or transition must be observed continuously after waking.

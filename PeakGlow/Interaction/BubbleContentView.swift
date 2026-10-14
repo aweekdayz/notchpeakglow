@@ -9,7 +9,7 @@ struct BubbleContentView: View {
     VStack(alignment: .leading, spacing: 14) {
       HStack {
         Label("PeakGlow", systemImage: "waveform.path")
-          .font(.system(size: 13, weight: .semibold))
+          .font(.headline.weight(.semibold))
         Spacer()
         Button { NSApp.terminate(nil) } label: {
           Label("Quit", systemImage: "power")
@@ -97,7 +97,7 @@ private struct BubblePowerView: View {
       .frame(maxWidth: .infinity, alignment: .leading)
       HStack(alignment: .firstTextBaseline, spacing: 4) {
         Text(powerText)
-          .font(.system(size: 30, weight: .medium))
+          .font(.largeTitle.weight(.medium))
           .monospacedDigit()
           .contentTransition(.numericText())
           .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: power.reading.watts)
