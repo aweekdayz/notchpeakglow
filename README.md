@@ -10,9 +10,9 @@ A small macOS utility that shows system load as a soft glow around the MacBook n
 
 [Latest published release](https://github.com/aweekdayz/notchpeakglow/releases/latest).
 
-Quit any running copy, extract the ZIP and move `PeakGlow.app` to Applications. Existing preferences are retained. The published 1.7.0 app is ad-hoc signed and **not Apple-notarized**. macOS may restrict its first launch; use Privacy & Security only if you trust the download.
+Quit any running copy, extract the ZIP and move `PeakGlow.app` to Applications. Existing preferences are retained. From 1.7.1 the app is signed with a Developer ID certificate and **notarized by Apple**, so it opens normally. Earlier releases (up to 1.7.0) are ad-hoc signed and not notarized; macOS may restrict their first launch, and System Settings → Privacy & Security is the place to allow one only if you trust the download.
 
-The latest published release is **1.7.0 / Build 44**, built with the full Xcode workflow and verified shader, layered-icon and Credits resources. See [Release audit](docs/Release-Audit.md) for validation and outstanding work.
+The latest published release is **1.7.1 / Build 45**, built with the full Xcode workflow and verified shader, layered-icon and Credits resources. See [Release audit](docs/Release-Audit.md) for validation and outstanding work.
 
 ## Requirements and compatibility
 
@@ -78,7 +78,7 @@ xcodebuild -downloadComponent MetalToolchain
 
 The build script intentionally fails when required tools are absent. If a restricted runner cannot discover an already installed Metal component, `PEAKGLOW_METAL_TOOLCHAIN=/absolute/path/to/Metal.xctoolchain` selects its real compiler and linker. In that mode, the current shader is compiled separately while Xcode builds Swift and the layered icon. It does not silently substitute an old shader or icon. It compiles the layered `AppIcon.icon`, checks bundle metadata and required resources, signs the staged app and creates a ZIP and checksum in `build/release/`.
 
-By default signing is ad-hoc. For a Developer ID build, set `PEAKGLOW_SIGN_IDENTITY` to an installed Developer ID Application identity. Apple notarization is a separate step and is not performed by this script. A Mac App Store submission needs its own signing, sandbox and API compatibility review.
+By default signing is ad-hoc. For a Developer ID build, set `PEAKGLOW_SIGN_IDENTITY` to an installed Developer ID Application identity. Apple notarization is done by `scripts/notarize.sh`, which wraps this script (see [Notarization](docs/Notarization.md)). A Mac App Store submission needs its own signing, sandbox and API compatibility review.
 
 `scripts/compile-preview-swift.sh` remains a **Swift executable-only fallback**. It validates SDK metadata but does not compile Metal, compile the layered icon, produce a complete application or perform notarization. The original 1.6.0 distribution used that fallback with previously compiled resources.
 

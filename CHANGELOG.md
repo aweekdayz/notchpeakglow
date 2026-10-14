@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.1 — October 14, 2026 (Build 45)
+
+- The release is signed with a Developer ID Application certificate and notarized by Apple, with the ticket stapled so it also passes Gatekeeper offline. Releases up to 1.7.0 were ad-hoc signed and not notarized. The code is identical to 1.7.0.
+- `scripts/notarize.sh` ran end to end for the first time: build, Developer ID signature with a secure timestamp, notarization (accepted), staple, validation and `spctl` assessment (`accepted`, source `Notarized Developer ID`), then a new ZIP and checksum.
+
 ## 1.7.0 — October 13, 2026 (Build 44)
 
 - Redesign Settings into three pages with plainer wording. **General**: open at login, menu bar icon, hover delay, temperature warning. **Glow**: a live power meter that uses the glow's own colors, the two power thresholds ("Brighter glow from", "Strongest glow from") with a recommended-for-this-Mac button, the look (idle glow, size, brightness), and a collapsed Fine-tuning group holding the technical sliders with a short explanation each. **About**: this Mac, Copy Diagnostics, version, credits and a link to the source. Reset stays in the toolbar.

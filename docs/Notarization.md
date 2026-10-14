@@ -1,8 +1,8 @@
 # Developer ID signing and notarization
 
-Direct distribution outside the Mac App Store needs a Developer ID signature and Apple notarization. Without both, macOS Gatekeeper restricts first launch, which most users will not work around. The published releases are ad-hoc signed and not notarized.
+Direct distribution outside the Mac App Store needs a Developer ID signature and Apple notarization. Without both, macOS Gatekeeper restricts first launch, which most users will not work around. Releases from 1.7.1 are signed and notarized with this procedure; earlier releases are ad-hoc signed and not notarized.
 
-This is a procedure for the maintainer. It has not been run against a real Apple Developer account yet, and Apple's enrollment steps and fees change, so check the linked Apple pages before relying on the details below.
+This is a procedure for the maintainer. It has been run end to end for 1.7.1 (and first as a dry run on the 1.7.0 source, which Apple accepted). Apple's enrollment steps and fees change, so check the linked Apple pages before relying on the details below.
 
 ## 1. Enroll and create credentials (one time)
 
