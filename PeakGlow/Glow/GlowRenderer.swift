@@ -18,9 +18,61 @@ import QuartzCore
     var overheatGain: Float = 1.5
     /// Frame rate the display link should run at: the configured rate while the glow is changing,
     /// at most `calmFrameRate` once it has been steady for a couple of seconds.
-    private(set) var preferredFrameRate: Double = 30
-    static let calmFrameRate: Double = 15
+    private(set) var preferredFrameRate: Double = 60
+    static let calmFrameRate: Double = 30
+    /// While the island moves the loop asks for the display's best rate (120 Hz on ProMotion).
+    static let islandFrameRate: Double = 120
     private var calmSince: CFTimeInterval = 0
+
+    // MARK: - Control island
+    // The island's black shell is drawn here with the glow around it, so one spring drives both.
+    /// Full size of the expanded island in points.
+    var islandSizePoints: CGSize = .zero
+    /// Called once the island has contracted back into the notch.
+    var onIslandHidden: (() -> Void)?
+    private var islandTarget: Float = 0
+    private var islandProgress: Float = 0
+    private var islandVelocity: Float = 0
+    private var islandAlpha: Float = 0
+    private var islandWasActive = false
+    var islandActive: Bool { islandTarget > 0.5 || islandProgress > 0.0005 || islandAlpha > 0.002 }
+
+    func setIsland(expanded: Bool) {
+        islandTarget = expanded ? 1 : 0
+        if expanded { islandWasActive = true }
+        calmSince = CACurrentMediaTime()
+        preferredFrameRate = Self.islandFrameRate
+        if isIdle { lastRender = 0 }
+        isIdle = false
+    }
+
+    /// Damped spring toward the target; expansion is bouncier than contraction.
+    private func stepIsland(dt: Float, reduceMotion: Bool) {
+        if reduceMotion {
+            // No change of shape: the shell stays full size and only fades.
+            islandAlpha += (islandTarget - islandAlpha) * (1 - exp(-dt * 14))
+            islandVelocity = 0
+            islandProgress = (islandTarget > 0.5 || islandAlpha > 0.002) ? 1 : 0
+            return
+        }
+        let expanding = islandTarget > 0.5
+        let response: Float = expanding ? 0.46 : 0.34
+        let damping: Float = expanding ? 0.74 : 0.9
+        let omega = 2 * Float.pi / response
+        let steps = max(1, Int((dt / (1.0 / 240)).rounded(.up)))
+        let h = dt / Float(steps)
+        for _ in 0..<steps {
+            let acceleration = -omega * omega * (islandProgress - islandTarget) - 2 * damping * omega * islandVelocity
+            islandVelocity += acceleration * h
+            islandProgress += islandVelocity * h
+        }
+        if abs(islandProgress - islandTarget) < 0.0005, abs(islandVelocity) < 0.003 {
+            islandProgress = islandTarget
+            islandVelocity = 0
+        }
+        // The shell fades in over the first few percent so it cannot show beside the real notch.
+        islandAlpha = min(1, max(0, islandProgress / 0.06))
+    }
     /// True after the final transparent frame; the host stops its display link.
     private(set) var isIdle = true
 
@@ -110,7 +162,7 @@ import QuartzCore
         calmSince = CACurrentMediaTime()
         preferredFrameRate = settings.frameRate
         if isIdle {
-            guard Self.targetIntensity(level: targetLevel, paused: paused, ambient: ambientEnabled) > 0 else { return }
+            guard Self.targetIntensity(level: targetLevel, paused: paused, ambient: ambientEnabled) > 0 || islandActive else { return }
             // Don't integrate the whole time spent idle into the first resumed frame.
             lastRender = 0
         }
@@ -159,13 +211,19 @@ import QuartzCore
 
     func renderFrame(now: CFTimeInterval) {
         let s = settings
-        if lastRender != 0, now - lastRender < (1.0 / s.frameRate) * 0.9 { return }
+        if lastRender != 0, now - lastRender < (1.0 / (islandActive ? Self.islandFrameRate : s.frameRate)) * 0.9 { return }
 
         let targetIntensity = Self.targetIntensity(level: targetLevel, paused: paused, ambient: ambientEnabled)
         let targetMix: Float = targetLevel == .high ? 1 : 0
 
         let dt = Float(min(0.1, lastRender == 0 ? 0.033 : now - lastRender))
         let before = (intensity, modeMix, powerMix, lightMix, warningMix)
+        stepIsland(dt: dt, reduceMotion: s.reduceMotion)
+        let islandNowActive = islandActive
+        let islandJustHidden = islandWasActive && !islandNowActive
+        islandWasActive = islandNowActive
+        // Leave the render pass before the window is resized.
+        if islandJustHidden { DispatchQueue.main.async { [weak self] in self?.onIslandHidden?() } }
         let fadeSpeed: Float = targetLevel == .low ? 2.0 : 1.25
         let reduceMotion = s.reduceMotion
         let fade = reduceMotion ? Float(1) : 1 - exp(-dt * fadeSpeed * 3)
@@ -186,7 +244,12 @@ import QuartzCore
         let moved = abs(intensity - before.0) + abs(modeMix - before.1) + abs(powerMix - before.2)
             + abs(lightMix - before.3) + abs(warningMix - before.4)
         if moved / max(dt, 0.001) > 0.08 || calmSince == 0 { calmSince = now }
-        preferredFrameRate = now - calmSince > 2 ? min(s.frameRate, Self.calmFrameRate) : s.frameRate
+        if islandActive {
+            calmSince = now
+            preferredFrameRate = Self.islandFrameRate
+        } else {
+            preferredFrameRate = now - calmSince > 2 ? min(s.frameRate, Self.calmFrameRate) : s.frameRate
+        }
         if !reduceMotion { animationTime += dt }
         lastRender = now
 
@@ -221,7 +284,12 @@ import QuartzCore
             redGain: overheatGain,
             redScale: Float(s.overheatScale),
             powerMix: powerMix,
-            lightMix: lightMix)
+            lightMix: lightMix,
+            islandSize: SIMD2<Float>(Float(islandSizePoints.width * layer.contentsScale),
+                                     Float(islandSizePoints.height * layer.contentsScale)),
+            islandProgress: islandProgress,
+            islandAlpha: islandAlpha,
+            islandRadius: Float(IslandMetrics.expandedCornerRadius * layer.contentsScale))
 
         let pass = MTLRenderPassDescriptor()
         pass.colorAttachments[0].texture = drawable.texture
@@ -241,7 +309,7 @@ import QuartzCore
         submitted = true
         cmd.commit()
         // Submit a truly transparent final frame before stopping the display link.
-        if finishingFade { isIdle = true }
+        if finishingFade && !islandActive { isIdle = true }
     }
 }
 
@@ -262,5 +330,9 @@ struct Uniforms {
     var redScale: Float
     var powerMix: Float
     var lightMix: Float
+    var islandSize: SIMD2<Float>
+    var islandProgress: Float
+    var islandAlpha: Float
+    var islandRadius: Float
 }
 

@@ -97,8 +97,8 @@ enum PreviewLevel: Int, CaseIterable {
         static let hdrFactor = 1.2
         static let overheatGain = 1.1
         static let overheatScale = 1.0
-        // Only renders while visible; 30 fps keeps transitions smooth.
-        static let frameRate = 30.0
+        // Maximum rate; the glow slows to 30 fps when nothing is changing.
+        static let frameRate = 60.0
         static let hoverDwell = 0.08
         static let previewLevel = PreviewLevel.auto.rawValue
         static let powerTuned = false

@@ -1,148 +1,188 @@
 import AppKit
 import SwiftUI
 
-/// Drives the island: false is the notch's own shape, true is the full panel.
+/// Drives the content's reveal: false while the island is in the notch, true once it opens.
+/// The island's black shell and its glow are drawn by the Metal renderer; this window only
+/// holds the controls, so it never animates its own size or layout.
 @MainActor final class IslandMotion: ObservableObject {
   @Published var expanded = false
 }
 
-/// Shared geometry. The window is fixed; only the shape inside it changes size.
+/// Shared geometry. The panel window is the expanded island; its top is the top of the screen.
 enum IslandMetrics {
-  static let width: CGFloat = 328
-  static let contentHeight: CGFloat = 258
-  /// Room for the spring to overshoot without clipping at the window edge.
-  static let margin: CGFloat = 14
+  static let width: CGFloat = 384
+  /// Height below the notch, where the controls sit.
+  static let contentHeight: CGFloat = 210
   static let expandedCornerRadius: CGFloat = 24
-  /// The hardware notch's lower corner radius; the glow shader uses the same proportion.
-  static func notchCornerRadius(height: CGFloat) -> CGFloat { height * 0.28 }
 }
 
-/// A compact control surface that grows out of the notch like an island.
-/// SwiftUI owns the motion and the controls; AppKit owns the fixed window.
+/// The glow's own color ramp laid out by power, shared by the panel and Settings meters.
+@MainActor enum PowerRamp {
+  static func gradient(medium: Double, high: Double) -> Gradient {
+    let colors: [Color] = [
+      Color(red: 0.18, green: 0.36, blue: 1.00), Color(red: 0.10, green: 0.78, blue: 1.00),
+      Color(red: 0.22, green: 0.92, blue: 0.46), Color(red: 0.70, green: 0.93, blue: 0.26),
+      Color(red: 0.99, green: 0.88, blue: 0.28)]
+    let maximum = max(high * 1.4, 1)
+    let stops = colors.enumerated().map { index, color -> Gradient.Stop in
+      let watts = GlowRenderer.watts(forPowerFraction: Double(index) / 4, medium: medium, high: high)
+      return Gradient.Stop(color: color, location: min(max(watts / maximum, 0), 1))
+    }
+    return Gradient(stops: stops)
+  }
+}
+
+/// A read-only meter. The whole color scale stays visible at low brightness and the part up to the
+/// current power is lit, with ticks at the two thresholds. It has no thumb, so it does not look adjustable.
+struct PowerMeter: View {
+    let watts: Double
+    let medium: Double
+    let high: Double
+    let maximum: Double
+    let gradient: Gradient
+
+    private let barHeight: CGFloat = 8
+
+    var body: some View {
+        VStack(spacing: 6) {
+            GeometryReader { geo in
+                let width = geo.size.width
+                let lit = width * min(max(watts / max(maximum, 1), 0), 1)
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(LinearGradient(gradient: gradient, startPoint: .leading, endPoint: .trailing))
+                        .opacity(0.28)
+                    Capsule()
+                        .fill(LinearGradient(gradient: gradient, startPoint: .leading, endPoint: .trailing))
+                        .mask(alignment: .leading) { Rectangle().frame(width: lit) }
+                    tick(at: width * medium / max(maximum, 1))
+                    tick(at: width * high / max(maximum, 1))
+                }
+                .frame(height: barHeight)
+            }
+            .frame(height: barHeight)
+            GeometryReader { geo in
+                let width = geo.size.width
+                // The lower threshold ends at its tick and the higher one starts at it, so they never overlap.
+                let mediumX = max(width * medium / max(maximum, 1), 44)
+                let highX = min(width * high / max(maximum, 1), width - 44)
+                Text("\(Int(medium)) W")
+                    .position(x: mediumX - 18, y: 7)
+                Text("\(Int(high)) W")
+                    .position(x: highX + 18, y: 7)
+            }
+            .frame(height: 14)
+            .font(.caption)
+            .monospacedDigit()
+            .foregroundStyle(.secondary)
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func tick(at x: CGFloat) -> some View {
+        Rectangle()
+            .fill(Color.primary.opacity(0.55))
+            .frame(width: 1.5, height: barHeight + 6)
+            .offset(x: x - 0.75)
+    }
+}
+
+
+/// The controls laid out for the island. The top band beside the notch carries the name and the
+/// live power; the controls sit below it. The black shell behind them is drawn by the renderer.
 struct BubbleContentView: View {
   var onClose: () -> Void
   @ObservedObject var motion: IslandMotion
   let notchSize: CGSize
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-  var body: some View {
-    IslandSurface(progress: motion.expanded ? 1 : 0, notchSize: notchSize,
-                  reduceMotion: reduceMotion, onClose: onClose)
-      .animation(animation, value: motion.expanded)
-      // The island is black, so its content uses the dark appearance.
-      .environment(\.colorScheme, .dark)
-      // This utility surface is interactive even when the foreground app stays active.
-      .environment(\.appearsActive, true)
-  }
-
-  /// Spring-driven, so reversing mid-motion keeps the current velocity.
-  private var animation: Animation {
-    if reduceMotion { return .easeInOut(duration: 0.16) }
-    return motion.expanded
-      ? .spring(response: 0.46, dampingFraction: 0.74)
-      : .spring(response: 0.34, dampingFraction: 0.9)
-  }
-}
-
-/// The island as a pure function of `progress`: 0 is the notch itself, 1 the full panel.
-/// With Reduce Motion the shape stays full size and only its opacity changes.
-struct IslandSurface: View, @preconcurrency Animatable {
-  var progress: CGFloat
-  let notchSize: CGSize
-  let reduceMotion: Bool
-  var onClose: () -> Void
+  @ObservedObject private var power = AppState.shared.power
+  @ObservedObject private var settings = AppSettings.shared
   private let app = AppState.shared
 
-  var animatableData: CGFloat {
-    get { progress }
-    set { progress = newValue }
-  }
-
   var body: some View {
-    let fullWidth = IslandMetrics.width
-    let fullHeight = notchSize.height + IslandMetrics.contentHeight
-    let shapeProgress: CGFloat = reduceMotion ? 1 : progress
-    let width = notchSize.width + (fullWidth - notchSize.width) * shapeProgress
-    let height = notchSize.height + (fullHeight - notchSize.height) * shapeProgress
-    let notchRadius = IslandMetrics.notchCornerRadius(height: notchSize.height)
-    let radius = notchRadius + (IslandMetrics.expandedCornerRadius - notchRadius) * min(max(shapeProgress, 0), 1)
-    // The top merges with the screen edge, like the hardware notch; only the lower corners round.
-    let shape = UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: radius,
-                                       bottomTrailingRadius: radius, topTrailingRadius: 0, style: .continuous)
-
-    ZStack(alignment: .top) {
-      Color.black
-      content
-        .frame(width: fullWidth, height: fullHeight, alignment: .top)
-    }
-    .frame(width: max(width, 1), height: max(height, 1), alignment: .top)
-    .clipShape(shape)
-    .overlay(shape.strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5))
-    // Hidden at rest so the shape cannot show beside the real notch.
-    .opacity(reduceMotion ? min(max(progress, 0), 1) : min(max(progress / 0.06, 0), 1))
-    .frame(width: fullWidth + IslandMetrics.margin * 2, height: fullHeight + IslandMetrics.margin, alignment: .top)
-  }
-
-  /// Layers settle in turn after the shell has started to open.
-  private func reveal(_ from: CGFloat, _ to: CGFloat) -> CGFloat {
-    if reduceMotion { return 1 }
-    let t = min(max((progress - from) / (to - from), 0), 1)
-    return t * t * (3 - 2 * t)
-  }
-
-  private func layer<V: View>(_ from: CGFloat, _ to: CGFloat, @ViewBuilder _ view: () -> V) -> some View {
-    let r = reveal(from, to)
-    return view()
-      .opacity(r)
-      .offset(y: (1 - r) * 6)
-  }
-
-  private var content: some View {
-    VStack(alignment: .leading, spacing: 14) {
-      layer(0.52, 0.80) {
-        HStack {
-          Label("PeakGlow", systemImage: "waveform.path")
-            .font(.headline.weight(.semibold))
-          Spacer()
-          Button { NSApp.terminate(nil) } label: {
-            Label("Quit", systemImage: "power")
-          }
-            .labelStyle(.iconOnly)
-            .buttonStyle(.glass)
-            .buttonBorderShape(.circle)
-            .controlSize(.small)
-            .help("Quit PeakGlow")
-            .accessibilityLabel("Quit PeakGlow")
+    let wing = (IslandMetrics.width - notchSize.width) / 2
+    VStack(spacing: 0) {
+      HStack(spacing: 0) {
+        Label("PeakGlow", systemImage: "waveform.path")
+          .font(.caption.weight(.semibold))
+          .lineLimit(1)
+          .minimumScaleFactor(0.8)
+          .padding(.leading, 12)
+          .frame(width: wing, alignment: .leading)
+        Spacer(minLength: 0)
+        HStack(alignment: .firstTextBaseline, spacing: 3) {
+          Text(powerText)
+            .font(.system(.callout, design: .rounded).weight(.semibold))
+            .monospacedDigit()
+            .contentTransition(.numericText())
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: power.reading.watts)
+          Text("W")
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
-        .frame(height: 28)
+        .padding(.trailing, 14)
+        .frame(width: wing, alignment: .trailing)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("System power")
+        .accessibilityValue(power.reading.availability == .current ? "\(powerText) watts" : "unavailable")
       }
+      .frame(height: notchSize.height)
+      .islandReveal(motion.expanded, delay: 0.10, reduceMotion: reduceMotion)
 
-      layer(0.58, 0.86) {
-        BubblePowerView(app: app, power: app.power)
-          .frame(height: 72)
-      }
-
-      layer(0.64, 0.92) {
+      VStack(alignment: .leading, spacing: 12) {
+        BubbleStatusView(app: app, power: power)
+          .frame(height: 40)
+          .islandReveal(motion.expanded, delay: 0.16, reduceMotion: reduceMotion)
+        PowerMeter(watts: meterWatts, medium: settings.mediumWatts, high: settings.highWatts,
+                   maximum: max(settings.highWatts * 1.4, 1),
+                   gradient: PowerRamp.gradient(medium: settings.mediumWatts, high: settings.highWatts))
+          .frame(height: 28)
+          .accessibilityHidden(true)
+          .islandReveal(motion.expanded, delay: 0.20, reduceMotion: reduceMotion)
         GlowModeControl(app: app)
           .frame(height: 48)
-      }
-
-      layer(0.70, 0.98) {
+          .islandReveal(motion.expanded, delay: 0.24, reduceMotion: reduceMotion)
         BubbleFooter(app: app, onClose: onClose)
           .frame(height: 28)
+          .islandReveal(motion.expanded, delay: 0.28, reduceMotion: reduceMotion)
       }
+      .padding(.top, 14)
+      .padding(.horizontal, 20)
+      .padding(.bottom, 16)
     }
-    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    .padding(.top, notchSize.height + 20)
-    .padding([.horizontal, .bottom], 20)
+    .frame(width: IslandMetrics.width, height: notchSize.height + IslandMetrics.contentHeight, alignment: .top)
+    // Nearly invisible, so a click on the black shell is not passed to the window behind it.
+    .background(Color.black.opacity(0.01))
+    // The island is black, so its content uses the dark appearance.
+    .environment(\.colorScheme, .dark)
+    // This utility surface is interactive even when the foreground app stays active.
+    .environment(\.appearsActive, true)
+  }
+
+  private var powerText: String {
+    power.reading.availability == .current ? String(format: "%.1f", power.reading.watts) : "—"
+  }
+  private var meterWatts: Double { power.reading.availability == .current ? power.reading.watts : 0 }
+}
+
+private extension View {
+  /// Layers settle in turn after the shell has started to open and leave quickly. Opacity and
+  /// offset are animated by SwiftUI without re-evaluating the content each frame.
+  func islandReveal(_ expanded: Bool, delay: Double, reduceMotion: Bool) -> some View {
+    self
+      .opacity(expanded ? 1 : 0)
+      .offset(y: (expanded || reduceMotion) ? 0 : 6)
+      .animation(
+        reduceMotion ? .easeInOut(duration: 0.16)
+          : (expanded ? .easeOut(duration: 0.26).delay(delay) : .easeIn(duration: 0.10)),
+        value: expanded)
   }
 }
 
-/// Keep streaming data outside the menu and segmented-control view identity.
-private struct BubblePowerView: View {
+/// What the glow is doing, and where the reading stands.
+private struct BubbleStatusView: View {
   @ObservedObject var app: AppState
   @ObservedObject var power: PowerReadingState
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   private var status: String {
     switch app.preview {
@@ -162,10 +202,6 @@ private struct BubblePowerView: View {
     }
   }
 
-  private var powerText: String {
-    power.reading.availability == .current ? String(format: "%.1f", power.reading.watts) : "—"
-  }
-
   private var powerDescription: String {
     switch power.reading.availability {
     case .waiting: return "Waiting for power data"
@@ -175,39 +211,17 @@ private struct BubblePowerView: View {
   }
 
   var body: some View {
-    HStack(alignment: .center, spacing: 12) {
-      VStack(alignment: .leading, spacing: 5) {
-        Label(status, systemImage: app.overheatAlarm ? "thermometer.high" : "circle.fill")
-          .font(.callout)
-          .lineLimit(2)
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .frame(height: 34, alignment: .leading)
-          .foregroundStyle(app.overheatAlarm ? Color.orange : Color.secondary)
-        Text(powerDescription)
-          .font(.caption)
-          .foregroundStyle(.secondary)
-          .lineLimit(2)
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .frame(height: 28, alignment: .topLeading)
-      }
-      .frame(maxWidth: .infinity, alignment: .leading)
-      HStack(alignment: .firstTextBaseline, spacing: 4) {
-        Text(powerText)
-          .font(.largeTitle.weight(.medium))
-          .monospacedDigit()
-          .contentTransition(.numericText())
-          .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: power.reading.watts)
-        Text("W")
-          .font(.callout)
-          .foregroundStyle(.secondary)
-      }
-      .frame(width: 100, alignment: .trailing)
-      .accessibilityElement(children: .ignore)
-      .accessibilityLabel("System power")
-      .accessibilityValue(
-        power.reading.availability == .current ? "\(powerText) watts" : powerDescription)
+    VStack(alignment: .leading, spacing: 4) {
+      Label(status, systemImage: app.overheatAlarm ? "thermometer.high" : "circle.fill")
+        .font(.callout)
+        .lineLimit(1)
+        .foregroundStyle(app.overheatAlarm ? Color.orange : Color.secondary)
+      Text(powerDescription)
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
     }
-
+    .frame(maxWidth: .infinity, alignment: .leading)
   }
 }
 
@@ -231,8 +245,7 @@ private struct BubbleFooter: View {
   @ObservedObject var app: AppState
   var onClose: () -> Void
   var body: some View {
-
-    HStack {
+    HStack(spacing: 8) {
       Text(
         app.preview == .auto
           ? (app.gamepadConnected ? "Game controller connected" : "Adapts to system load")
@@ -251,8 +264,16 @@ private struct BubbleFooter: View {
       .buttonStyle(.borderless)
       .help("Settings…")
       .accessibilityLabel("Open Settings")
+      Button { NSApp.terminate(nil) } label: {
+        Label("Quit", systemImage: "power")
+      }
+      .labelStyle(.iconOnly)
+      .buttonStyle(.glass)
+      .buttonBorderShape(.circle)
+      .controlSize(.small)
+      .help("Quit PeakGlow")
+      .accessibilityLabel("Quit PeakGlow")
     }
-
   }
 }
 

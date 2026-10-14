@@ -2,8 +2,9 @@ import AppKit
 import SwiftUI
 
 /// Control panel that grows out of the notch like an island.
-/// The window is fixed and transparent, with its top at the screen edge; only the shape inside it
-/// moves, so native controls keep their layout while the island expands and contracts.
+/// The island's black shell and the glow around it are drawn together by the Metal renderer with
+/// one spring. This window is fixed and transparent, flush with the top of the screen, and holds
+/// only the controls, so native controls keep their layout while the island moves.
 @MainActor final class BubblePanelController: NSObject {
     private var panel: NSPanel?
     private let hover: NotchHoverController
@@ -12,6 +13,10 @@ import SwiftUI
     private var notchSize: CGSize = .zero
     /// Guards the delayed removal of the window after the island has contracted.
     private var presentationGeneration: UInt = 0
+    /// Draws the island's shell and glow; it tells us when the island is back in the notch.
+    weak var glow: GlowWindow? {
+        didSet { glow?.onIslandHidden = { [weak self] in self?.islandHidden() } }
+    }
 
     init(hover: NotchHoverController) {
         self.hover = hover
@@ -23,13 +28,7 @@ import SwiftUI
             panel.allowsKeyboardFocus = true
             panel.makeKeyAndOrderFront(nil)
         }
-        // Pointer tests use the island itself, not the transparent margin around it.
-        hover.bubbleFrameProvider = { [weak self] in
-            guard let frame = self?.panel?.frame else { return nil }
-            let m = IslandMetrics.margin
-            return CGRect(x: frame.minX + m, y: frame.minY + m,
-                          width: frame.width - m * 2, height: frame.height - m)
-        }
+        hover.bubbleFrameProvider = { [weak self] in self?.panel?.frame }
         if let screen = NotchedScreenFinder.find(), let notch = NotchedScreenFinder.notchRect(of: screen) {
             panel = makePanel(screen: screen, notch: notch)
             panel?.contentView?.layoutSubtreeIfNeeded()
@@ -40,11 +39,12 @@ import SwiftUI
 
     /// Top of the window is the top of the screen, centered on the notch.
     private func windowFrame(screen: NSScreen, notch: CGRect) -> CGRect {
-        let m = IslandMetrics.margin
-        let width = IslandMetrics.width + m * 2
-        let height = notch.height + IslandMetrics.contentHeight + m
+        let width = IslandMetrics.width
+        let height = notch.height + IslandMetrics.contentHeight
         return CGRect(x: notch.midX - width / 2, y: screen.frame.maxY - height, width: width, height: height)
     }
+
+    private var islandSize: CGSize { CGSize(width: IslandMetrics.width, height: notchSize.height + IslandMetrics.contentHeight) }
 
     private func makePanel(screen: NSScreen, notch: CGRect) -> NSPanel {
         let frame = windowFrame(screen: screen, notch: notch)
@@ -59,6 +59,8 @@ import SwiftUI
         p.backgroundColor = .clear
         // A borderless NSPanel's system shadow follows its rectangular frame.
         p.hasShadow = false
+        // Like the glow, the island asks to stay out of screenshots and recordings.
+        p.sharingType = .none
         p.isFloatingPanel = true
         p.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.statusWindow)) + 2)
         // Hover doesn't activate this app, so moving on activation isn't enough.
@@ -73,7 +75,7 @@ import SwiftUI
             self?.hover.dismissNow()
         }, motion: motion, notchSize: notch.size)
         let hosting = BubbleHostingView(rootView: view)
-        // The island is black; native AppKit controls inside it use the dark appearance.
+        // The island is black; native AppKit controls on it use the dark appearance.
         hosting.appearance = NSAppearance(named: .darkAqua)
         // The island has no rectangular host-level focus outline.
         // Child controls retain their native keyboard focus indicators.
@@ -120,6 +122,7 @@ import SwiftUI
         p.orderFrontRegardless()
         if wasVisible {
             motion.expanded = true
+            glow?.setIsland(expanded: true, size: islandSize)
             return
         }
         // At rest the island is the notch's own shape and invisible. Window attachment changes
@@ -131,6 +134,7 @@ import SwiftUI
             self.hostingView?.layoutSubtreeIfNeeded()
             p.contentView?.layoutSubtreeIfNeeded()
             self.motion.expanded = true
+            self.glow?.setIsland(expanded: true, size: self.islandSize)
         }
     }
 
@@ -139,13 +143,19 @@ import SwiftUI
         AppState.shared.bubbleVisible = false
         presentationGeneration &+= 1
         let generation = presentationGeneration
-        // The island contracts back into the notch, then the window is removed.
+        // The island contracts back into the notch; the window is removed once the renderer
+        // reports it is hidden. The timer is a fallback if the renderer is unavailable.
         motion.expanded = false
-        let delay: TimeInterval = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0.2 : 0.6
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+        glow?.setIsland(expanded: false, size: islandSize)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
             guard let self, self.presentationGeneration == generation, !self.motion.expanded else { return }
             self.panel?.orderOut(nil)
         }
+    }
+
+    private func islandHidden() {
+        guard !motion.expanded, !AppState.shared.bubbleVisible else { return }
+        panel?.orderOut(nil)
     }
 }
 

@@ -48,7 +48,7 @@ The glow adapts to the wallpaper: in Settings → Glow → Look, Wallpaper is Au
 
 The controls expose one Settings button and a direct Quit button. In Auto, a connected game controller pauses the glow. Previews remain available. Reopening the application from Finder opens Settings.
 
-Settings uses native SwiftUI forms, sliders, toggles and sidebar navigation. The Glow selector is a native AppKit segmented control hosted in SwiftUI, using the system tabs role. Buttons use system Liquid Glass. The controls are a black island that grows out of the notch with a spring animation and contracts back into it when you move away; with Reduce Motion on, it fades instead. macOS decides how native materials appear under accessibility and appearance settings.
+Settings uses native SwiftUI forms, sliders, toggles and sidebar navigation. The Glow selector is a native AppKit segmented control hosted in SwiftUI, using the system tabs role. Buttons use system Liquid Glass. The controls are a black island that grows out of the notch with a spring animation, with the glow wrapping it as it moves, and contracts back into the notch when you move away; with Reduce Motion on, it fades instead. macOS decides how native materials appear under accessibility and appearance settings.
 
 ## How it works
 

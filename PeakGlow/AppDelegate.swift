@@ -30,6 +30,7 @@ import ServiceManagement
         installMainMenu()
         updateStatusItem()
         bubble = BubblePanelController(hover: hover)
+        bubble?.glow = glow
         // Sample power directly; unused CPU readings must not gate this callback.
         var wattWindow: [Double] = []
         powerSampler.onSample = { [weak self] reading in
