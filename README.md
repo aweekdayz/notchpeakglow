@@ -103,6 +103,10 @@ Also welcome: whether the island animation is smooth on a 120 Hz (ProMotion) dis
 - Reduced Motion is respected. Native system menus and security dialogs follow the system language; PeakGlow's own interface, logs and documentation are English.
 - No automated interactive UI tests or cross-model hardware benchmarks have been performed.
 
+## License
+
+PeakGlow is released under the [MIT License](LICENSE). It is based on the original notchpeakglow project, whose README also declares MIT.
+
 ## Credits
 
 See [CREDITS.md](CREDITS.md) for the original project, contributors, maintenance scope and licensing (the upstream README declares MIT). The native About PeakGlow window includes the same attribution.

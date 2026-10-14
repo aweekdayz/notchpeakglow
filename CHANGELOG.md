@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.2 — Build 46 (unreleased)
+
+- Add an MIT `LICENSE` for this repository, listing the original author and the maintainer. The About window's credits now say the app is released under the MIT License and link to it, instead of saying redistribution permission needs confirmation. The upstream README declares MIT; the upstream repository has no license file, which is recorded in `CREDITS.md`. No other code changes.
+
 ## 1.7.1 — October 14, 2026 (Build 45)
 
 - The release is signed with a Developer ID Application certificate and notarized by Apple, with the ticket stapled so it also passes Gatekeeper offline. Releases up to 1.7.0 were ad-hoc signed and not notarized. The code is identical to 1.7.0.
