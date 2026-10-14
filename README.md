@@ -10,9 +10,9 @@ A small macOS utility that shows system load as a soft glow around the MacBook n
 
 [Latest published release](https://github.com/aweekdayz/notchpeakglow/releases/latest).
 
-Quit any running copy, extract the ZIP and move `PeakGlow.app` to Applications. Existing preferences are retained. The published 1.6.4 app is ad-hoc signed and **not Apple-notarized**. macOS may restrict its first launch; use Privacy & Security only if you trust the download.
+Quit any running copy, extract the ZIP and move `PeakGlow.app` to Applications. Existing preferences are retained. The published 1.6.5 app is ad-hoc signed and **not Apple-notarized**. macOS may restrict its first launch; use Privacy & Security only if you trust the download.
 
-The latest published release is **1.6.4 / Build 41**, built with the full Xcode workflow and verified shader, layered-icon and Credits resources. See [Release audit](docs/Release-Audit.md) for validation and outstanding work.
+The latest published release is **1.6.5 / Build 42**, built with the full Xcode workflow and verified shader, layered-icon and Credits resources. See [Release audit](docs/Release-Audit.md) for validation and outstanding work.
 
 ## Requirements and compatibility
 
