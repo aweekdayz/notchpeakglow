@@ -10,9 +10,9 @@ A small macOS utility that shows system load as a soft glow around the MacBook n
 
 [Latest published release](https://github.com/aweekdayz/notchpeakglow/releases/latest).
 
-Quit any running copy, extract the ZIP and move `PeakGlow.app` to Applications. Existing preferences are retained. The published 1.6.6 app is ad-hoc signed and **not Apple-notarized**. macOS may restrict its first launch; use Privacy & Security only if you trust the download.
+Quit any running copy, extract the ZIP and move `PeakGlow.app` to Applications. Existing preferences are retained. The published 1.7.0 app is ad-hoc signed and **not Apple-notarized**. macOS may restrict its first launch; use Privacy & Security only if you trust the download.
 
-The latest published release is **1.6.6 / Build 43**, built with the full Xcode workflow and verified shader, layered-icon and Credits resources. See [Release audit](docs/Release-Audit.md) for validation and outstanding work.
+The latest published release is **1.7.0 / Build 44**, built with the full Xcode workflow and verified shader, layered-icon and Credits resources. See [Release audit](docs/Release-Audit.md) for validation and outstanding work.
 
 ## Requirements and compatibility
 
@@ -34,7 +34,7 @@ Initial full-glow / Boost presets are **13 / 19 W for Air** and **30 / 55 W for 
 
 ## Use
 
-PeakGlow has no Dock icon. Its menu bar icon shows system power, switches the Glow mode and opens Settings or Quit without the pointer; turn it off in Settings → General. The Dock icon and menu bar also appear while Settings is open. Hover over the notch for approximately 80 ms to open the controls; click the notch for immediate interaction. Move away, click outside or press Esc to close them. Menus and active mouse drags temporarily defer pointer dismissal.
+PeakGlow has no Dock icon. Its menu bar icon shows system power, switches the Glow mode and opens Settings or Quit without the pointer; turn it off in Settings → General. The Dock icon and menu bar also appear while Settings is open. Hover over the notch for approximately 80 ms to open the controls, which grow out of the notch as an island. Move away, click outside or press Esc to close them; the island covers the notch while it is open, so clicking its top area does not close it. Menus and active mouse drags temporarily defer pointer dismissal.
 
 | Glow mode | Effect |
 | --- | --- |
