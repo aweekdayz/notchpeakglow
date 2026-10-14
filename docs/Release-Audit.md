@@ -1,6 +1,6 @@
 # Release audit — October 12, 2026
 
-Historical audit of 1.6.1 / Build 38 (never published separately; its changes shipped in 1.6.2). **Current public release: 1.6.3 / Build 40** — see the follow-up sections below, which supersede earlier status lines.
+Historical audit of 1.6.1 / Build 38 (never published separately; its changes shipped in 1.6.2). **Current public release: 1.6.4 / Build 41** — see the follow-up sections below, which supersede earlier status lines.
 
 ## Checks completed
 
@@ -64,3 +64,7 @@ A native About panel reads the bundled Credits.rtf. RTF parsing, plist/project s
 ## 1.6.3 follow-up — October 13, 2026
 
 Build 40 adds sample-gap continuity for temperature and load detection, clamps stored timing settings, adopts the Swift 6 language mode, completes the menu bar and shows the menu bar while Settings is open. The ZIP was built with `scripts/build-release.sh` and its extracted contents were inspected: version 1.6.3 / Build 40, `com.aweekdayz.peakglow`, arm64, SDK and minimum OS 27.0, English, compiled shader, layered icon and Credits resources, strict signature validation and checksum. Signing is ad-hoc with hardened runtime; there is no Developer ID signature or notarization (see [Notarization](Notarization.md)). The maintainer tested the package on a Mac. Hardware coverage across models and display configurations, sleep/wake behavior on other Macs, upstream redistribution permission and App Store eligibility remain unverified or unresolved.
+
+## 1.6.4 follow-up — October 13, 2026
+
+Build 41 adds a menu bar icon whose menu shows system power, offers the Glow modes with a checkmark on the current one, and opens Settings or Quit (it can be turned off in Settings → Behavior). It removes the Show PeakGlow Controls command and its shortcut, uses system text styles in the controls panel (the power readout is 26 pt instead of a fixed 30 pt) and reorders Settings → Behavior. The ZIP was built with `scripts/build-release.sh` and its extracted contents were inspected: version 1.6.4 / Build 41, `com.aweekdayz.peakglow`, arm64, SDK and minimum OS 27.0, strict signature validation and checksum. Signing is ad-hoc with hardened runtime; there is no Developer ID signature or notarization. The maintainer tested the package on a Mac. VoiceOver reading order, Full Keyboard Access focus order and Increase Contrast appearance were not independently verified. Upstream redistribution permission and App Store eligibility remain unresolved.
