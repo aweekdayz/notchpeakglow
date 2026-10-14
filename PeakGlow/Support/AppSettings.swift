@@ -25,8 +25,11 @@ enum PreviewLevel: Int, CaseIterable {
         }
     }
 
-    /// The order shown in the panel, the menu bar menu and Settings.
+    /// The order shown in Settings, where the previews are for tuning colors and brightness.
     static let displayOrder: [PreviewLevel] = [.auto, .low, .medium, .high, .overheat]
+    /// What the panel and the menu bar menu offer: the glow on, following power, or off.
+    static let quickChoices: [PreviewLevel] = [.auto, .low]
+    var isPreview: Bool { self == .medium || self == .high || self == .overheat }
 }
 
 /// Preferences accessed by main-thread sampling, rendering and SwiftUI controls.

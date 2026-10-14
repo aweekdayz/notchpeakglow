@@ -108,7 +108,11 @@ import ServiceManagement
         let ws = NSWorkspace.shared.notificationCenter
         ws.addObserver(forName: NSWorkspace.screensDidSleepNotification,
                        object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.glow.setScreenAsleep(true) }
+            MainActor.assumeIsolated {
+                // The glow window goes away with the display; take the island with it.
+                self?.hover.dismissNow()
+                self?.glow.setScreenAsleep(true)
+            }
         }
         ws.addObserver(forName: NSWorkspace.screensDidWakeNotification,
                        object: nil, queue: .main) { [weak self] _ in
@@ -192,7 +196,7 @@ import ServiceManagement
     }
 
     /// Glow modes in the order shown by the controls panel.
-    private static let glowMenuModes = PreviewLevel.displayOrder
+    private static let glowMenuModes = PreviewLevel.quickChoices
 
     /// A menu bar icon gives pointer-free access to power, the Glow mode, Settings and Quit.
     private func updateStatusItem() {

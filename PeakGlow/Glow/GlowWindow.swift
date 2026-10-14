@@ -41,6 +41,9 @@ import AppKit
         syncPauseState()
     }
 
+    /// Whether the renderer is available to draw the island's shell.
+    var canDrawIsland: Bool { metalView?.renderer != nil }
+
     /// Grow the window to hold the island and its halo, then run the shared spring.
     func setIsland(expanded: Bool, size: CGSize) {
         if expanded {

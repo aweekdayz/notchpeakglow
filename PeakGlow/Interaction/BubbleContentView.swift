@@ -6,6 +6,8 @@ import SwiftUI
 /// holds the controls, so it never animates its own size or layout.
 @MainActor final class IslandMotion: ObservableObject {
   @Published var expanded = false
+  /// True when the renderer cannot draw the shell, so the controls draw a plain black one themselves.
+  @Published var fallbackShell = false
 }
 
 /// Shared geometry. The panel window is the expanded island; its top is the top of the screen.
@@ -191,8 +193,20 @@ struct BubbleContentView: View {
       .padding(.bottom, 16)
     }
     .frame(width: IslandMetrics.width, height: notchSize.height + IslandMetrics.contentHeight, alignment: .top)
-    // Nearly invisible, so a click on the black shell is not passed to the window behind it.
-    .background(Color.black.opacity(0.01))
+    // Normally nearly invisible, so a click on the black shell is not passed to the window behind it.
+    // Without the renderer the shell is drawn here, unanimated.
+    .background {
+      if motion.fallbackShell {
+        UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: IslandMetrics.expandedCornerRadius,
+                               bottomTrailingRadius: IslandMetrics.expandedCornerRadius, topTrailingRadius: 0,
+                               style: .continuous)
+          .fill(Color.black)
+          .opacity(motion.expanded ? 1 : 0)
+          .animation(.easeInOut(duration: 0.18), value: motion.expanded)
+      } else {
+        Color.black.opacity(0.01)
+      }
+    }
     // The island is black, so its content uses the dark appearance.
     .environment(\.colorScheme, .dark)
     // This utility surface is interactive even when the foreground app stays active.
@@ -279,7 +293,7 @@ private struct GlowModeControl: View {
           .font(.caption)
           .foregroundStyle(.secondary)
         Spacer()
-        Text(app.preview.explanation)
+        Text(app.preview.isPreview ? "Previewing. Choose Auto to stop" : app.preview.explanation)
           .font(.caption)
           .foregroundStyle(.secondary)
           .lineLimit(1)
@@ -322,7 +336,8 @@ private struct BubbleFooter: View {
 /// distribution and the macOS 27 tabs role to SwiftUI hosting.
 private struct NativeGlowSelector: NSViewRepresentable {
   @Binding var selection: PreviewLevel
-  private static let modes = PreviewLevel.displayOrder
+  // The panel is for quick choices. The previews that tune colors live in Settings.
+  private static let modes = PreviewLevel.quickChoices
   private static let labels = modes.map(\.label)
   private static let help = modes.map(\.explanation)
 
@@ -341,13 +356,14 @@ private struct NativeGlowSelector: NSViewRepresentable {
     for index in Self.modes.indices {
       control.setToolTip(Self.help[index], forSegment: index)
     }
-    control.selectedSegment = Self.modes.firstIndex(of: selection) ?? 0
+    // While a preview from Settings is on, neither segment is selected.
+    control.selectedSegment = Self.modes.firstIndex(of: selection) ?? -1
     return control
   }
 
   func updateNSView(_ control: NSSegmentedControl, context: Context) {
     context.coordinator.selection = $selection
-    let index = Self.modes.firstIndex(of: selection) ?? 0
+    let index = Self.modes.firstIndex(of: selection) ?? -1
     // Tracking already set the selected segment. Avoid resetting it during the
     // state publication, which can invalidate native metrics mid-interaction.
     if control.selectedSegment != index { control.selectedSegment = index }

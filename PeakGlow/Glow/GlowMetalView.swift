@@ -24,6 +24,9 @@ final class GlowMetalView: NSView {
         layer.framebufferOnly = true
         layer.isOpaque = false
         layer.backgroundColor = NSColor.clear.cgColor
+        // The render loop runs on the main thread: when no drawable is free, skip the frame
+        // instead of blocking for up to a second.
+        layer.allowsNextDrawableTimeout = false
         return layer
     }
 

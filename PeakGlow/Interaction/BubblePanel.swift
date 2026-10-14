@@ -104,6 +104,8 @@ import SwiftUI
         let frame = windowFrame(screen: screen, notch: notch)
         if p.frame != frame { p.setFrame(frame, display: false) }
 
+        motion.fallbackShell = !(glow?.canDrawIsland ?? false)
+
         // Establish the requested post-click appearance before the first visible frame.
         // The nonactivating panel keeps the foreground application active.
         (p as? BubbleControlPanel)?.allowsKeyboardFocus = true

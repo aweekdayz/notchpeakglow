@@ -134,6 +134,11 @@ import QuartzCore
     init?(layer: CAMetalLayer) {
         self.layer = layer
         guard let device = MTLCreateSystemDefaultDevice() else { return nil }
+        // The shader reads this struct byte for byte; refuse to draw rather than draw wrongly.
+        guard MemoryLayout<Uniforms>.stride == 96 else {
+            NSLog("PeakGlow: unexpected uniform layout")
+            return nil
+        }
         layer.device = device
         guard let queue = device.makeCommandQueue() else { return nil }
         self.commandQueue = queue
