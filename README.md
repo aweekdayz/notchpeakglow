@@ -38,10 +38,10 @@ PeakGlow has no Dock icon. Its menu bar icon shows system power, switches the Gl
 
 | Glow mode | Effect |
 | --- | --- |
-| Auto | Follow measured system power; optional subtle glow at low load |
+| Auto | Follow measured system power: the color moves from deep blue through cyan and teal to violet, and the glow grows brighter and wider as power rises; optional subtle glow at low load |
 | Off | Turn the glow off |
-| Soft | Preview the soft cyan, violet and pink glow |
-| Boost | Preview the ice-blue glow with gentle breathing |
+| Soft | Preview a mid-power teal glow |
+| Boost | Preview a high-power violet glow with gentle breathing |
 | Warm | Preview the steady warm temperature tint |
 
 The controls expose one Settings button and a direct Quit button. In Auto, a connected game controller pauses the glow. Previews remain available. Reopening the application from Finder opens Settings.
@@ -50,7 +50,7 @@ Settings uses native SwiftUI forms, sliders, toggles and sidebar navigation. The
 
 ## How it works
 
-`PowerSampler` reads the AppleSMC `PSTR` float sensor. A five-sample average, hysteresis and continuous dwell determine Low, Soft or Boost. Unsupported or failed readings display “Power data unavailable” and clear stale automatic load state. Failed driver connections retry at a bounded interval.
+`PowerSampler` reads the AppleSMC `PSTR` float sensor. A five-sample average, hysteresis and continuous dwell determine Low, Soft or Boost; separately, the average power is mapped around your two thresholds to a smoothed position on the glow's color ramp. Unsupported or failed readings display “Power data unavailable” and clear stale automatic load state. Failed driver connections retry at a bounded interval.
 
 Metal draws outside the actual notch silhouette. A main-run-loop display link drives the animation; a transparent final frame is submitted before idle rendering stops. Display sleep or loss of the notch display stops the hidden renderer. EDR gain is limited by the display's current headroom; there is no requirement for HDR to use the app.
 

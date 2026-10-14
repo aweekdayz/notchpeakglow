@@ -15,6 +15,7 @@ struct Uniforms {
     float warningMix;
     float redGain;
     float redScale;
+    float powerMix;
 };
 
 struct FragmentInput { float4 position [[position]]; };
@@ -36,7 +37,8 @@ float roundedBox(float2 p, float2 halfSize, float radius) {
 }
 
 // The glow follows the hardware notch: its top merges with the screen edge and only the
-// lower corners are rounded. A thin lit edge sits inside a tight bloom and a faint tail.
+// lower corners are rounded. Power drives a continuous cool colour ramp, brightness and
+// bloom width; warm orange is reserved for the temperature warning.
 fragment float4 fragmentShader(FragmentInput in [[stage_in]],
                                constant Uniforms &u [[buffer(0)]]) {
     float2 p = in.position.xy - u.notchCenter;
@@ -52,25 +54,32 @@ fragment float4 fragmentShader(FragmentInput in [[stage_in]],
 
     float d = max(sd, 0.0);
     float rim  = exp(-d / (0.9 * k));                 // thin lit edge
-    float bloom = exp(-d / (11.0 * k * widen));        // tight bloom hugging the contour
-    float haze = exp(-d / (32.0 * k * widen));        // long soft tail
+    float t = clamp(u.powerMix, 0.0, 1.0);
+    float sz = mix(0.78, 1.30, t);
+    float bloom = exp(-d / (11.0 * k * widen * sz));        // tight bloom hugging the contour
+    float haze = exp(-d / (32.0 * k * widen * sz));        // long soft tail
 
-    // Colour travels along the contour, slowly; same palette as before.
-    float t = p.x / max(u.notchSize.x, 1.0) + 0.35 * p.y / max(h, 1.0);
-    float wave = 0.5 + 0.5 * sin(t * 3.4 + u.time * 0.30);
-    float ribbon = 0.5 + 0.5 * sin(t * 5.0 - u.time * 0.23 + 1.5);
-    float3 cyan = float3(0.25, 0.78, 0.96);
-    float3 violet = float3(0.55, 0.36, 0.92);
-    float3 pink = float3(0.94, 0.42, 0.69);
-    float3 aurora = mix(cyan, violet, smoothstep(0.1, 0.9, wave));
-    aurora = mix(aurora, pink, pow(ribbon, 3.0) * 0.36);
-    float3 ice = mix(float3(0.24, 0.48, 0.98), float3(0.48, 0.79, 1.0), wave * 0.45);
-    float3 color = mix(aurora, ice, u.modeMix);
+    // Colour encodes power: a continuous cool ramp from deep blue to magenta.
+    // Warm orange/red is reserved for the temperature warning.
+    float along = p.x / max(u.notchSize.x, 1.0) + 0.35 * p.y / max(h, 1.0);
+    float wave = 0.5 + 0.5 * sin(along * 3.4 + u.time * 0.30);
+    float tc = clamp(t + (wave - 0.5) * 0.10, 0.0, 1.0);
+    float3 c0 = float3(0.20, 0.36, 1.00);   // deep blue
+    float3 c1 = float3(0.16, 0.78, 1.00);   // cyan
+    float3 c2 = float3(0.20, 0.94, 0.72);   // teal green
+    float3 c3 = float3(0.42, 0.56, 1.00);   // periwinkle
+    float3 c4 = float3(0.52, 0.38, 1.00);   // upper-mid
+    float3 c5 = float3(0.62, 0.30, 1.00);   // top
+    float3 color = mix(c0, c1, smoothstep(0.00, 0.25, tc));
+    color = mix(color, c2, smoothstep(0.25, 0.48, tc));
+    color = mix(color, c3, smoothstep(0.48, 0.64, tc));
+    color = mix(color, c4, smoothstep(0.64, 0.82, tc));
+    color = mix(color, c5, smoothstep(0.82, 1.00, tc));
     float3 warm = mix(float3(1.0, 0.53, 0.22), float3(0.96, 0.28, 0.32), wave * 0.35);
-    color = mix(color, warm, warning * 0.85);
-    color = mix(color, float3(0.86, 0.93, 1.0), rim * 0.45 * (1.0 - warning));
+    color = mix(color, warm, warning);
+    color = mix(color, float3(0.86, 0.93, 1.0), rim * 0.34 * (1.0 - warning));
 
-    float envelope = 0.40 * rim + 0.95 * bloom + 0.26 * haze;
+    float envelope = (0.40 * rim + 0.95 * bloom + 0.26 * haze) * mix(0.95, 1.25, t);
     float alpha = envelope * mix(u.mediumAlpha, 0.72, u.modeMix) * u.intensity * outside;
     alpha *= mix(1.0, 0.90 + 0.10 * pulse, u.modeMix);
     alpha = clamp(alpha, 0.0, 0.85);

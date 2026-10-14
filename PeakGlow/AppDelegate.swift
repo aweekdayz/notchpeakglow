@@ -12,6 +12,7 @@ import ServiceManagement
     private var statusItem: NSStatusItem?
 
     private var lastAutoLevel: LoadLevel = .low
+    private var lastPowerFraction: Float?
     private var samplingInterval = AppSettings.shared.sampleInterval
     private var settingsUpdate: DispatchWorkItem?
     private var glowGeometry = SIMD2<Double>(AppSettings.shared.glowScale, AppSettings.shared.overheatScale)
@@ -38,6 +39,8 @@ import ServiceManagement
             state.recordPower(reading)
             guard let w = reading, w.isFinite, w >= 0 else {
                 wattWindow.removeAll()
+                self.lastPowerFraction = nil
+                self.glow.setPowerFraction(nil)
                 stateMachine.discardPendingTransition()
                 if self.lastAutoLevel != .low {
                     self.stateMachine.reset()
@@ -49,7 +52,12 @@ import ServiceManagement
             // Five-sample average filters transient power spikes.
             wattWindow.append(w)
             if wattWindow.count > 5 { wattWindow.removeFirst() }
-            stateMachine.update(watts: wattWindow.reduce(0, +) / Double(wattWindow.count))
+            let average = wattWindow.reduce(0, +) / Double(wattWindow.count)
+            stateMachine.update(watts: average)
+            let fraction = GlowRenderer.powerFraction(
+                watts: average, medium: AppSettings.shared.mediumWatts, high: AppSettings.shared.highWatts)
+            self.lastPowerFraction = fraction
+            if AppSettings.shared.preview == .auto { self.glow.setPowerFraction(fraction) }
         }
         stateMachine.onLevelChange = { [weak self] level in
             guard let self else { return }
@@ -283,6 +291,7 @@ import ServiceManagement
         if AppState.shared.overheatAlarm != alarm { AppState.shared.overheatAlarm = alarm }
         glow.setOverheat(overheat, gainBoost: Float(AppSettings.shared.overheatGain))
         glow.setLevel(effective)
+        glow.setPowerFraction(AppSettings.shared.preview == .auto ? lastPowerFraction : nil)
     }
 }
 
