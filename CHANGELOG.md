@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.5 — Build 42 (not yet published)
+
+- Redraw the glow to follow the hardware notch: the shape merges with the top screen edge and only the lower corners are rounded, instead of a four-cornered pill. A thin lit edge now sits inside a tighter bloom and a faint tail for a clearer, more defined edge. Colors, modes and settings are unchanged.
+- Verified by rendering the shader offscreen to still images and by a full Xcode build; the maintainer has not yet viewed it on a Mac.
+
 ## 1.6.4 — October 13, 2026 (Build 41)
 
 - Add a menu bar icon so the main controls are reachable without the pointer. It can be turned off in Settings → Behavior → Menu bar.
