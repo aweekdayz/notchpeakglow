@@ -1,7 +1,7 @@
 import AppKit
 import ServiceManagement
 
-@MainActor final class AppDelegate: NSObject, NSApplicationDelegate {
+@MainActor final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let powerSampler = PowerSampler()
     private let thermal = OverheatDetector()
     private let stateMachine = LoadLevelStateMachine()
@@ -156,9 +156,6 @@ import ServiceManagement
         windowMenu.addItem(withTitle: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
         windowMenu.addItem(withTitle: "Zoom", action: #selector(NSWindow.performZoom(_:)), keyEquivalent: "")
         windowMenu.addItem(.separator())
-        let controls = windowMenu.addItem(withTitle: "Show PeakGlow Controls", action: #selector(openControls), keyEquivalent: "p")
-        controls.keyEquivalentModifierMask = [.command, .option]
-        controls.target = self
         let close = windowMenu.addItem(withTitle: "Close Window", action: #selector(closeActiveWindow), keyEquivalent: "w")
         close.target = self
         NSApp.mainMenu = menu
@@ -178,9 +175,10 @@ import ServiceManagement
         NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
     }
 
-    @objc private func openControls() { hover.openForInteraction() }
+    /// Glow modes in the order shown by the controls panel.
+    private static let glowMenuModes: [PreviewLevel] = [.auto, .low, .medium, .high, .overheat]
 
-    /// A menu bar icon gives pointer-free access to the controls, Settings and Quit.
+    /// A menu bar icon gives pointer-free access to power, the Glow mode, Settings and Quit.
     private func updateStatusItem() {
         guard AppSettings.shared.menuBarIcon else {
             if let statusItem { NSStatusBar.system.removeStatusItem(statusItem) }
@@ -191,14 +189,47 @@ import ServiceManagement
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.image = NSImage(systemSymbolName: "waveform.path", accessibilityDescription: "PeakGlow")
         let menu = NSMenu(title: "PeakGlow")
-        let controls = menu.addItem(withTitle: "Show PeakGlow Controls", action: #selector(openControls), keyEquivalent: "")
-        controls.target = self
+        menu.delegate = self
+        let power = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        power.isEnabled = false
+        power.tag = Self.powerItemTag
+        menu.addItem(power)
+        menu.addItem(.separator())
+        let glowHeader = NSMenuItem(title: "Glow", action: nil, keyEquivalent: "")
+        glowHeader.isEnabled = false
+        menu.addItem(glowHeader)
+        for mode in Self.glowMenuModes {
+            let item = menu.addItem(withTitle: mode.label, action: #selector(selectGlowMode(_:)), keyEquivalent: "")
+            item.target = self
+            item.tag = mode.rawValue
+            item.indentationLevel = 1
+        }
+        menu.addItem(.separator())
         let settings = menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: "")
         settings.target = self
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit PeakGlow", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         item.menu = menu
         statusItem = item
+    }
+
+    private static let powerItemTag = 1000
+
+    @objc private func selectGlowMode(_ sender: NSMenuItem) {
+        guard let mode = PreviewLevel(rawValue: sender.tag) else { return }
+        AppState.shared.preview = mode
+    }
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        let state = AppState.shared
+        state.refreshPower()
+        let reading = state.power.reading
+        menu.item(withTag: Self.powerItemTag)?.title = reading.availability == .current
+            ? String(format: "System power: %.1f W", reading.watts)
+            : "Power data unavailable"
+        for mode in Self.glowMenuModes {
+            menu.item(withTag: mode.rawValue)?.state = state.preview == mode ? .on : .off
+        }
     }
 
     @objc private func closeActiveWindow() {

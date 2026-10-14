@@ -2,7 +2,9 @@
 
 ## 1.6.4 — Build 41 (not yet published)
 
-- Add a menu bar icon with Show PeakGlow Controls, Settings and Quit, so the controls are reachable without the pointer. It can be turned off in Settings → Behavior → Menu bar.
+- Add a menu bar icon so the main controls are reachable without the pointer. It can be turned off in Settings → Behavior → Menu bar.
+- Remove the Show PeakGlow Controls command and its ⌥⌘P shortcut. The menu bar icon now shows system power, offers the Glow modes (Auto, Off, Soft, Boost, Warm) with a checkmark on the current one, and keeps Settings and Quit.
+- Settings → Behavior lists Startup, Alerts, Menu bar, Interaction in that order.
 - Use system text styles in the controls panel. The power readout is 26 pt (`largeTitle`) instead of a fixed 30 pt.
 
 ## 1.6.3 — October 13, 2026 (Build 40)
