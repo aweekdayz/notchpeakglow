@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.6.5 — Build 42 (not yet published)
+## 1.6.5 — October 13, 2026 (Build 42)
 
 - Redraw the glow to follow the hardware notch: the shape merges with the top screen edge and only the lower corners are rounded, instead of a four-cornered pill. A thin lit edge now sits inside a tighter bloom and a faint tail for a clearer, more defined edge. Modes and settings are unchanged.
 - Show power continuously: the glow's color moves along a single-direction ramp (blue, cyan, green, yellow) while brightness and bloom width grow with power over a wide range, mapped around the two Power thresholds and smoothed. Soft and Boost previews use fixed positions on the ramp. The orange and red temperature tint is unchanged and reserved for the warning.

@@ -1,6 +1,6 @@
 # Release audit — October 12, 2026
 
-Historical audit of 1.6.1 / Build 38 (never published separately; its changes shipped in 1.6.2). **Current public release: 1.6.4 / Build 41** — see the follow-up sections below, which supersede earlier status lines.
+Historical audit of 1.6.1 / Build 38 (never published separately; its changes shipped in 1.6.2). **Current public release: 1.6.5 / Build 42** — see the follow-up sections below, which supersede earlier status lines.
 
 ## Checks completed
 
@@ -68,3 +68,7 @@ Build 40 adds sample-gap continuity for temperature and load detection, clamps s
 ## 1.6.4 follow-up — October 13, 2026
 
 Build 41 adds a menu bar icon whose menu shows system power, offers the Glow modes with a checkmark on the current one, and opens Settings or Quit (it can be turned off in Settings → Behavior). It removes the Show PeakGlow Controls command and its shortcut, uses system text styles in the controls panel (the power readout is 26 pt instead of a fixed 30 pt) and reorders Settings → Behavior. The ZIP was built with `scripts/build-release.sh` and its extracted contents were inspected: version 1.6.4 / Build 41, `com.aweekdayz.peakglow`, arm64, SDK and minimum OS 27.0, strict signature validation and checksum. Signing is ad-hoc with hardened runtime; there is no Developer ID signature or notarization. The maintainer tested the package on a Mac. VoiceOver reading order, Full Keyboard Access focus order and Increase Contrast appearance were not independently verified. Upstream redistribution permission and App Store eligibility remain unresolved.
+
+## 1.6.5 follow-up — October 13, 2026
+
+Build 42 redraws the glow shader to follow the hardware notch silhouette (flat top merged with the screen edge, rounded lower corners) and shows power continuously: the color moves along one hue direction (blue, cyan, green, yellow) while brightness (0.55x to 1.35x) and bloom width (0.65x to 1.45x) grow with power. The position on the ramp is mapped around the two Power thresholds and smoothed; Soft and Boost previews use fixed positions, and orange and red stay reserved for the temperature warning. The ZIP was built with `scripts/build-release.sh` and its extracted contents were inspected: version 1.6.5 / Build 42, arm64, SDK and minimum OS 27.0, compiled shader, strict signature validation and checksum. Signing is ad-hoc with hardened runtime; there is no Developer ID signature or notarization. The maintainer tested the package on a Mac. Before the build, the shader was rendered offscreen to still images and the power-to-position mapping was checked in isolation (monotone, bounded to 0...1). Appearance on light wallpapers, across all notched models and under accessibility settings was not independently verified. Upstream redistribution permission and App Store eligibility remain unresolved.
