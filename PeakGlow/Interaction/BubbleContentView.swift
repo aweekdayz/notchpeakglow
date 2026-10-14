@@ -12,12 +12,23 @@ import SwiftUI
 enum IslandMetrics {
   static let width: CGFloat = 384
   /// Height below the notch, where the controls sit.
-  static let contentHeight: CGFloat = 210
+  static let contentHeight: CGFloat = 220
   static let expandedCornerRadius: CGFloat = 24
 }
 
 /// The glow's own color ramp laid out by power, shared by the panel and Settings meters.
 @MainActor enum PowerRamp {
+  /// The glow's color at a given power, for small accents that should match it.
+  static func color(watts: Double, medium: Double, high: Double) -> Color {
+    let stops: [(Double, Double, Double)] = [
+      (0.18, 0.36, 1.00), (0.10, 0.78, 1.00), (0.22, 0.92, 0.46), (0.70, 0.93, 0.26), (0.99, 0.88, 0.28)]
+    let t = Double(GlowRenderer.powerFraction(watts: watts, medium: medium, high: high)) * 4
+    let i = min(3, max(0, Int(t)))
+    let f = min(1, max(0, t - Double(i)))
+    let (a, b) = (stops[i], stops[i + 1])
+    return Color(red: a.0 + (b.0 - a.0) * f, green: a.1 + (b.1 - a.1) * f, blue: a.2 + (b.2 - a.2) * f)
+  }
+
   static func gradient(medium: Double, high: Double) -> Gradient {
     let colors: [Color] = [
       Color(red: 0.18, green: 0.36, blue: 1.00), Color(red: 0.10, green: 0.78, blue: 1.00),
@@ -105,8 +116,9 @@ struct PowerMeter: View {
     }
 }
 
-/// The controls laid out for the island. The top band beside the notch carries the name and the
-/// live power; the controls sit below it. The black shell behind them is drawn by the renderer.
+/// The controls laid out for the island. The top band beside the notch carries the name and what the
+/// glow is doing; the large power reading and the controls sit below it. The black shell behind them
+/// is drawn by the renderer.
 struct BubbleContentView: View {
   var onClose: () -> Void
   @ObservedObject var motion: IslandMotion
@@ -114,6 +126,7 @@ struct BubbleContentView: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @ObservedObject private var power = AppState.shared.power
   @ObservedObject private var settings = AppSettings.shared
+  @ScaledMetric(relativeTo: .largeTitle) private var readoutSize: CGFloat = 40
   private let app = AppState.shared
 
   var body: some View {
@@ -127,29 +140,38 @@ struct BubbleContentView: View {
           .padding(.leading, 12)
           .frame(width: wing, alignment: .leading)
         Spacer(minLength: 0)
-        HStack(alignment: .firstTextBaseline, spacing: 3) {
-          Text(powerText)
-            .font(.system(.callout, design: .rounded).weight(.semibold))
-            .monospacedDigit()
-            .contentTransition(.numericText())
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: power.reading.watts)
-          Text("W")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
-        .padding(.trailing, 14)
-        .frame(width: wing, alignment: .trailing)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("System power")
-        .accessibilityValue(power.reading.availability == .current ? "\(powerText) watts" : "unavailable")
+        BubbleStatusLabel(app: app, power: power, dotColor: dotColor)
+          .padding(.trailing, 12)
+          .frame(width: wing, alignment: .trailing)
       }
       .frame(height: notchSize.height)
       .islandReveal(motion.expanded, delay: 0.10, reduceMotion: reduceMotion)
 
       VStack(alignment: .leading, spacing: 12) {
-        BubbleStatusView(app: app, power: power)
-          .frame(height: 40)
-          .islandReveal(motion.expanded, delay: 0.16, reduceMotion: reduceMotion)
+        // The reading is the main thing here, so it is large.
+        HStack(alignment: .lastTextBaseline, spacing: 6) {
+          Text(powerText)
+            .font(.system(size: readoutSize, weight: .semibold, design: .rounded))
+            .monospacedDigit()
+            .contentTransition(.numericText())
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: power.reading.watts)
+          Text("W")
+            .font(.title3.weight(.medium))
+            .foregroundStyle(.secondary)
+          Spacer(minLength: 8)
+          Text(powerDescription)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.trailing)
+            .lineLimit(2)
+            .frame(maxWidth: 120, alignment: .trailing)
+        }
+        .frame(height: 52)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("System power")
+        .accessibilityValue(power.reading.availability == .current ? "\(powerText) watts" : powerDescription)
+        .islandReveal(motion.expanded, delay: 0.16, reduceMotion: reduceMotion)
+
         PowerMeter(watts: meterWatts, medium: settings.mediumWatts, high: settings.highWatts,
                    maximum: max(settings.highWatts * 1.4, 1),
                    gradient: PowerRamp.gradient(medium: settings.mediumWatts, high: settings.highWatts),
@@ -160,11 +182,11 @@ struct BubbleContentView: View {
         GlowModeControl(app: app)
           .frame(height: 48)
           .islandReveal(motion.expanded, delay: 0.24, reduceMotion: reduceMotion)
-        BubbleFooter(app: app, onClose: onClose)
+        BubbleFooter(onClose: onClose)
           .frame(height: 28)
           .islandReveal(motion.expanded, delay: 0.28, reduceMotion: reduceMotion)
       }
-      .padding(.top, 14)
+      .padding(.top, 12)
       .padding(.horizontal, 20)
       .padding(.bottom, 16)
     }
@@ -181,6 +203,19 @@ struct BubbleContentView: View {
     power.reading.availability == .current ? String(format: "%.1f", power.reading.watts) : "—"
   }
   private var meterWatts: Double { power.reading.availability == .current ? power.reading.watts : 0 }
+  private var powerDescription: String {
+    switch power.reading.availability {
+    case .waiting: return "Waiting for power data"
+    case .current: return "System power"
+    case .unavailable: return "Power data unavailable"
+    }
+  }
+  /// The status dot takes the glow's color at the current power.
+  private var dotColor: Color {
+    power.reading.availability == .current
+      ? PowerRamp.color(watts: power.reading.watts, medium: settings.mediumWatts, high: settings.highWatts)
+      : Color.secondary
+  }
 }
 
 private extension View {
@@ -197,22 +232,23 @@ private extension View {
   }
 }
 
-/// What the glow is doing, and where the reading stands.
-private struct BubbleStatusView: View {
+/// What the glow is doing, in a few words, with a dot in the glow's current color.
+private struct BubbleStatusLabel: View {
   @ObservedObject var app: AppState
   @ObservedObject var power: PowerReadingState
+  let dotColor: Color
 
   private var status: String {
     switch app.preview {
     case .low: return "Glow off"
-    case .medium: return "Soft preview"
-    case .high: return "Boost preview"
-    case .overheat: return "Warm preview"
+    case .medium: return "Mid preview"
+    case .high: return "High preview"
+    case .overheat: return "Hot preview"
     case .auto: break
     }
     if app.gamepadConnected { return "Glow paused" }
-    if app.overheatAlarm { return "Temperature elevated" }
-    if power.reading.availability != .current { return "Load unavailable" }
+    if app.overheatAlarm { return "Temperature high" }
+    if power.reading.availability != .current { return "No power data" }
     switch app.effectiveLevel {
     case .low: return "Low load"
     case .medium: return "Moderate load"
@@ -220,68 +256,55 @@ private struct BubbleStatusView: View {
     }
   }
 
-  private var powerDescription: String {
-    switch power.reading.availability {
-    case .waiting: return "Waiting for power data"
-    case .current: return "System power"
-    case .unavailable: return "Power data unavailable"
-    }
-  }
-
   var body: some View {
-    VStack(alignment: .leading, spacing: 4) {
-      Label(status, systemImage: app.overheatAlarm ? "thermometer.high" : "circle.fill")
-        .font(.callout)
-        .lineLimit(1)
-        .foregroundStyle(app.overheatAlarm ? Color.orange : Color.secondary)
-      Text(powerDescription)
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .lineLimit(1)
+    Label {
+      Text(status).lineLimit(1).minimumScaleFactor(0.75)
+    } icon: {
+      Image(systemName: app.overheatAlarm ? "thermometer.high" : "circle.fill")
+        .foregroundStyle(app.overheatAlarm ? Color.orange : dotColor)
     }
-    .frame(maxWidth: .infinity, alignment: .leading)
+    .font(.caption)
+    .foregroundStyle(app.overheatAlarm ? Color.orange : Color.secondary)
   }
 }
 
 /// The native macOS mode selector updates independently of the static panel shell.
+/// Beside the title, one plain line says what the current choice does.
 private struct GlowModeControl: View {
   @ObservedObject var app: AppState
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
-      Text("Glow")
-        .font(.caption)
-        .foregroundStyle(.secondary)
+      HStack {
+        Text("Glow")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+        Spacer()
+        Text(app.preview.explanation)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .lineLimit(1)
+      }
       NativeGlowSelector(selection: $app.preview)
         .frame(maxWidth: .infinity)
-
     }
-
   }
 }
 
 private struct BubbleFooter: View {
-  @ObservedObject var app: AppState
   var onClose: () -> Void
   var body: some View {
     HStack(spacing: 8) {
-      Text(
-        app.preview == .auto
-          ? (app.gamepadConnected ? "Game controller connected" : "Adapts to system load")
-          : "Choose Auto to resume"
-      )
-      .font(.caption)
-      .foregroundStyle(.secondary)
-      .lineLimit(1)
-      .frame(maxWidth: .infinity, alignment: .leading)
       Button {
         SettingsWindowController.shared.show()
         onClose()
       } label: {
-        Image(systemName: "gearshape").frame(width: 28, height: 28)
+        Label("Settings…", systemImage: "gearshape")
+          .font(.callout)
       }
       .buttonStyle(.borderless)
-      .help("Settings…")
+      .help("Open Settings")
       .accessibilityLabel("Open Settings")
+      Spacer()
       Button { NSApp.terminate(nil) } label: {
         Label("Quit", systemImage: "power")
       }
@@ -299,12 +322,9 @@ private struct BubbleFooter: View {
 /// distribution and the macOS 27 tabs role to SwiftUI hosting.
 private struct NativeGlowSelector: NSViewRepresentable {
   @Binding var selection: PreviewLevel
-  private static let modes: [PreviewLevel] = [.auto, .low, .medium, .high, .overheat]
-  private static let labels = ["Auto", "Off", "Soft", "Boost", "Warm"]
-  private static let help = [
-    "Adapt glow to system load", "Turn glow off", "Preview soft glow",
-    "Preview boost glow", "Preview the warm temperature-alert glow",
-  ]
+  private static let modes = PreviewLevel.displayOrder
+  private static let labels = modes.map(\.label)
+  private static let help = modes.map(\.explanation)
 
   func makeCoordinator() -> Coordinator { Coordinator(selection: $selection) }
 

@@ -7,12 +7,26 @@ enum PreviewLevel: Int, CaseIterable {
     var label: String {
         switch self {
         case .low: return "Off"
-        case .medium: return "Soft"
-        case .high: return "Boost"
+        case .medium: return "Mid"
+        case .high: return "High"
         case .auto: return "Auto"
-        case .overheat: return "Warm"
+        case .overheat: return "Hot"
         }
     }
+
+    /// One plain sentence for what the choice does. Mid, High and Hot are previews.
+    var explanation: String {
+        switch self {
+        case .auto: return "Follows your Mac's power"
+        case .low: return "Glow is off"
+        case .medium: return "Preview: medium power"
+        case .high: return "Preview: high power"
+        case .overheat: return "Preview: temperature warning"
+        }
+    }
+
+    /// The order shown in the panel, the menu bar menu and Settings.
+    static let displayOrder: [PreviewLevel] = [.auto, .low, .medium, .high, .overheat]
 }
 
 /// Preferences accessed by main-thread sampling, rendering and SwiftUI controls.
@@ -206,7 +220,7 @@ enum PreviewLevel: Int, CaseIterable {
         get { get(Key.overheatAlarm, false) }
         set { set(newValue, Key.overheatAlarm) }
     }
-    /// Disable automatic temperature alerts without disabling the Warm preview.
+    /// Disable automatic temperature alerts without disabling the Hot preview.
     var overheatAlertEnabled: Bool {
         get { get(Key.overheatAlertEnabled, true) }
         set { set(newValue, Key.overheatAlertEnabled) }

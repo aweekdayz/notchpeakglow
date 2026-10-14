@@ -40,9 +40,9 @@ PeakGlow has no Dock icon. Its menu bar icon shows system power, switches the Gl
 | --- | --- |
 | Auto | Follow measured system power: the color moves from blue through cyan and green to yellow, and the glow grows brighter and wider as power rises; optional subtle glow at low load |
 | Off | Turn the glow off |
-| Soft | Preview a mid-power green glow |
-| Boost | Preview a high-power yellow-green glow with gentle breathing |
-| Warm | Preview the steady warm temperature tint |
+| Mid | Preview the glow at medium power (green) |
+| High | Preview the glow at high power (yellow-green, with gentle breathing) |
+| Hot | Preview the temperature warning (steady orange tint) |
 
 The glow adapts to the wallpaper: in Settings → Glow → Look, Wallpaper is Automatic by default (it follows the system appearance), and Light uses deeper colors that stay visible on a bright wallpaper.
 
@@ -52,7 +52,7 @@ Settings uses native SwiftUI forms, sliders, toggles and sidebar navigation. The
 
 ## How it works
 
-`PowerSampler` reads the AppleSMC `PSTR` float sensor. A five-sample average, hysteresis and continuous dwell determine Low, Soft or Boost; separately, the average power is mapped around your two thresholds to a smoothed position on the glow's color ramp. Unsupported or failed readings display “Power data unavailable” and clear stale automatic load state. Failed driver connections retry at a bounded interval.
+`PowerSampler` reads the AppleSMC `PSTR` float sensor. A five-sample average, hysteresis and continuous dwell determine Low, Mid or High; separately, the average power is mapped around your two thresholds to a smoothed position on the glow's color ramp. Unsupported or failed readings display “Power data unavailable” and clear stale automatic load state. Failed driver connections retry at a bounded interval.
 
 Metal draws outside the actual notch silhouette. A main-run-loop display link drives the animation; a transparent final frame is submitted before idle rendering stops. Display sleep or loss of the notch display stops the hidden renderer. EDR gain is limited by the display's current headroom; there is no requirement for HDR to use the app.
 

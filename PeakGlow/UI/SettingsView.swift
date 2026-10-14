@@ -88,6 +88,7 @@ struct SettingsView: View {
     @State private var diagnosticsCopied = false
     @State private var advancedExpanded = false
     @ObservedObject private var power = AppState.shared.power
+    @ObservedObject private var app = AppState.shared
     @State private var notchDisplayAvailable = NotchedScreenFinder.find() != nil
 
     var body: some View {
@@ -206,6 +207,22 @@ struct SettingsView: View {
     }
 
     @ViewBuilder private var glowPage: some View {
+        Section {
+            Picker("Glow mode", selection: $app.preview) {
+                ForEach(PreviewLevel.displayOrder, id: \.self) { mode in
+                    Text(mode.label).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .accessibilityLabel("Glow mode")
+            Text(app.preview.explanation)
+                .foregroundStyle(.secondary)
+        } header: {
+            Text("Glow mode")
+        } footer: {
+            SettingsNote("Auto follows your Mac's power. Off turns the glow off. Mid, High and Hot are previews: they show the glow as it looks at medium power, at high power and with the temperature warning, so you can tune its colors and brightness. Choose Auto when you are done.")
+        }
         Section {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .firstTextBaseline) {
