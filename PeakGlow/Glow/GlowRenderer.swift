@@ -7,6 +7,8 @@ import QuartzCore
 @MainActor final class GlowRenderer {
     // Accessed on the main thread only.
     var targetLevel: LoadLevel = .low   // Auto may retain a subtle ambient glow.
+    /// Smoothed system power as a 0...1 position on the colour ramp; nil uses a fixed position for the level.
+    var powerFraction: Float?
     var headroom: Float = 1.0
     var ambientEnabled = false
     var paused = false                  // Paused by display or controller state.
@@ -49,6 +51,7 @@ import QuartzCore
 
     private var intensity: Float = 0
     private var modeMix: Float = 0
+    private var powerMix: Float = 0
     private var lastRender: CFTimeInterval = 0
     private var animationTime: Float = 0
 
@@ -96,6 +99,27 @@ import QuartzCore
         isIdle = false
     }
 
+    /// Position on the colour ramp for previews and for Auto before a reading arrives.
+    static func fixedPowerFraction(for level: LoadLevel) -> Float {
+        switch level {
+        case .low: return 0.12
+        case .medium: return 0.5
+        case .high: return 0.9
+        }
+    }
+
+    /// Map watts to 0...1 around the user's thresholds: about 0.4 at the full-glow threshold,
+    /// 0.8 at the Boost threshold, and 1.0 at 1.4 times the Boost threshold.
+    static func powerFraction(watts: Double, medium: Double, high: Double) -> Float {
+        let points: [(Double, Double)] = [(medium * 0.25, 0), (medium, 0.4), (high, 0.8), (high * 1.4, 1)]
+        guard watts > points[0].0 else { return 0 }
+        for i in 1..<points.count where watts <= points[i].0 {
+            let (x0, y0) = points[i - 1], (x1, y1) = points[i]
+            return Float(y0 + (y1 - y0) * (watts - x0) / max(x1 - x0, 0.001))
+        }
+        return 1
+    }
+
     /// Off and pauses always override the automatic low-load glow.
     static func targetIntensity(level: LoadLevel, paused: Bool, ambient: Bool) -> Float {
         if paused { return 0 }
@@ -125,6 +149,8 @@ import QuartzCore
         smoothedBrightness = (smoothedBrightness ?? brightness) + (brightness - (smoothedBrightness ?? brightness)) * parameterFade
         smoothedScale = (smoothedScale ?? scale) + (scale - (smoothedScale ?? scale)) * parameterFade
         smoothedOpacity = (smoothedOpacity ?? opacity) + (opacity - (smoothedOpacity ?? opacity)) * parameterFade
+        let targetPower = powerFraction ?? Self.fixedPowerFraction(for: targetLevel)
+        powerMix += (targetPower - powerMix) * (reduceMotion ? 1 : 1 - exp(-dt * 2.5))
         if !reduceMotion { animationTime += dt }
         lastRender = now
 
@@ -157,7 +183,8 @@ import QuartzCore
             mediumAlpha: smoothedOpacity ?? opacity,
             warningMix: warningMix,
             redGain: overheatGain,
-            redScale: Float(s.overheatScale))
+            redScale: Float(s.overheatScale),
+            powerMix: powerMix)
 
         let pass = MTLRenderPassDescriptor()
         pass.colorAttachments[0].texture = drawable.texture
@@ -196,5 +223,6 @@ struct Uniforms {
     var warningMix: Float
     var redGain: Float
     var redScale: Float
+    var powerMix: Float
 }
 

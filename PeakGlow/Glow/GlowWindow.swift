@@ -8,6 +8,7 @@ import AppKit
     private var headroomTimer: Timer?
     private var screenChangeDebounce: Timer?
     private var pendingLevel: LoadLevel?
+    private var pendingPowerFraction: Float?
     private var pausedByGamepad = false
     private var screenAsleep = false
     private var pendingOverheat = false
@@ -34,6 +35,11 @@ import AppKit
         pendingLevel = level
         metalView?.renderer?.targetLevel = level
         syncPauseState()
+    }
+
+    func setPowerFraction(_ fraction: Float?) {
+        pendingPowerFraction = fraction
+        metalView?.renderer?.powerFraction = fraction
     }
 
     func setOverheat(_ on: Bool, gainBoost: Float = 1.5) {
@@ -129,6 +135,7 @@ import AppKit
         if let lvl = pendingLevel {
             metalView?.renderer?.targetLevel = lvl
         }
+        metalView?.renderer?.powerFraction = pendingPowerFraction
         syncPauseState()
 
         // Configure the EDR layer once, then refresh headroom on reposition.
