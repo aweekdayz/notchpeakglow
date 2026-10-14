@@ -78,6 +78,10 @@ By default signing is ad-hoc. For a Developer ID build, set `PEAKGLOW_SIGN_IDENT
 
 `scripts/compile-preview-swift.sh` remains a **Swift executable-only fallback**. It validates SDK metadata but does not compile Metal, compile the layered icon, produce a complete application or perform notarization. The original 1.6.0 distribution used that fallback with previously compiled resources.
 
+## Troubleshooting
+
+If the controls show “Power data unavailable” or the glow does not follow system power, open Settings → Appearance and click **Copy Diagnostics**, then paste the result into a [bug report](https://github.com/aweekdayz/notchpeakglow/issues/new?template=bug_report.md). The text lists the Mac model, chip, macOS version, notch display, power and temperature sensor status and your settings. It contains no serial number, user name or other personal data.
+
 ## Limitations
 
 - AppleSMC sensor keys and the driver protocol are not a documented public power-measurement API. Availability is not guaranteed on every model or future macOS version.

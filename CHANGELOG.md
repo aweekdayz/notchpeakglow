@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.6 — Build 43 (not yet published)
+
+- Add Copy Diagnostics to Settings → Appearance. It copies the Mac model, chip, macOS version, notch display, power and temperature sensor status, thermal state and key settings as plain text for bug reports, with no serial number or personal data. The bug report template and README troubleshooting section point to it.
+- Verified by a full Xcode build; the report text has not been reviewed on other Mac models.
+
 ## 1.6.5 — October 13, 2026 (Build 42)
 
 - Redraw the glow to follow the hardware notch: the shape merges with the top screen edge and only the lower corners are rounded, instead of a four-cornered pill. A thin lit edge now sits inside a tighter bloom and a faint tail for a clearer, more defined edge. Modes and settings are unchanged.

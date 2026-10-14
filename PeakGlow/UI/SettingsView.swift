@@ -80,6 +80,7 @@ struct SettingsView: View {
     @State private var loginNeedsApproval = SMAppService.mainApp.status == .requiresApproval
     @State private var loginError: String?
     @State private var confirmReset = false
+    @State private var diagnosticsCopied = false
     @State private var notchDisplayAvailable = NotchedScreenFinder.find() != nil
 
     var body: some View {
@@ -109,6 +110,20 @@ struct SettingsView: View {
                     }
                     LabeledContent("Display", value: notchDisplayAvailable
                                    ? "Built-in notch display available" : "Notch display unavailable")
+                    Button {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(Diagnostics.report(), forType: .string)
+                        diagnosticsCopied = true
+                        Task {
+                            try? await Task.sleep(for: .seconds(2))
+                            diagnosticsCopied = false
+                        }
+                    } label: {
+                        Text(diagnosticsCopied ? "Copied" : "Copy Diagnostics").foregroundStyle(.primary)
+                    }
+                    .nativeGlassAction()
+                    .accessibilityHint("Copies the Mac model, macOS version and sensor status to the clipboard for a bug report")
+                    SettingsNote("Copy Diagnostics puts the Mac model, macOS version and sensor status on the clipboard for a bug report. It contains no serial number or personal data.")
                 } header: {
                     Text("Device")
                 } footer: {
