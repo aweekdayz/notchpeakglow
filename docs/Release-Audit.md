@@ -18,7 +18,7 @@ All application Swift and Metal source files, bundle metadata, Xcode project, pr
 | Preferences | Preserve custom thresholds and approved visual parameters. Clear an alert persisted by the previous process at startup. |
 | Discoverability | If no notch display is available at launch, show Settings. A request for controls without a notch opens Settings; Finder reopening also opens Settings. |
 | Interface | Preserve native sliders and segmented control, fixed panel layout, upper-right Reset, interruptible animation and pointer dismissal after clicking. Add accurate device support explanation. Restrict alert brightness to the shader's actual 0.5–2× range; larger values previously had no additional visual effect. |
-| Attribution | Identify the original project and its SMC reference. No upstream license file was found; GitHub reports `license: null`. No redistribution clearance is claimed. |
+| Attribution | Identify the original project and its SMC reference. The upstream README declares MIT, but the repository has no `LICENSE` file (GitHub reports `license: null`), so there is no copyright line or license text. |
 
 ## Build evidence
 
@@ -47,7 +47,7 @@ Power presets remain 13/19 W for Air and 30/55 W for Pro/unknown. They are adjus
 
 1. Full source/resource build and local packaging are complete. No further Metal Toolchain installation is required. Restricted runners can optionally use `PEAKGLOW_METAL_TOOLCHAIN` to select the mounted Apple compiler, but native icon export may still require a normal terminal environment.
 2. Have the user assess the new application without claiming automated UI coverage.
-3. Confirm permission to redistribute upstream code and any relevant third-party obligations. Do not add a license on the upstream author's behalf.
+3. Ask the upstream author to add the `LICENSE` file their README already declares (MIT), and confirm any relevant third-party obligations. Do not add a license on the upstream author's behalf. Needed before an App Store submission.
 4. For normal direct public distribution, supply a Developer ID identity and complete Apple notarization. Current ad-hoc signing does not provide either.
 5. For the Mac App Store, separately investigate the AppleSMC protocol, sandbox compatibility, signing and review requirements. The current unsandboxed configuration is not App Store-ready.
 

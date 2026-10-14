@@ -14,6 +14,6 @@ The original project identifies **[exelban/stats](https://github.com/exelban/sta
 
 ## Licensing status
 
-At the October 12, 2026 review, no upstream license file was found and GitHub reported no detected license. This repository does not relicense upstream code or grant rights on the original author's behalf. Permission and relevant third-party obligations remain unresolved for public redistribution and App Store submission.
+The upstream README declares the project as **MIT** (a license badge and a License section). The upstream repository has no `LICENSE` file, so GitHub detects no license and the declaration carries no copyright line or license text. This repository relies on that declaration, keeps the original Git history and attribution, and does not relicense upstream code or grant rights on the original author's behalf. A formal `LICENSE` from the author, and confirmation of any third-party obligations such as the SMC reference above, would still be needed before an App Store submission.
 
 The GitHub fork relationship and original Git history are retained as provenance. Product branding and maintenance attribution identify the current maintainer; they do not replace source authorship.
