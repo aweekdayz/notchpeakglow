@@ -1,44 +1,140 @@
 import AppKit
 import SwiftUI
 
-/// A compact native control surface. SwiftUI owns the glass; AppKit owns the window.
+/// Drives the island: false is the notch's own shape, true is the full panel.
+@MainActor final class IslandMotion: ObservableObject {
+  @Published var expanded = false
+}
+
+/// Shared geometry. The window is fixed; only the shape inside it changes size.
+enum IslandMetrics {
+  static let width: CGFloat = 328
+  static let contentHeight: CGFloat = 258
+  /// Room for the spring to overshoot without clipping at the window edge.
+  static let margin: CGFloat = 14
+  static let expandedCornerRadius: CGFloat = 24
+  /// The hardware notch's lower corner radius; the glow shader uses the same proportion.
+  static func notchCornerRadius(height: CGFloat) -> CGFloat { height * 0.28 }
+}
+
+/// A compact control surface that grows out of the notch like an island.
+/// SwiftUI owns the motion and the controls; AppKit owns the fixed window.
 struct BubbleContentView: View {
   var onClose: () -> Void
-  private let app = AppState.shared
+  @ObservedObject var motion: IslandMotion
+  let notchSize: CGSize
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
   var body: some View {
+    IslandSurface(progress: motion.expanded ? 1 : 0, notchSize: notchSize,
+                  reduceMotion: reduceMotion, onClose: onClose)
+      .animation(animation, value: motion.expanded)
+      // The island is black, so its content uses the dark appearance.
+      .environment(\.colorScheme, .dark)
+      // This utility surface is interactive even when the foreground app stays active.
+      .environment(\.appearsActive, true)
+  }
+
+  /// Spring-driven, so reversing mid-motion keeps the current velocity.
+  private var animation: Animation {
+    if reduceMotion { return .easeInOut(duration: 0.16) }
+    return motion.expanded
+      ? .spring(response: 0.46, dampingFraction: 0.74)
+      : .spring(response: 0.34, dampingFraction: 0.9)
+  }
+}
+
+/// The island as a pure function of `progress`: 0 is the notch itself, 1 the full panel.
+/// With Reduce Motion the shape stays full size and only its opacity changes.
+struct IslandSurface: View, @preconcurrency Animatable {
+  var progress: CGFloat
+  let notchSize: CGSize
+  let reduceMotion: Bool
+  var onClose: () -> Void
+  private let app = AppState.shared
+
+  var animatableData: CGFloat {
+    get { progress }
+    set { progress = newValue }
+  }
+
+  var body: some View {
+    let fullWidth = IslandMetrics.width
+    let fullHeight = notchSize.height + IslandMetrics.contentHeight
+    let shapeProgress: CGFloat = reduceMotion ? 1 : progress
+    let width = notchSize.width + (fullWidth - notchSize.width) * shapeProgress
+    let height = notchSize.height + (fullHeight - notchSize.height) * shapeProgress
+    let notchRadius = IslandMetrics.notchCornerRadius(height: notchSize.height)
+    let radius = notchRadius + (IslandMetrics.expandedCornerRadius - notchRadius) * min(max(shapeProgress, 0), 1)
+    // The top merges with the screen edge, like the hardware notch; only the lower corners round.
+    let shape = UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: radius,
+                                       bottomTrailingRadius: radius, topTrailingRadius: 0, style: .continuous)
+
+    ZStack(alignment: .top) {
+      Color.black
+      content
+        .frame(width: fullWidth, height: fullHeight, alignment: .top)
+    }
+    .frame(width: max(width, 1), height: max(height, 1), alignment: .top)
+    .clipShape(shape)
+    .overlay(shape.strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5))
+    // Hidden at rest so the shape cannot show beside the real notch.
+    .opacity(reduceMotion ? min(max(progress, 0), 1) : min(max(progress / 0.06, 0), 1))
+    .frame(width: fullWidth + IslandMetrics.margin * 2, height: fullHeight + IslandMetrics.margin, alignment: .top)
+  }
+
+  /// Layers settle in turn after the shell has started to open.
+  private func reveal(_ from: CGFloat, _ to: CGFloat) -> CGFloat {
+    if reduceMotion { return 1 }
+    let t = min(max((progress - from) / (to - from), 0), 1)
+    return t * t * (3 - 2 * t)
+  }
+
+  private func layer<V: View>(_ from: CGFloat, _ to: CGFloat, @ViewBuilder _ view: () -> V) -> some View {
+    let r = reveal(from, to)
+    return view()
+      .opacity(r)
+      .offset(y: (1 - r) * 6)
+  }
+
+  private var content: some View {
     VStack(alignment: .leading, spacing: 14) {
-      HStack {
-        Label("PeakGlow", systemImage: "waveform.path")
-          .font(.headline.weight(.semibold))
-        Spacer()
-        Button { NSApp.terminate(nil) } label: {
-          Label("Quit", systemImage: "power")
+      layer(0.52, 0.80) {
+        HStack {
+          Label("PeakGlow", systemImage: "waveform.path")
+            .font(.headline.weight(.semibold))
+          Spacer()
+          Button { NSApp.terminate(nil) } label: {
+            Label("Quit", systemImage: "power")
+          }
+            .labelStyle(.iconOnly)
+            .buttonStyle(.glass)
+            .buttonBorderShape(.circle)
+            .controlSize(.small)
+            .help("Quit PeakGlow")
+            .accessibilityLabel("Quit PeakGlow")
         }
-          .labelStyle(.iconOnly)
-          .buttonStyle(.glass)
-          .buttonBorderShape(.circle)
-          .controlSize(.small)
-          .help("Quit PeakGlow")
-          .accessibilityLabel("Quit PeakGlow")
+        .frame(height: 28)
       }
 
-      .frame(height: 28)
+      layer(0.58, 0.86) {
+        BubblePowerView(app: app, power: app.power)
+          .frame(height: 72)
+      }
 
-      BubblePowerView(app: app, power: app.power)
-        .frame(height: 72)
+      layer(0.64, 0.92) {
+        GlowModeControl(app: app)
+          .frame(height: 48)
+      }
 
-      GlowModeControl(app: app)
-        .frame(height: 48)
-
-      BubbleFooter(app: app, onClose: onClose)
-        .frame(height: 28)
+      layer(0.70, 0.98) {
+        BubbleFooter(app: app, onClose: onClose)
+          .frame(height: 28)
+      }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    .padding(20)
-    .frame(width: 328, height: 258)
-    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24))
-    // This utility surface is interactive even when the foreground app stays active.
-    .environment(\.appearsActive, true)
+    .padding(.top, notchSize.height + 20)
+    .padding([.horizontal, .bottom], 20)
   }
 }
 
