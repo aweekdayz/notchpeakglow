@@ -120,6 +120,17 @@ import QuartzCore
         return 1
     }
 
+    /// The inverse of `powerFraction`: the power at which the glow reaches a ramp position.
+    static func watts(forPowerFraction fraction: Double, medium: Double, high: Double) -> Double {
+        let points: [(Double, Double)] = [(medium * 0.25, 0), (medium, 0.4), (high, 0.8), (high * 1.4, 1)]
+        let f = min(max(fraction, 0), 1)
+        for i in 1..<points.count where f <= points[i].1 {
+            let (x0, y0) = points[i - 1], (x1, y1) = points[i]
+            return x0 + (x1 - x0) * (f - y0) / max(y1 - y0, 0.001)
+        }
+        return points[3].0
+    }
+
     /// Off and pauses always override the automatic low-load glow.
     static func targetIntensity(level: LoadLevel, paused: Bool, ambient: Bool) -> Float {
         if paused { return 0 }

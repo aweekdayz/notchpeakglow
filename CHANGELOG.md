@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.0 — Build 44 (not yet published)
+
+- Redesign Settings into three pages with plainer wording. **General**: open at login, menu bar icon, hover delay, temperature warning. **Glow**: a live power gauge that uses the glow's own colors, the two power thresholds ("Brighter glow from", "Strongest glow from") with a recommended-for-this-Mac button, the look (idle glow, size, brightness), and a collapsed Fine-tuning group holding the technical sliders with a short explanation each. **About**: this Mac, Copy Diagnostics, version, credits and a link to the source. Reset stays in the toolbar.
+- The gauge updates only while Settings is open.
+- Verified by a full Xcode build only; the layout has not been viewed on a Mac.
+
 ## 1.6.6 — Build 43 (not yet published)
 
 - Add Copy Diagnostics to Settings → Appearance. It copies the Mac model, chip, macOS version, notch display, power and temperature sensor status, thermal state and key settings as plain text for bug reports, with no serial number or personal data. The bug report template and README troubleshooting section point to it.

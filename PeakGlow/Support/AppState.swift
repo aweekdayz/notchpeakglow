@@ -7,6 +7,8 @@ import Combine
 
     /// Publish streaming power only while controls are visible.
     var bubbleVisible = false
+    /// True while the Settings window is open and shows the live power gauge.
+    var settingsVisible = false
     var latestWatts: Double = 0
     private var lastPowerSample: Date?
     enum PowerAvailability { case waiting, current, unavailable }
@@ -22,7 +24,7 @@ import Combine
         } else {
             latestPowerAvailability = .unavailable
         }
-        if bubbleVisible { refreshPower() }
+        if bubbleVisible || settingsVisible { refreshPower() }
     }
 
     func refreshPower() {

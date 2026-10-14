@@ -30,11 +30,11 @@ The latest published release is **1.6.5 / Build 42**, built with the full Xcode 
 
 Device detection uses product metadata and physical display size, rather than assuming a scaled resolution identifies a 16-inch display. Geometry follows the display's actual auxiliary top areas and backing scale. There is no claim of calibration for every M-series chip, core count or workload.
 
-Initial full-glow / Boost presets are **13 / 19 W for Air** and **30 / 55 W for Pro or an unknown family**. These are adjustable starting points. Existing custom thresholds are not silently replaced. Use Settings → Power to apply the current presets or tune them to your workload.
+Initial full-glow / Boost presets are **13 / 19 W for Air** and **30 / 55 W for Pro or an unknown family**. These are adjustable starting points. Existing custom thresholds are not silently replaced. Use Settings → Glow to apply the recommended values for your Mac or tune them to your workload.
 
 ## Use
 
-PeakGlow has no Dock icon. Its menu bar icon shows system power, switches the Glow mode and opens Settings or Quit without the pointer; turn it off in Settings → Behavior. The Dock icon and menu bar also appear while Settings is open. Hover over the notch for approximately 80 ms to open the controls; click the notch for immediate interaction. Move away, click outside or press Esc to close them. Menus and active mouse drags temporarily defer pointer dismissal.
+PeakGlow has no Dock icon. Its menu bar icon shows system power, switches the Glow mode and opens Settings or Quit without the pointer; turn it off in Settings → General. The Dock icon and menu bar also appear while Settings is open. Hover over the notch for approximately 80 ms to open the controls; click the notch for immediate interaction. Move away, click outside or press Esc to close them. Menus and active mouse drags temporarily defer pointer dismissal.
 
 | Glow mode | Effect |
 | --- | --- |
@@ -80,7 +80,7 @@ By default signing is ad-hoc. For a Developer ID build, set `PEAKGLOW_SIGN_IDENT
 
 ## Troubleshooting
 
-If the controls show “Power data unavailable” or the glow does not follow system power, open Settings → Appearance and click **Copy Diagnostics**, then paste the result into a [bug report](https://github.com/aweekdayz/notchpeakglow/issues/new?template=bug_report.md). The text lists the Mac model, chip, macOS version, notch display, power and temperature sensor status and your settings. It contains no serial number, user name or other personal data.
+If the controls show “Power data unavailable” or the glow does not follow system power, open Settings → About and click **Copy Diagnostics**, then paste the result into a [bug report](https://github.com/aweekdayz/notchpeakglow/issues/new?template=bug_report.md). The text lists the Mac model, chip, macOS version, notch display, power and temperature sensor status and your settings. It contains no serial number, user name or other personal data.
 
 ## Limitations
 

@@ -4,7 +4,7 @@ about: Something does not work as described
 labels: bug
 ---
 
-**Diagnostics:** open Settings → Appearance, click Copy Diagnostics and paste the result here. It lists the Mac model, macOS version and sensor status, with no serial number or personal data.
+**Diagnostics:** open Settings → About, click Copy Diagnostics and paste the result here. It lists the Mac model, macOS version and sensor status, with no serial number or personal data.
 
 ```
 

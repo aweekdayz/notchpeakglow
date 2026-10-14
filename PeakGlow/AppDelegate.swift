@@ -175,7 +175,7 @@ import ServiceManagement
         SettingsWindowController.shared.show()
     }
 
-    @objc private func showAbout() {
+    @objc func showAbout() {
         let credits = Bundle.main.url(forResource: "Credits", withExtension: "rtf")
             .flatMap { try? NSAttributedString(url: $0, options: [:], documentAttributes: nil) }
             ?? NSAttributedString(string: "Maintained by aweekdayz. Credits: https://github.com/aweekdayz/notchpeakglow/blob/main/CREDITS.md")
