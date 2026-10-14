@@ -17,6 +17,10 @@ struct Uniforms {
     float redScale;
     float powerMix;
     float lightMix;
+    float2 islandSize;      // full island size in pixels
+    float islandProgress;   // 0 is the notch's own shape, 1 the full island (spring overshoot allowed)
+    float islandAlpha;      // opacity of the island's black shell
+    float islandRadius;     // lower corner radius of the full island in pixels
 };
 
 struct FragmentInput { float4 position [[position]]; };
@@ -40,19 +44,23 @@ float roundedBox(float2 p, float2 halfSize, float radius) {
 // The glow follows the hardware notch: its top merges with the screen edge and only the
 // lower corners are rounded. Power drives a monotone colour ramp (blue, cyan, green, yellow)
 // with brightness and bloom width; orange and red are reserved for the temperature warning.
-// The glow follows the hardware notch: its top merges with the screen edge and only the
-// lower corners are rounded. Power drives a monotone colour ramp (blue, cyan, green, yellow)
-// with brightness and bloom width; orange and red are reserved for the temperature warning.
 // On bright wallpapers a deeper, more saturated version of the same ramp keeps its contrast.
+// The control island grows from the notch's own shape and is drawn here, with the glow around its
+// current outline, so the shell and its light share one spring.
 fragment float4 fragmentShader(FragmentInput in [[stage_in]],
                                constant Uniforms &u [[buffer(0)]]) {
     float2 p = in.position.xy - u.notchCenter;
     float k = max(0.5, u.glowScale);                 // pixels per design unit
-    float h = u.notchSize.y;
-    float rb = h * 0.28;                              // bottom corner radius of the hardware notch
-    float ext = h * 3.0;                              // extend the body above the screen edge
-    float sd = roundedBox(p - float2(0.0, -ext * 0.5), float2(u.notchSize.x * 0.5, h * 0.5 + ext * 0.5), rb);
+    float ip = max(u.islandProgress, 0.0);
+    float2 size = mix(u.notchSize, u.islandSize, ip);
+    float rb = u.notchSize.y * 0.28;                  // bottom corner radius of the hardware notch
+    float radius = mix(rb, u.islandRadius, clamp(ip, 0.0, 1.0));
+    float ext = u.notchSize.y * 3.0 + size.y;         // extend the body above the screen edge
+    // Anchored to the top of the screen: the bottom edge sits `size.y` below it.
+    float cy = (size.y - u.notchSize.y) * 0.5;
+    float sd = roundedBox(p - float2(0.0, cy - ext * 0.5), float2(size.x * 0.5, size.y * 0.5 + ext * 0.5), radius);
     float outside = smoothstep(-0.5, 1.0, sd);
+    float h = u.notchSize.y;
     float pulse = 0.5 + 0.5 * sin(6.283185 * u.pulseHz * u.time);
     float warning = clamp(u.warningMix, 0.0, 1.0);
     float widen = mix(1.0, clamp(u.redScale, 0.6, 1.8), warning);
@@ -102,5 +110,7 @@ fragment float4 fragmentShader(FragmentInput in [[stage_in]],
     float gain = 1.0 + (u.hdrBoost - 1.0) * mix(0.32, 0.64 + 0.12 * pulse, u.modeMix);
     gain = mix(gain, 1.0, L);
     gain = min(u.hdrBoost, gain * mix(1.0, clamp(u.redGain, 0.5, 2.0), warning));
-    return float4(color * gain * alpha, alpha);
+    // The island's shell is opaque black inside the outline; the glow is zero there.
+    float islandA = (1.0 - outside) * clamp(u.islandAlpha, 0.0, 1.0);
+    return float4(color * gain * alpha, alpha + islandA * (1.0 - alpha));
 }

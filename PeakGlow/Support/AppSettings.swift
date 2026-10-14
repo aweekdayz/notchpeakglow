@@ -7,12 +7,29 @@ enum PreviewLevel: Int, CaseIterable {
     var label: String {
         switch self {
         case .low: return "Off"
-        case .medium: return "Soft"
-        case .high: return "Boost"
+        case .medium: return "Mid"
+        case .high: return "High"
         case .auto: return "Auto"
-        case .overheat: return "Warm"
+        case .overheat: return "Hot"
         }
     }
+
+    /// One plain sentence for what the choice does. Mid, High and Hot are previews.
+    var explanation: String {
+        switch self {
+        case .auto: return "Follows your Mac's power"
+        case .low: return "Glow is off"
+        case .medium: return "Preview: medium power"
+        case .high: return "Preview: high power"
+        case .overheat: return "Preview: temperature warning"
+        }
+    }
+
+    /// The order shown in Settings, where the previews are for tuning colors and brightness.
+    static let displayOrder: [PreviewLevel] = [.auto, .low, .medium, .high, .overheat]
+    /// What the panel and the menu bar menu offer: the glow on, following power, or off.
+    static let quickChoices: [PreviewLevel] = [.auto, .low]
+    var isPreview: Bool { self == .medium || self == .high || self == .overheat }
 }
 
 /// Preferences accessed by main-thread sampling, rendering and SwiftUI controls.
@@ -97,8 +114,8 @@ enum PreviewLevel: Int, CaseIterable {
         static let hdrFactor = 1.2
         static let overheatGain = 1.1
         static let overheatScale = 1.0
-        // Only renders while visible; 30 fps keeps transitions smooth.
-        static let frameRate = 30.0
+        // Maximum rate; the glow slows to 30 fps when nothing is changing.
+        static let frameRate = 60.0
         static let hoverDwell = 0.08
         static let previewLevel = PreviewLevel.auto.rawValue
         static let powerTuned = false
@@ -206,7 +223,7 @@ enum PreviewLevel: Int, CaseIterable {
         get { get(Key.overheatAlarm, false) }
         set { set(newValue, Key.overheatAlarm) }
     }
-    /// Disable automatic temperature alerts without disabling the Warm preview.
+    /// Disable automatic temperature alerts without disabling the Hot preview.
     var overheatAlertEnabled: Bool {
         get { get(Key.overheatAlertEnabled, true) }
         set { set(newValue, Key.overheatAlertEnabled) }

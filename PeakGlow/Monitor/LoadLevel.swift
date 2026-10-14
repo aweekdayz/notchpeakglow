@@ -8,8 +8,8 @@ enum LoadLevel: Int {
     var label: String {
         switch self {
         case .low: return "Low"
-        case .medium: return "Soft"
-        case .high: return "Boost"
+        case .medium: return "Mid"
+        case .high: return "High"
         }
     }
 }

@@ -40,19 +40,21 @@ PeakGlow has no Dock icon. Its menu bar icon shows system power, switches the Gl
 | --- | --- |
 | Auto | Follow measured system power: the color moves from blue through cyan and green to yellow, and the glow grows brighter and wider as power rises; optional subtle glow at low load |
 | Off | Turn the glow off |
-| Soft | Preview a mid-power green glow |
-| Boost | Preview a high-power yellow-green glow with gentle breathing |
-| Warm | Preview the steady warm temperature tint |
+| Mid | Preview the glow at medium power (green) |
+| High | Preview the glow at high power (yellow-green, with gentle breathing) |
+| Hot | Preview the temperature warning (steady orange tint) |
+
+The controls panel and the menu bar menu offer Auto and Off. Mid, High and Hot are previews for tuning colors and brightness, so they are in Settings → Glow, next to those settings; while one is on, the panel says so and Auto ends it.
 
 The glow adapts to the wallpaper: in Settings → Glow → Look, Wallpaper is Automatic by default (it follows the system appearance), and Light uses deeper colors that stay visible on a bright wallpaper.
 
-The controls expose one Settings button and a direct Quit button. In Auto, a connected game controller pauses the glow. Previews remain available. Reopening the application from Finder opens Settings.
+The controls expose one Settings button and a direct Quit button. In Auto, a connected game controller pauses the glow. Previews are available in Settings → Glow. Reopening the application from Finder opens Settings.
 
-Settings uses native SwiftUI forms, sliders, toggles and sidebar navigation. The Glow selector is a native AppKit segmented control hosted in SwiftUI, using the system tabs role. Buttons and the controls surface use system Liquid Glass. macOS decides how native materials appear under accessibility and appearance settings.
+Settings uses native SwiftUI forms, sliders, toggles and sidebar navigation. The Glow selector is a native AppKit segmented control hosted in SwiftUI, using the system tabs role. Buttons use system Liquid Glass. The controls are a black island that grows out of the notch with a spring animation, with the glow wrapping it as it moves, and contracts back into the notch when you move away; with Reduce Motion on, it fades instead. macOS decides how native materials appear under accessibility and appearance settings.
 
 ## How it works
 
-`PowerSampler` reads the AppleSMC `PSTR` float sensor. A five-sample average, hysteresis and continuous dwell determine Low, Soft or Boost; separately, the average power is mapped around your two thresholds to a smoothed position on the glow's color ramp. Unsupported or failed readings display “Power data unavailable” and clear stale automatic load state. Failed driver connections retry at a bounded interval.
+`PowerSampler` reads the AppleSMC `PSTR` float sensor. A five-sample average, hysteresis and continuous dwell determine Low, Mid or High; separately, the average power is mapped around your two thresholds to a smoothed position on the glow's color ramp. Unsupported or failed readings display “Power data unavailable” and clear stale automatic load state. Failed driver connections retry at a bounded interval.
 
 Metal draws outside the actual notch silhouette. A main-run-loop display link drives the animation; a transparent final frame is submitted before idle rendering stops. Display sleep or loss of the notch display stops the hidden renderer. EDR gain is limited by the display's current headroom; there is no requirement for HDR to use the app.
 

@@ -8,6 +8,8 @@ final class GlowMetalView: NSView {
     private(set) var renderer: GlowRenderer?
     private var renderLink: CADisplayLink?
     private var timerHz: Double = 0
+    /// Rate the link is currently asked to run at; it follows the renderer's calm/active state.
+    private var linkRate: Double = 0
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -22,6 +24,9 @@ final class GlowMetalView: NSView {
         layer.framebufferOnly = true
         layer.isOpaque = false
         layer.backgroundColor = NSColor.clear.cgColor
+        // The render loop runs on the main thread: when no drawable is free, skip the frame
+        // instead of blocking for up to a second.
+        layer.allowsNextDrawableTimeout = false
         return layer
     }
 
@@ -75,12 +80,19 @@ final class GlowMetalView: NSView {
         link.add(to: .main, forMode: .common)
         renderLink = link
         timerHz = Double(hz)
+        linkRate = Double(hz)
     }
 
     @objc private func renderTick(_ link: CADisplayLink) {
         guard let renderer else { sleep(); return }
         renderer.renderFrame(now: link.timestamp)
-        if renderer.isIdle { sleep() }
+        if renderer.isIdle { sleep(); return }
+        // Run slower while the glow is steady and at the configured rate while it changes.
+        let rate = Float(renderer.preferredFrameRate)
+        if abs(Double(rate) - linkRate) > 0.5 {
+            link.preferredFrameRateRange = CAFrameRateRange(minimum: min(10, rate), maximum: rate, preferred: rate)
+            linkRate = Double(rate)
+        }
     }
 
     /// Convert global notch geometry to view pixels with a top-left origin.

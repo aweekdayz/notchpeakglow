@@ -88,6 +88,7 @@ struct SettingsView: View {
     @State private var diagnosticsCopied = false
     @State private var advancedExpanded = false
     @ObservedObject private var power = AppState.shared.power
+    @ObservedObject private var app = AppState.shared
     @State private var notchDisplayAvailable = NotchedScreenFinder.find() != nil
 
     var body: some View {
@@ -207,6 +208,22 @@ struct SettingsView: View {
 
     @ViewBuilder private var glowPage: some View {
         Section {
+            Picker("Glow mode", selection: $app.preview) {
+                ForEach(PreviewLevel.displayOrder, id: \.self) { mode in
+                    Text(mode.label).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .accessibilityLabel("Glow mode")
+            Text(app.preview.explanation)
+                .foregroundStyle(.secondary)
+        } header: {
+            Text("Glow mode")
+        } footer: {
+            SettingsNote("Auto follows your Mac's power. Off turns the glow off. Mid, High and Hot are previews: they show the glow as it looks at medium power, at high power and with the temperature warning, so you can tune its colors and brightness. Choose Auto when you are done.")
+        }
+        Section {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(powerNowText)
@@ -282,9 +299,9 @@ struct SettingsView: View {
                 slider("HDR gain", binding(\.hdrFactor), in: 1...8,
                        value: String(format: "%.1f×", s.hdrFactor), step: 0.1, unit: "×",
                        explanation: "Brightness above standard white. HDR headroom depends on your display and its brightness.")
-                slider("Frame rate", binding(\.frameRate), in: 15...60,
+                slider("Maximum frame rate", binding(\.frameRate), in: 15...60,
                        value: "\(Int(s.frameRate)) fps", step: 1, unit: "fps",
-                       explanation: "Higher is smoother and uses more energy.")
+                       explanation: "Used while the glow changes. It slows to 30 fps when nothing is moving. Higher is smoother and uses more energy.")
                 slider("Warning brightness", binding(\.overheatGain), in: 0.5...2,
                        value: String(format: "%.1f×", s.overheatGain), step: 0.1, unit: "×",
                        explanation: "Brightness of the orange temperature warning.")
@@ -366,15 +383,7 @@ struct SettingsView: View {
     }
     /// The glow's own ramp (blue, cyan, green, yellow) laid out by power, so the bar matches the glow.
     private var gaugeGradient: Gradient {
-        let colors: [Color] = [
-            Color(red: 0.18, green: 0.36, blue: 1.00), Color(red: 0.10, green: 0.78, blue: 1.00),
-            Color(red: 0.22, green: 0.92, blue: 0.46), Color(red: 0.70, green: 0.93, blue: 0.26),
-            Color(red: 0.99, green: 0.88, blue: 0.28)]
-        let stops = colors.enumerated().map { index, color -> Gradient.Stop in
-            let watts = GlowRenderer.watts(forPowerFraction: Double(index) / 4, medium: s.mediumWatts, high: s.highWatts)
-            return Gradient.Stop(color: color, location: min(max(watts / gaugeMaximum, 0), 1))
-        }
-        return Gradient(stops: stops)
+        PowerRamp.gradient(medium: s.mediumWatts, high: s.highWatts)
     }
 
     private var sidebarToggle: some View {
@@ -459,61 +468,6 @@ private enum SettingsPage: String, CaseIterable, Identifiable {
 private extension View {
     func nativeGlassAction() -> some View {
         self.buttonStyle(.glass)
-    }
-}
-
-/// A read-only meter. The whole color scale stays visible at low brightness and the part up to the
-/// current power is lit, with ticks at the two thresholds. It has no thumb, so it does not look adjustable.
-private struct PowerMeter: View {
-    let watts: Double
-    let medium: Double
-    let high: Double
-    let maximum: Double
-    let gradient: Gradient
-
-    private let barHeight: CGFloat = 8
-
-    var body: some View {
-        VStack(spacing: 6) {
-            GeometryReader { geo in
-                let width = geo.size.width
-                let lit = width * min(max(watts / max(maximum, 1), 0), 1)
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(LinearGradient(gradient: gradient, startPoint: .leading, endPoint: .trailing))
-                        .opacity(0.28)
-                    Capsule()
-                        .fill(LinearGradient(gradient: gradient, startPoint: .leading, endPoint: .trailing))
-                        .mask(alignment: .leading) { Rectangle().frame(width: lit) }
-                    tick(at: width * medium / max(maximum, 1))
-                    tick(at: width * high / max(maximum, 1))
-                }
-                .frame(height: barHeight)
-            }
-            .frame(height: barHeight)
-            GeometryReader { geo in
-                let width = geo.size.width
-                // The lower threshold ends at its tick and the higher one starts at it, so they never overlap.
-                let mediumX = max(width * medium / max(maximum, 1), 44)
-                let highX = min(width * high / max(maximum, 1), width - 44)
-                Text("\(Int(medium)) W")
-                    .position(x: mediumX - 18, y: 7)
-                Text("\(Int(high)) W")
-                    .position(x: highX + 18, y: 7)
-            }
-            .frame(height: 14)
-            .font(.caption)
-            .monospacedDigit()
-            .foregroundStyle(.secondary)
-        }
-        .allowsHitTesting(false)
-    }
-
-    private func tick(at x: CGFloat) -> some View {
-        Rectangle()
-            .fill(Color.primary.opacity(0.55))
-            .frame(width: 1.5, height: barHeight + 6)
-            .offset(x: x - 0.75)
     }
 }
 

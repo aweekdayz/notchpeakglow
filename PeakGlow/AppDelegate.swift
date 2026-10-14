@@ -30,6 +30,7 @@ import ServiceManagement
         installMainMenu()
         updateStatusItem()
         bubble = BubblePanelController(hover: hover)
+        bubble?.glow = glow
         // Sample power directly; unused CPU readings must not gate this callback.
         var wattWindow: [Double] = []
         powerSampler.onSample = { [weak self] reading in
@@ -107,7 +108,11 @@ import ServiceManagement
         let ws = NSWorkspace.shared.notificationCenter
         ws.addObserver(forName: NSWorkspace.screensDidSleepNotification,
                        object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.glow.setScreenAsleep(true) }
+            MainActor.assumeIsolated {
+                // The glow window goes away with the display; take the island with it.
+                self?.hover.dismissNow()
+                self?.glow.setScreenAsleep(true)
+            }
         }
         ws.addObserver(forName: NSWorkspace.screensDidWakeNotification,
                        object: nil, queue: .main) { [weak self] _ in
@@ -191,7 +196,7 @@ import ServiceManagement
     }
 
     /// Glow modes in the order shown by the controls panel.
-    private static let glowMenuModes: [PreviewLevel] = [.auto, .low, .medium, .high, .overheat]
+    private static let glowMenuModes = PreviewLevel.quickChoices
 
     /// A menu bar icon gives pointer-free access to power, the Glow mode, Settings and Quit.
     private func updateStatusItem() {
@@ -274,7 +279,7 @@ import ServiceManagement
         return false
     }
 
-    /// Previews override automatic load; Warm previews the temperature tint.
+    /// Previews override automatic load; Hot previews the temperature tint.
     /// Actual warnings are heuristic temperature indicators, not proof of throttling.
     private func applyLevel() {
         var overheat = false
@@ -284,7 +289,7 @@ import ServiceManagement
             effective = lastAutoLevel
             overheat = AppSettings.shared.overheatAlarm
         case .overheat:
-            effective = .high          // Boost base with the warm warning tint.
+            effective = .high          // High base with the warm warning tint.
             overheat = true
         case .low, .medium, .high:
             effective = LoadLevel(rawValue: AppSettings.shared.preview.rawValue) ?? lastAutoLevel
@@ -292,7 +297,7 @@ import ServiceManagement
         if AppState.shared.effectiveLevel != effective {
             AppState.shared.effectiveLevel = effective
         }
-        // Distinguish real warnings from the Warm preview in the controls.
+        // Distinguish real warnings from the Hot preview in the controls.
         let alarm = overheat && AppSettings.shared.preview != .overheat
             && AppSettings.shared.overheatAlarm
         if AppState.shared.overheatAlarm != alarm { AppState.shared.overheatAlarm = alarm }
