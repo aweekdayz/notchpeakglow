@@ -107,3 +107,55 @@ import AppKit
     }
 }
 
+
+
+/// A plain-text summary of this Mac and PeakGlow's sensors for bug reports.
+/// It contains no serial number, user name, file path or other personal data.
+@MainActor enum Diagnostics {
+    static func report() -> String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "unknown"
+        let build = info?["CFBundleVersion"] as? String ?? "unknown"
+        let profile = MachineProfile.current
+        let settings = AppSettings.shared
+        let state = AppState.shared
+
+        state.refreshPower()
+        let reading = state.power.reading
+        let power: String
+        switch reading.availability {
+        case .current: power = String(format: "available (%.1f W)", reading.watts)
+        case .waiting: power = "waiting for the first reading"
+        case .unavailable: power = "unavailable"
+        }
+        let temperature: String
+        if let t = ThermalSMC.shared.maxTPTemp() {
+            temperature = String(format: "available (%.0f C)", t)
+        } else {
+            temperature = "unavailable"
+        }
+        let thermalState: String
+        switch ProcessInfo.processInfo.thermalState {
+        case .nominal: thermalState = "nominal"
+        case .fair: thermalState = "fair"
+        case .serious: thermalState = "serious"
+        case .critical: thermalState = "critical"
+        @unknown default: thermalState = "unknown"
+        }
+
+        return [
+            "PeakGlow \(version) (\(build))",
+            "macOS: \(ProcessInfo.processInfo.operatingSystemVersionString)",
+            "Model: \(profile.productName)",
+            "Chip: \(profile.chipName), \(profile.coreCount) cores",
+            "Family: \(profile.family.rawValue)",
+            "Notch display: \(NotchedScreenFinder.find() != nil ? "available" : "unavailable")",
+            "Power sensor: \(power)",
+            "Temperature sensor: \(temperature)",
+            "System thermal state: \(thermalState)",
+            "Thresholds: \(Int(settings.mediumWatts)) W / \(Int(settings.highWatts)) W",
+            "Glow mode: \(settings.preview.label)",
+            "Menu bar icon: \(settings.menuBarIcon ? "on" : "off")",
+        ].joined(separator: "\n")
+    }
+}
