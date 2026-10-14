@@ -10,6 +10,8 @@ import ServiceManagement
         // An accessory app has no menu bar. Present as a regular app while Settings is open,
         // so the menu bar and its commands are visible; revert when the window closes.
         NSApp.setActivationPolicy(.regular)
+        AppState.shared.settingsVisible = true
+        AppState.shared.refreshPower()
         // Establish active-app appearance before the initially selected row is rendered.
         NSApp.activate(ignoringOtherApps: true)
         if let window {
@@ -42,7 +44,10 @@ import ServiceManagement
         w.contentView = hosting
         NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification, object: w, queue: .main) { _ in
-            MainActor.assumeIsolated { _ = NSApp.setActivationPolicy(.accessory) }
+            MainActor.assumeIsolated {
+                AppState.shared.settingsVisible = false
+                _ = NSApp.setActivationPolicy(.accessory)
+            }
         }
         w.center()
         w.makeKeyAndOrderFront(nil)
@@ -81,6 +86,8 @@ struct SettingsView: View {
     @State private var loginError: String?
     @State private var confirmReset = false
     @State private var diagnosticsCopied = false
+    @State private var advancedExpanded = false
+    @ObservedObject private var power = AppState.shared.power
     @State private var notchDisplayAvailable = NotchedScreenFinder.find() != nil
 
     var body: some View {
@@ -99,146 +106,18 @@ struct SettingsView: View {
             .navigationSplitViewColumnWidth(180)
         } detail: {
             Form {
-                switch selection ?? .appearance {
-                case .appearance:
-                Section {
-                    LabeledContent("Model") {
-                        Text(MachineProfile.current.summary)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.trailing)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    LabeledContent("Display", value: notchDisplayAvailable
-                                   ? "Built-in notch display available" : "Notch display unavailable")
-                    Button {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(Diagnostics.report(), forType: .string)
-                        diagnosticsCopied = true
-                        Task {
-                            try? await Task.sleep(for: .seconds(2))
-                            diagnosticsCopied = false
-                        }
-                    } label: {
-                        Text(diagnosticsCopied ? "Copied" : "Copy Diagnostics").foregroundStyle(.primary)
-                    }
-                    .nativeGlassAction()
-                    .accessibilityHint("Copies the Mac model, macOS version and sensor status to the clipboard for a bug report")
-                    SettingsNote("Copy Diagnostics puts the Mac model, macOS version and sensor status on the clipboard for a bug report. It contains no serial number or personal data.")
-                } header: {
-                    Text("Device")
-                } footer: {
-                    SettingsNote(notchDisplayAvailable
-                        ? "Power presets depend on the MacBook family. Adjust thresholds for your chip and workload."
-                        : "Glow and hover controls require a built-in notch display. External displays and closed-display mode are not supported.")
-                }
-                Section {
-                    Toggle("Show glow at low load", isOn: binding(\.ambientGlow))
-                    slider("Glow size", binding(\.glowScale), in: 0.4...1.6,
-                           value: "\(Int(s.glowScale * 100))%")
-                    slider("Brightness", binding(\.glowIntensity), in: 0.2...2,
-                           value: "\(Int(s.glowIntensity * 100))%")
-                    Button { s.resetAppearance() } label: {
-                        Text("Use Soft Appearance").foregroundStyle(.primary)
-                    }
-                    .nativeGlassAction()
-                } header: {
-                    Text("Glow")
-                } footer: {
-                    SettingsNote("Auto follows system power: the glow shifts from blue through cyan and green to yellow, and grows brighter and wider as power rises.")
-                }
-                case .power:
-                Section {
-                    slider("Full glow threshold", Binding(get: { s.mediumWatts },
-                        set: { s.mediumWatts = min($0, s.highWatts - 1) }),
-                        in: 8...60, value: "\(Int(s.mediumWatts)) W", step: 1, unit: "W")
-                    slider("Boost threshold", Binding(get: { s.highWatts },
-                        set: { s.highWatts = max($0, s.mediumWatts + 1) }),
-                        in: 9...90, value: "\(Int(s.highWatts)) W", step: 1, unit: "W")
-                    Button {
-                        s.mediumWatts = MachineProfile.current.suggestedMediumWatts
-                        s.highWatts = MachineProfile.current.suggestedHighWatts
-                    } label: {
-                        Text("Use Recommended Thresholds").foregroundStyle(.primary)
-                    }
-                    .nativeGlassAction()
-                } header: {
-                    Text("Power thresholds")
-                } footer: {
-                    SettingsNote("In Auto, full glow begins at the lower threshold. Boost begins at the higher threshold.")
-                }
-                case .behavior:
-                Section("Startup") {
-                    Toggle("Launch at login", isOn: $loginEnabled)
-                        .onChange(of: loginEnabled) { _, enabled in
-                            updateLogin(enabled)
-                        }
-                    if loginNeedsApproval {
-                        SettingsNote("Allow PeakGlow in System Settings to launch at login.")
-                        Button("Open Login Items…") {
-                            SMAppService.openSystemSettingsLoginItems()
-                        }
-                        .nativeGlassAction()
-                    }
-                    if let loginError {
-                        Text(loginError)
-                            .font(.callout)
-                            .foregroundStyle(.red)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                Section {
-                    Toggle("Temperature alerts", isOn: binding(\.overheatAlertEnabled))
-                } header: {
-                    Text("Alerts")
-                } footer: {
-                    SettingsNote("A warm glow highlights elevated temperatures.")
-                }
-                Section {
-                    Toggle("Show menu bar icon", isOn: binding(\.menuBarIcon))
-                } header: {
-                    Text("Menu bar")
-                } footer: {
-                    SettingsNote("The menu bar icon shows system power and lets you choose a Glow mode, open Settings or quit, without the pointer. Hovering the notch still opens the controls.")
-                }
-                Section {
-                    slider("Hover delay", binding(\.hoverDwell), in: 0...0.8,
-                           value: String(format: "%.0f ms", s.hoverDwell * 1000), step: 0.01, unit: "ms", scale: 1000,
-                           explanation: "Time over the notch before controls appear.")
-                } header: {
-                    Text("Interaction")
-                } footer: {
-                    SettingsNote("Move away or press Esc to close the controls. In Auto, a game controller pauses the glow; previews remain available.")
-                }
-                case .advanced:
-                Section("Rendering") {
-                        slider("Soft glow opacity", binding(\.mediumAlpha), in: 0.2...0.8,
-                               value: "\(Int(s.mediumAlpha * 100))%")
-                        slider("Breathing rate", binding(\.pulseHz), in: 0.1...2,
-                               value: String(format: "%.1f Hz", s.pulseHz), step: 0.1, unit: "Hz")
-                        slider("HDR gain", binding(\.hdrFactor), in: 1...8,
-                               value: String(format: "%.1f×", s.hdrFactor), step: 0.1, unit: "×", explanation: "Brightness above standard white. HDR headroom depends on your display and its brightness.")
-                        slider("Frame rate", binding(\.frameRate), in: 15...60,
-                               value: "\(Int(s.frameRate)) fps", step: 1, unit: "fps")
-                }
-                Section("Temperature alerts") {
-                    slider("Alert brightness", binding(\.overheatGain), in: 0.5...2,
-                           value: String(format: "%.1f×", s.overheatGain), step: 0.1, unit: "×")
-                    slider("Alert size", binding(\.overheatScale), in: 0.6...1.8,
-                           value: "\(Int(s.overheatScale * 100))%")
-                }
-                Section("Load response") {
-                        slider("Dimming margin", binding(\.hysteresisWatts), in: 1...10,
-                               value: String(format: "%.1f W", s.hysteresisWatts), step: 0.1, unit: "W", explanation: "Power must drop this far below a threshold before the glow dims.")
-                        slider("Transition delay", binding(\.holdOnSeconds), in: 0.5...10,
-                               value: String(format: "%.1f s", s.holdOnSeconds), step: 0.1, unit: "s", explanation: "Time above a threshold before brightening. Dimming waits 2 seconds longer.")
-                        slider("Sampling interval", binding(\.sampleInterval), in: 0.2...3,
-                               value: String(format: "%.1f s", s.sampleInterval), step: 0.1, unit: "s", explanation: "Time between power readings. Shorter intervals update more often and use more resources.")
-                }
+                switch selection ?? .general {
+                case .general:
+                    generalPage
+                case .glow:
+                    glowPage
+                case .about:
+                    aboutPage
                 }
             }
             .formStyle(.grouped)
             .toolbar(removing: .sidebarToggle)
-            .navigationTitle((selection ?? .appearance).title)
+            .navigationTitle((selection ?? .general).title)
         }
         .toolbar(removing: .sidebarToggle)
         .toolbar {
@@ -251,7 +130,7 @@ struct SettingsView: View {
         .task {
             guard !initializedSelection else { return }
             initializedSelection = true
-            selection = .appearance
+            selection = .general
             sidebarFocused = true
             onReady()
         }
@@ -275,6 +154,227 @@ struct SettingsView: View {
         } message: {
             Text("Restore the default appearance and recommended load thresholds.")
         }
+    }
+
+    // MARK: - Pages
+
+    @ViewBuilder private var generalPage: some View {
+        Section {
+            Toggle("Open PeakGlow at login", isOn: $loginEnabled)
+                .onChange(of: loginEnabled) { _, enabled in
+                    updateLogin(enabled)
+                }
+            if loginNeedsApproval {
+                SettingsNote("Allow PeakGlow in System Settings to open at login.")
+                Button("Open Login Items…") {
+                    SMAppService.openSystemSettingsLoginItems()
+                }
+                .nativeGlassAction()
+            }
+            if let loginError {
+                Text(loginError)
+                    .font(.callout)
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        } header: {
+            Text("Startup")
+        }
+        Section {
+            Toggle("Show menu bar icon", isOn: binding(\.menuBarIcon))
+        } header: {
+            Text("Menu bar")
+        } footer: {
+            SettingsNote("The menu bar icon shows system power and lets you choose a Glow mode, open Settings or quit, without the pointer.")
+        }
+        Section {
+            slider("Hover delay", binding(\.hoverDwell), in: 0...0.8,
+                   value: String(format: "%.0f ms", s.hoverDwell * 1000), step: 0.01, unit: "ms", scale: 1000,
+                   explanation: "How long to hover over the notch before the controls open.")
+        } header: {
+            Text("Notch controls")
+        } footer: {
+            SettingsNote("Move away or press Esc to close the controls. In Auto, a connected game controller pauses the glow.")
+        }
+        Section {
+            Toggle("Warn when the Mac runs hot", isOn: binding(\.overheatAlertEnabled))
+        } header: {
+            Text("Temperature")
+        } footer: {
+            SettingsNote("The glow turns orange when the temperature stays high. It is a hint, not a hardware safety feature.")
+        }
+    }
+
+    @ViewBuilder private var glowPage: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(powerNowText)
+                        .font(.title2.weight(.semibold))
+                        .monospacedDigit()
+                    Spacer()
+                    Text(power.reading.availability == .current ? "System power" : "Power data unavailable")
+                        .foregroundStyle(.secondary)
+                }
+                PowerMeter(watts: gaugeWatts, medium: s.mediumWatts, high: s.highWatts,
+                           maximum: gaugeMaximum, gradient: gaugeGradient)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("System power")
+                    .accessibilityValue(power.reading.availability == .current
+                        ? "\(powerNowText). Brighter glow from \(Int(s.mediumWatts)) watts, strongest glow from \(Int(s.highWatts)) watts."
+                        : "Unavailable")
+            }
+            .padding(.vertical, 4)
+        } header: {
+            Text("Power now")
+        } footer: {
+            SettingsNote("The colors are the glow's own, from low power on the left to high power on the right. The lit part shows where your Mac is now.")
+        }
+        Section {
+            slider("Brighter glow from", Binding(get: { s.mediumWatts },
+                set: { s.mediumWatts = min($0, s.highWatts - 1) }),
+                in: 8...60, value: "\(Int(s.mediumWatts)) W", step: 1, unit: "W",
+                explanation: "Above this power the glow gets brighter and turns green.")
+            slider("Strongest glow from", Binding(get: { s.highWatts },
+                set: { s.highWatts = max($0, s.mediumWatts + 1) }),
+                in: 9...90, value: "\(Int(s.highWatts)) W", step: 1, unit: "W",
+                explanation: "Above this power the glow is at its strongest and turns yellow.")
+            Button {
+                s.mediumWatts = MachineProfile.current.suggestedMediumWatts
+                s.highWatts = MachineProfile.current.suggestedHighWatts
+            } label: {
+                Text("Use Recommended for This Mac").foregroundStyle(.primary)
+            }
+            .nativeGlassAction()
+        } header: {
+            Text("When the glow changes")
+        } footer: {
+            SettingsNote("Different Macs draw different power, so these start at values suited to your MacBook. Adjust them until the glow matches how busy your Mac feels.")
+        }
+        Section {
+            Toggle("Keep a faint glow when idle", isOn: binding(\.ambientGlow))
+            slider("Glow size", binding(\.glowScale), in: 0.4...1.6,
+                   value: "\(Int(s.glowScale * 100))%",
+                   explanation: "How far the light spreads from the notch.")
+            slider("Brightness", binding(\.glowIntensity), in: 0.2...2,
+                   value: "\(Int(s.glowIntensity * 100))%")
+            Picker("Wallpaper", selection: binding(\.glowWallpaper)) {
+                Text("Automatic").tag(0)
+                Text("Light").tag(1)
+                Text("Dark").tag(2)
+            }
+            SettingsNote("Automatic follows the system appearance. Choose Light if the glow is hard to see on a bright wallpaper, or Dark for a dark one.")
+            Button { s.resetAppearance() } label: {
+                Text("Use Default Look").foregroundStyle(.primary)
+            }
+            .nativeGlassAction()
+        } header: {
+            Text("Look")
+        }
+        Section {
+            DisclosureGroup("Fine-tuning", isExpanded: $advancedExpanded) {
+                slider("Base opacity", binding(\.mediumAlpha), in: 0.2...0.8,
+                       value: "\(Int(s.mediumAlpha * 100))%",
+                       explanation: "Opacity of the glow at moderate power.")
+                slider("Breathing rate", binding(\.pulseHz), in: 0.1...2,
+                       value: String(format: "%.1f Hz", s.pulseHz), step: 0.1, unit: "Hz",
+                       explanation: "Speed of the slow pulse at high power.")
+                slider("HDR gain", binding(\.hdrFactor), in: 1...8,
+                       value: String(format: "%.1f×", s.hdrFactor), step: 0.1, unit: "×",
+                       explanation: "Brightness above standard white. HDR headroom depends on your display and its brightness.")
+                slider("Frame rate", binding(\.frameRate), in: 15...60,
+                       value: "\(Int(s.frameRate)) fps", step: 1, unit: "fps",
+                       explanation: "Higher is smoother and uses more energy.")
+                slider("Warning brightness", binding(\.overheatGain), in: 0.5...2,
+                       value: String(format: "%.1f×", s.overheatGain), step: 0.1, unit: "×",
+                       explanation: "Brightness of the orange temperature warning.")
+                slider("Warning size", binding(\.overheatScale), in: 0.6...1.8,
+                       value: "\(Int(s.overheatScale * 100))%",
+                       explanation: "How far the warning glow spreads.")
+                slider("Dimming margin", binding(\.hysteresisWatts), in: 1...10,
+                       value: String(format: "%.1f W", s.hysteresisWatts), step: 0.1, unit: "W",
+                       explanation: "Power must drop this far below a threshold before the glow dims.")
+                slider("Transition delay", binding(\.holdOnSeconds), in: 0.5...10,
+                       value: String(format: "%.1f s", s.holdOnSeconds), step: 0.1, unit: "s",
+                       explanation: "Time above a threshold before brightening. Dimming waits 2 seconds longer.")
+                slider("Sampling interval", binding(\.sampleInterval), in: 0.2...3,
+                       value: String(format: "%.1f s", s.sampleInterval), step: 0.1, unit: "s",
+                       explanation: "Time between power readings. Shorter intervals update more often and use more resources.")
+            }
+        } header: {
+            Text("Advanced")
+        }
+    }
+
+    @ViewBuilder private var aboutPage: some View {
+        Section {
+            LabeledContent("Model") {
+                Text(MachineProfile.current.summary)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.trailing)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            LabeledContent("Display", value: notchDisplayAvailable
+                           ? "Built-in notch display available" : "Notch display unavailable")
+            Button {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(Diagnostics.report(), forType: .string)
+                diagnosticsCopied = true
+                Task {
+                    try? await Task.sleep(for: .seconds(2))
+                    diagnosticsCopied = false
+                }
+            } label: {
+                Text(diagnosticsCopied ? "Copied" : "Copy Diagnostics").foregroundStyle(.primary)
+            }
+            .nativeGlassAction()
+            .accessibilityHint("Copies the Mac model, macOS version and sensor status to the clipboard for a bug report")
+        } header: {
+            Text("This Mac")
+        } footer: {
+            SettingsNote(notchDisplayAvailable
+                ? "Copy Diagnostics puts the Mac model, macOS version and sensor status on the clipboard for a bug report. It contains no serial number or personal data."
+                : "Glow and notch controls require a built-in notch display. External displays and closed-display mode are not supported.")
+        }
+        Section {
+            LabeledContent("Version", value: Self.versionText)
+            LabeledContent("Maintained by", value: "aweekdayz")
+            Button("Credits and Licensing…") {
+                (NSApp.delegate as? AppDelegate)?.showAbout()
+            }
+            .nativeGlassAction()
+            Link("Source code and releases", destination: URL(string: "https://github.com/aweekdayz/notchpeakglow")!)
+        } header: {
+            Text("PeakGlow")
+        }
+    }
+
+    // MARK: - Power gauge
+
+    private static var versionText: String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        return "\(version) (\(build))"
+    }
+
+    private var gaugeWatts: Double { power.reading.availability == .current ? power.reading.watts : 0 }
+    /// The bar ends where the glow reaches the top of its color ramp.
+    private var gaugeMaximum: Double { max(s.highWatts * 1.4, 1) }
+    private var powerNowText: String {
+        power.reading.availability == .current ? String(format: "%.1f W", power.reading.watts) : "— W"
+    }
+    /// The glow's own ramp (blue, cyan, green, yellow) laid out by power, so the bar matches the glow.
+    private var gaugeGradient: Gradient {
+        let colors: [Color] = [
+            Color(red: 0.18, green: 0.36, blue: 1.00), Color(red: 0.10, green: 0.78, blue: 1.00),
+            Color(red: 0.22, green: 0.92, blue: 0.46), Color(red: 0.70, green: 0.93, blue: 0.26),
+            Color(red: 0.99, green: 0.88, blue: 0.28)]
+        let stops = colors.enumerated().map { index, color -> Gradient.Stop in
+            let watts = GlowRenderer.watts(forPowerFraction: Double(index) / 4, medium: s.mediumWatts, high: s.highWatts)
+            return Gradient.Stop(color: color, location: min(max(watts / gaugeMaximum, 0), 1))
+        }
+        return Gradient(stops: stops)
     }
 
     private var sidebarToggle: some View {
@@ -338,22 +438,20 @@ struct SettingsView: View {
 
 
 private enum SettingsPage: String, CaseIterable, Identifiable {
-    case appearance, power, behavior, advanced
+    case general, glow, about
     var id: Self { self }
     var symbol: String {
         switch self {
-        case .appearance: "sparkles"
-        case .power: "bolt"
-        case .behavior: "cursorarrow.motionlines"
-        case .advanced: "slider.horizontal.3"
+        case .general: "gearshape"
+        case .glow: "sparkles"
+        case .about: "info.circle"
         }
     }
     var title: String {
         switch self {
-        case .appearance: "Appearance"
-        case .power: "Power"
-        case .behavior: "Behavior"
-        case .advanced: "Advanced"
+        case .general: "General"
+        case .glow: "Glow"
+        case .about: "About"
         }
     }
 }
@@ -361,6 +459,61 @@ private enum SettingsPage: String, CaseIterable, Identifiable {
 private extension View {
     func nativeGlassAction() -> some View {
         self.buttonStyle(.glass)
+    }
+}
+
+/// A read-only meter. The whole color scale stays visible at low brightness and the part up to the
+/// current power is lit, with ticks at the two thresholds. It has no thumb, so it does not look adjustable.
+private struct PowerMeter: View {
+    let watts: Double
+    let medium: Double
+    let high: Double
+    let maximum: Double
+    let gradient: Gradient
+
+    private let barHeight: CGFloat = 8
+
+    var body: some View {
+        VStack(spacing: 6) {
+            GeometryReader { geo in
+                let width = geo.size.width
+                let lit = width * min(max(watts / max(maximum, 1), 0), 1)
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(LinearGradient(gradient: gradient, startPoint: .leading, endPoint: .trailing))
+                        .opacity(0.28)
+                    Capsule()
+                        .fill(LinearGradient(gradient: gradient, startPoint: .leading, endPoint: .trailing))
+                        .mask(alignment: .leading) { Rectangle().frame(width: lit) }
+                    tick(at: width * medium / max(maximum, 1))
+                    tick(at: width * high / max(maximum, 1))
+                }
+                .frame(height: barHeight)
+            }
+            .frame(height: barHeight)
+            GeometryReader { geo in
+                let width = geo.size.width
+                // The lower threshold ends at its tick and the higher one starts at it, so they never overlap.
+                let mediumX = max(width * medium / max(maximum, 1), 44)
+                let highX = min(width * high / max(maximum, 1), width - 44)
+                Text("\(Int(medium)) W")
+                    .position(x: mediumX - 18, y: 7)
+                Text("\(Int(high)) W")
+                    .position(x: highX + 18, y: 7)
+            }
+            .frame(height: 14)
+            .font(.caption)
+            .monospacedDigit()
+            .foregroundStyle(.secondary)
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func tick(at x: CGFloat) -> some View {
+        Rectangle()
+            .fill(Color.primary.opacity(0.55))
+            .frame(width: 1.5, height: barHeight + 6)
+            .offset(x: x - 0.75)
     }
 }
 

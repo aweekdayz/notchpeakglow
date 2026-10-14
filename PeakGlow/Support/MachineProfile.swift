@@ -156,6 +156,7 @@ import AppKit
             "Thresholds: \(Int(settings.mediumWatts)) W / \(Int(settings.highWatts)) W",
             "Glow mode: \(settings.preview.label)",
             "Menu bar icon: \(settings.menuBarIcon ? "on" : "off")",
+            "Wallpaper setting: \(["automatic", "light", "dark"][settings.glowWallpaper]) (system appearance: \(NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .aqua ? "light" : "dark"))",
         ].joined(separator: "\n")
     }
 }
