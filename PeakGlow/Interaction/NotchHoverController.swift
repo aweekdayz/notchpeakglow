@@ -128,16 +128,6 @@ import AppKit
         hideBubble()
     }
 
-    func openForInteraction() {
-        guard NotchedScreenFinder.find() != nil else {
-            SettingsWindowController.shared.show()
-            return
-        }
-        dwellTimer?.invalidate()
-        dwellTimer = nil
-        if !bubbleVisible { showBubble() }
-        engage(forKeyboard: true)
-    }
 
     private func engage(forKeyboard: Bool = false) {
         guard !engaged || (forKeyboard && !keyboardEngaged) else { return }
