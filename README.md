@@ -105,7 +105,7 @@ Also welcome: whether the island animation is smooth on a 120 Hz (ProMotion) dis
 
 ## Credits
 
-See [CREDITS.md](CREDITS.md) for the original project, contributors, maintenance scope and unresolved licensing status. The native About PeakGlow window includes the same attribution.
+See [CREDITS.md](CREDITS.md) for the original project, contributors, maintenance scope and licensing (the upstream README declares MIT). The native About PeakGlow window includes the same attribution.
 
 ## Application identity
 
