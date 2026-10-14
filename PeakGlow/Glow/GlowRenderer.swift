@@ -16,6 +16,11 @@ import QuartzCore
     var overheat = false
     /// Temperature-alert brightness multiplier supplied by Settings.
     var overheatGain: Float = 1.5
+    /// Frame rate the display link should run at: the configured rate while the glow is changing,
+    /// at most `calmFrameRate` once it has been steady for a couple of seconds.
+    private(set) var preferredFrameRate: Double = 30
+    static let calmFrameRate: Double = 15
+    private var calmSince: CFTimeInterval = 0
     /// True after the final transparent frame; the host stops its display link.
     private(set) var isIdle = true
 
@@ -101,6 +106,9 @@ import QuartzCore
     /// Resume when the target changes or the display returns.
     func wake() {
         settings = RenderingSettings()
+        // A change of state restores the full rate at once.
+        calmSince = CACurrentMediaTime()
+        preferredFrameRate = settings.frameRate
         if isIdle {
             guard Self.targetIntensity(level: targetLevel, paused: paused, ambient: ambientEnabled) > 0 else { return }
             // Don't integrate the whole time spent idle into the first resumed frame.
@@ -157,6 +165,7 @@ import QuartzCore
         let targetMix: Float = targetLevel == .high ? 1 : 0
 
         let dt = Float(min(0.1, lastRender == 0 ? 0.033 : now - lastRender))
+        let before = (intensity, modeMix, powerMix, lightMix, warningMix)
         let fadeSpeed: Float = targetLevel == .low ? 2.0 : 1.25
         let reduceMotion = s.reduceMotion
         let fade = reduceMotion ? Float(1) : 1 - exp(-dt * fadeSpeed * 3)
@@ -173,6 +182,11 @@ import QuartzCore
         let targetPower = powerFraction ?? Self.fixedPowerFraction(for: targetLevel)
         powerMix += (targetPower - powerMix) * (reduceMotion ? 1 : 1 - exp(-dt * 2.5))
         lightMix += (s.lightTarget - lightMix) * (reduceMotion ? 1 : 1 - exp(-dt * 3))
+        // Rate of change of everything that moves the glow's look, per second.
+        let moved = abs(intensity - before.0) + abs(modeMix - before.1) + abs(powerMix - before.2)
+            + abs(lightMix - before.3) + abs(warningMix - before.4)
+        if moved / max(dt, 0.001) > 0.08 || calmSince == 0 { calmSince = now }
+        preferredFrameRate = now - calmSince > 2 ? min(s.frameRate, Self.calmFrameRate) : s.frameRate
         if !reduceMotion { animationTime += dt }
         lastRender = now
 
