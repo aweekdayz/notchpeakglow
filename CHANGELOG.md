@@ -12,10 +12,10 @@
 - The power display is a read-only meter with no thumb: the whole color scale stays visible at low brightness, the part up to the current power is lit, and ticks mark the two thresholds. The lit part follows the reading smoothly (a retargetable animation, so continuous readings do not jerk), a soft highlight marks its leading edge, and in the controls panel it fills up from empty as the island opens; with Reduce Motion on it is not animated. It updates only while Settings is open.
 - Verified by a full Xcode build only; the layout has not been viewed on a Mac.
 
-## 1.6.6 — Build 43 (not yet published)
+## 1.6.6 — October 13, 2026 (Build 43)
 
 - Add Copy Diagnostics to Settings → Appearance. It copies the Mac model, chip, macOS version, notch display, power and temperature sensor status, thermal state and key settings as plain text for bug reports, with no serial number or personal data. The bug report template and README troubleshooting section point to it.
-- Verified by a full Xcode build; the report text has not been reviewed on other Mac models.
+- Verified by a full Xcode build and a maintainer test on a MacBook Air (M2, 2022) running macOS 27.2: the report showed the power and temperature sensors as available. It has not been reviewed on other Mac models.
 
 ## 1.6.5 — October 13, 2026 (Build 42)
 
