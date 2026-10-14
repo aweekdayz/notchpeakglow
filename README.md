@@ -10,9 +10,9 @@ A small macOS utility that shows system load as a soft glow around the MacBook n
 
 [Latest published release](https://github.com/aweekdayz/notchpeakglow/releases/latest).
 
-Quit any running copy, extract the ZIP and move `PeakGlow.app` to Applications. Existing preferences are retained. The published 1.6.5 app is ad-hoc signed and **not Apple-notarized**. macOS may restrict its first launch; use Privacy & Security only if you trust the download.
+Quit any running copy, extract the ZIP and move `PeakGlow.app` to Applications. Existing preferences are retained. The published 1.6.6 app is ad-hoc signed and **not Apple-notarized**. macOS may restrict its first launch; use Privacy & Security only if you trust the download.
 
-The latest published release is **1.6.5 / Build 42**, built with the full Xcode workflow and verified shader, layered-icon and Credits resources. See [Release audit](docs/Release-Audit.md) for validation and outstanding work.
+The latest published release is **1.6.6 / Build 43**, built with the full Xcode workflow and verified shader, layered-icon and Credits resources. See [Release audit](docs/Release-Audit.md) for validation and outstanding work.
 
 ## Requirements and compatibility
 
@@ -22,7 +22,7 @@ The latest published release is **1.6.5 / Build 42**, built with the full Xcode 
 
 | Device or configuration | Behavior | Validation status |
 | --- | --- | --- |
-| Notched MacBook Air, 13 or 15 inches | Air power presets; standard dynamic range when EDR headroom is unavailable | Family-level implementation; not every chip tested |
+| Notched MacBook Air, 13 or 15 inches | Air power presets; standard dynamic range when EDR headroom is unavailable | Power and temperature sensors read on a MacBook Air (M2, 2022) with macOS 27.2; other chips not tested |
 | Notched MacBook Pro, 14 or 16 inches | Pro power presets; display-dependent extended dynamic range | Family-level implementation; not every chip tested |
 | External display connected, lid open | Glow stays on the built-in notch display, even when an external display is primary | Geometry handled in code; hardware verification pending |
 | Closed-display mode or no notch display | No glow or hover target; open the app from Finder to access Settings | Safe fallback implemented; hardware verification pending |

@@ -1,9 +1,9 @@
 # Changelog
 
-## 1.6.6 — Build 43 (not yet published)
+## 1.6.6 — October 13, 2026 (Build 43)
 
 - Add Copy Diagnostics to Settings → Appearance. It copies the Mac model, chip, macOS version, notch display, power and temperature sensor status, thermal state and key settings as plain text for bug reports, with no serial number or personal data. The bug report template and README troubleshooting section point to it.
-- Verified by a full Xcode build; the report text has not been reviewed on other Mac models.
+- Verified by a full Xcode build and a maintainer test on a MacBook Air (M2, 2022) running macOS 27.2: the report showed the power and temperature sensors as available. It has not been reviewed on other Mac models.
 
 ## 1.6.5 — October 13, 2026 (Build 42)
 

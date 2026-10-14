@@ -1,6 +1,6 @@
 # Release audit — October 12, 2026
 
-Historical audit of 1.6.1 / Build 38 (never published separately; its changes shipped in 1.6.2). **Current public release: 1.6.5 / Build 42** — see the follow-up sections below, which supersede earlier status lines.
+Historical audit of 1.6.1 / Build 38 (never published separately; its changes shipped in 1.6.2). **Current public release: 1.6.6 / Build 43** — see the follow-up sections below, which supersede earlier status lines.
 
 ## Checks completed
 
@@ -72,3 +72,9 @@ Build 41 adds a menu bar icon whose menu shows system power, offers the Glow mod
 ## 1.6.5 follow-up — October 13, 2026
 
 Build 42 redraws the glow shader to follow the hardware notch silhouette (flat top merged with the screen edge, rounded lower corners) and shows power continuously: the color moves along one hue direction (blue, cyan, green, yellow) while brightness (0.55x to 1.35x) and bloom width (0.65x to 1.45x) grow with power. The position on the ramp is mapped around the two Power thresholds and smoothed; Soft and Boost previews use fixed positions, and orange and red stay reserved for the temperature warning. The ZIP was built with `scripts/build-release.sh` and its extracted contents were inspected: version 1.6.5 / Build 42, arm64, SDK and minimum OS 27.0, compiled shader, strict signature validation and checksum. Signing is ad-hoc with hardened runtime; there is no Developer ID signature or notarization. The maintainer tested the package on a Mac. Before the build, the shader was rendered offscreen to still images and the power-to-position mapping was checked in isolation (monotone, bounded to 0...1). Appearance on light wallpapers, across all notched models and under accessibility settings was not independently verified. Upstream redistribution permission and App Store eligibility remain unresolved.
+
+## 1.6.6 follow-up — October 13, 2026
+
+Build 43 adds Copy Diagnostics to Settings → Appearance, a bug report template field and a README troubleshooting section. The report lists the PeakGlow version, macOS version, model, chip, family, notch display, power and temperature sensor status, thermal state, thresholds, Glow mode and menu bar icon, with no serial number or personal data. The ZIP was built with `scripts/build-release.sh` and its extracted contents were inspected: version 1.6.6 / Build 43, arm64, SDK and minimum OS 27.0, strict signature validation and checksum. Signing is ad-hoc with hardened runtime; there is no Developer ID signature or notarization. `scripts/notarize.sh` and the updated [Notarization](Notarization.md) steps are in the repository but have not been run against a real Apple Developer account.
+
+First hardware data point: the maintainer's diagnostics from a MacBook Air (M2, 2022), 8 cores, macOS 27.2 (Build 26B5101f), reported the notch display as available, the power sensor as available (7.2 W at rest), the temperature sensor as available (48 C), a nominal thermal state and the Air default thresholds of 13 W and 19 W. This is one machine; other chips, the Pro family and other macOS versions remain untested. Upstream redistribution permission and App Store eligibility remain unresolved.
