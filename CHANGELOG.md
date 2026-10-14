@@ -2,8 +2,8 @@
 
 ## 1.7.0 — Build 44 (not yet published)
 
-- Redesign Settings into three pages with plainer wording. **General**: open at login, menu bar icon, hover delay, temperature warning. **Glow**: a live power gauge that uses the glow's own colors, the two power thresholds ("Brighter glow from", "Strongest glow from") with a recommended-for-this-Mac button, the look (idle glow, size, brightness), and a collapsed Fine-tuning group holding the technical sliders with a short explanation each. **About**: this Mac, Copy Diagnostics, version, credits and a link to the source. Reset stays in the toolbar.
-- The gauge updates only while Settings is open.
+- Redesign Settings into three pages with plainer wording. **General**: open at login, menu bar icon, hover delay, temperature warning. **Glow**: a live power meter that uses the glow's own colors, the two power thresholds ("Brighter glow from", "Strongest glow from") with a recommended-for-this-Mac button, the look (idle glow, size, brightness), and a collapsed Fine-tuning group holding the technical sliders with a short explanation each. **About**: this Mac, Copy Diagnostics, version, credits and a link to the source. Reset stays in the toolbar.
+- The power display is a read-only meter with no thumb: the whole color scale stays visible at low brightness, the part up to the current power is lit, and ticks mark the two thresholds. It updates only while Settings is open.
 - Verified by a full Xcode build only; the layout has not been viewed on a Mac.
 
 ## 1.6.6 — Build 43 (not yet published)

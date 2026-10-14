@@ -207,7 +207,7 @@ struct SettingsView: View {
 
     @ViewBuilder private var glowPage: some View {
         Section {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(powerNowText)
                         .font(.title2.weight(.semibold))
@@ -216,26 +216,19 @@ struct SettingsView: View {
                     Text(power.reading.availability == .current ? "System power" : "Power data unavailable")
                         .foregroundStyle(.secondary)
                 }
-                Gauge(value: min(max(gaugeWatts, 0), gaugeMaximum), in: 0...gaugeMaximum) {
-                    Text("System power")
-                }
-                .gaugeStyle(.linearCapacity)
-                .tint(gaugeGradient)
-                .labelsHidden()
-                .accessibilityValue(powerNowText)
-                HStack {
-                    Text("0 W")
-                    Spacer()
-                    Text("\(Int(gaugeMaximum)) W")
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                PowerMeter(watts: gaugeWatts, medium: s.mediumWatts, high: s.highWatts,
+                           maximum: gaugeMaximum, gradient: gaugeGradient)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("System power")
+                    .accessibilityValue(power.reading.availability == .current
+                        ? "\(powerNowText). Brighter glow from \(Int(s.mediumWatts)) watts, strongest glow from \(Int(s.highWatts)) watts."
+                        : "Unavailable")
             }
             .padding(.vertical, 4)
         } header: {
             Text("Power now")
         } footer: {
-            SettingsNote("The bar uses the same colors as the glow, so it shows what the glow looks like at this power.")
+            SettingsNote("The colors are the glow's own, from low power on the left to high power on the right. The lit part shows where your Mac is now.")
         }
         Section {
             slider("Brighter glow from", Binding(get: { s.mediumWatts },
@@ -460,6 +453,61 @@ private enum SettingsPage: String, CaseIterable, Identifiable {
 private extension View {
     func nativeGlassAction() -> some View {
         self.buttonStyle(.glass)
+    }
+}
+
+/// A read-only meter. The whole color scale stays visible at low brightness and the part up to the
+/// current power is lit, with ticks at the two thresholds. It has no thumb, so it does not look adjustable.
+private struct PowerMeter: View {
+    let watts: Double
+    let medium: Double
+    let high: Double
+    let maximum: Double
+    let gradient: Gradient
+
+    private let barHeight: CGFloat = 8
+
+    var body: some View {
+        VStack(spacing: 6) {
+            GeometryReader { geo in
+                let width = geo.size.width
+                let lit = width * min(max(watts / max(maximum, 1), 0), 1)
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(LinearGradient(gradient: gradient, startPoint: .leading, endPoint: .trailing))
+                        .opacity(0.28)
+                    Capsule()
+                        .fill(LinearGradient(gradient: gradient, startPoint: .leading, endPoint: .trailing))
+                        .mask(alignment: .leading) { Rectangle().frame(width: lit) }
+                    tick(at: width * medium / max(maximum, 1))
+                    tick(at: width * high / max(maximum, 1))
+                }
+                .frame(height: barHeight)
+            }
+            .frame(height: barHeight)
+            GeometryReader { geo in
+                let width = geo.size.width
+                // The lower threshold ends at its tick and the higher one starts at it, so they never overlap.
+                let mediumX = max(width * medium / max(maximum, 1), 44)
+                let highX = min(width * high / max(maximum, 1), width - 44)
+                Text("\(Int(medium)) W")
+                    .position(x: mediumX - 18, y: 7)
+                Text("\(Int(high)) W")
+                    .position(x: highX + 18, y: 7)
+            }
+            .frame(height: 14)
+            .font(.caption)
+            .monospacedDigit()
+            .foregroundStyle(.secondary)
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func tick(at x: CGFloat) -> some View {
+        Rectangle()
+            .fill(Color.primary.opacity(0.55))
+            .frame(width: 1.5, height: barHeight + 6)
+            .offset(x: x - 0.75)
     }
 }
 
