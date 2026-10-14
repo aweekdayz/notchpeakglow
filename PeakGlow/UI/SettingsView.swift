@@ -129,7 +129,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Glow")
                 } footer: {
-                    SettingsNote("Auto follows system power: the glow shifts from deep blue through cyan and teal to violet, and grows brighter and wider as power rises.")
+                    SettingsNote("Auto follows system power: the glow shifts from blue through cyan and green to yellow, and grows brighter and wider as power rises.")
                 }
                 case .power:
                 Section {

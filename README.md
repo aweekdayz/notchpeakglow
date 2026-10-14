@@ -38,10 +38,10 @@ PeakGlow has no Dock icon. Its menu bar icon shows system power, switches the Gl
 
 | Glow mode | Effect |
 | --- | --- |
-| Auto | Follow measured system power: the color moves from deep blue through cyan and teal to violet, and the glow grows brighter and wider as power rises; optional subtle glow at low load |
+| Auto | Follow measured system power: the color moves from blue through cyan and green to yellow, and the glow grows brighter and wider as power rises; optional subtle glow at low load |
 | Off | Turn the glow off |
-| Soft | Preview a mid-power teal glow |
-| Boost | Preview a high-power violet glow with gentle breathing |
+| Soft | Preview a mid-power green glow |
+| Boost | Preview a high-power yellow-green glow with gentle breathing |
 | Warm | Preview the steady warm temperature tint |
 
 The controls expose one Settings button and a direct Quit button. In Auto, a connected game controller pauses the glow. Previews remain available. Reopening the application from Finder opens Settings.
