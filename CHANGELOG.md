@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Rework how the island's content appears and leaves. Opening: each layer settles with a spring from slightly small (94%), blurred and 8 pt high, in turn from the top down, so the content follows the shell's bounce instead of fading in flat. Closing: the lowest layers leave first, quickly, so the content is gone before the shell reaches the notch. The Glow selector, a native control, keeps to opacity and offset. With Reduce Motion the layers only fade, as before. Checked by building; how it feels in motion has not been checked.
+
 ## 1.7.2 — October 14, 2026 (Build 46)
 
 - Add an MIT `LICENSE` for this repository, listing the original author and the maintainer. The About window's credits now say the app is released under the MIT License and link to it, instead of saying redistribution permission needs confirmation. The upstream README declares MIT; the upstream repository has no license file, which is recorded in `CREDITS.md`.
