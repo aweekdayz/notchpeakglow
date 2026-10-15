@@ -15,7 +15,8 @@ import AppKit
     private var pendingOverheatGain: Float = 1.5
     /// Called after the island has contracted into the notch and the window is back to its small size.
     var onIslandHidden: (() -> Void)?
-    private var islandWindowActive = false
+    /// The window always holds the full island and its halo, so it is never resized while the
+    /// island moves: a resize shows one stretched frame of the old drawable.
     private var islandSize: CGSize = .zero
 
     // MARK: - Lifecycle
@@ -44,26 +45,14 @@ import AppKit
     /// Whether the renderer is available to draw the island's shell.
     var canDrawIsland: Bool { metalView?.renderer != nil }
 
-    /// Grow the window to hold the island and its halo, then run the shared spring.
+    /// Run the shared spring; the window is already large enough for the island.
     func setIsland(expanded: Bool, size: CGSize) {
-        if expanded {
-            islandSize = size
-            if !islandWindowActive {
-                islandWindowActive = true
-                reposition()
-            }
-            metalView?.renderer?.islandSizePoints = size
-            metalView?.renderer?.setIsland(expanded: true)
-            metalView?.wake()
-        } else {
-            metalView?.renderer?.setIsland(expanded: false)
-            metalView?.wake()
-        }
+        if expanded { metalView?.renderer?.islandSizePoints = size }
+        metalView?.renderer?.setIsland(expanded: expanded)
+        metalView?.wake()
     }
 
     private func islandFinished() {
-        islandWindowActive = false
-        reposition()
         onIslandHidden?()
     }
 
@@ -124,10 +113,9 @@ import AppKit
         let padding = 150.0 * scale * max(1, CGFloat(AppSettings.shared.overheatScale))
         var width = notch.width + padding * 2
         var height = notch.height + padding
-        if islandWindowActive {
-            width = max(width, islandSize.width + padding * 2)
-            height = max(height, islandSize.height + padding)
-        }
+        islandSize = CGSize(width: IslandMetrics.width, height: notch.height + IslandMetrics.contentHeight)
+        width = max(width, islandSize.width + padding * 2)
+        height = max(height, islandSize.height + padding)
         let frame = CGRect(
             x: notch.midX - width / 2,
             y: screen.frame.maxY - height,   // Anchor at the top of the display in bottom-left AppKit coordinates.
