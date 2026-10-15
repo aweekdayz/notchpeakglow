@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Rework how the island's content appears and leaves. Opening: each layer settles with a spring from slightly small (94%), blurred and 8 pt high, in turn from the top down, so the content follows the shell's bounce instead of fading in flat. Closing: the lowest layers leave first, quickly, so the content is gone before the shell reaches the notch. The Glow selector, a native control, keeps to opacity and offset. With Reduce Motion the layers only fade, as before. Checked by building; how it feels in motion has not been checked.
+- Rework how the island's content appears and leaves. Opening: each layer settles with a spring from slightly small (94%), blurred and 8 pt high, in turn from the top down, so the content follows the shell's bounce instead of fading in flat. Closing: the lowest layers leave first in about 0.1 s and the shell starts to contract 50 ms later, so the content never trails the shell. The Glow selector, a native control, keeps to opacity and offset. With Reduce Motion the layers only fade, as before. Checked by building; how it feels in motion has not been checked.
 
 ## 1.7.2 — October 14, 2026 (Build 46)
 

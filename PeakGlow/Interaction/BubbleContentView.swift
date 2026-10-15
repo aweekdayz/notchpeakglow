@@ -236,7 +236,7 @@ private extension View {
   /// Layers rise out of the notch in turn as the shell opens, and draw back up into it as it closes.
   /// Opening: a spring settles each layer from slightly small, blurred and high; the layers lower
   /// down start later, so the content follows the shell's own bounce. Closing: the lowest layers
-  /// leave first, quickly, so the content is gone before the shell reaches the notch.
+  /// leave first, in under 0.12 s; the shell starts to contract a moment later, so the content has already gone when the shell passes it.
   /// Opacity, scale, blur and offset are animated by SwiftUI without re-evaluating the content.
   /// `blurs` is false for native AppKit controls, which keep to opacity and offset.
   /// With Reduce Motion the layers only fade.
@@ -250,7 +250,7 @@ private extension View {
       .animation(
         reduceMotion ? .easeInOut(duration: 0.16)
           : (expanded ? .spring(response: 0.42, dampingFraction: 0.82).delay(delay)
-                      : .easeIn(duration: 0.12).delay((last - delay) * 0.3)),
+                      : .easeIn(duration: 0.09).delay((last - delay) * 0.15)),
         value: expanded)
   }
 }
