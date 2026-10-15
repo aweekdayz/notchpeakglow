@@ -20,7 +20,7 @@
       "layers": [
         {
           "fill": "none",
-          "glass": false,
+          "glass": true,
           "image-name": "notch.png",
           "name": "notch"
         },
@@ -29,12 +29,6 @@
           "glass": false,
           "image-name": "glow.png",
           "name": "glow"
-        },
-        {
-          "fill": "none",
-          "glass": false,
-          "image-name": "screen.png",
-          "name": "screen"
         }
       ],
       "shadow": {
