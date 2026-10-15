@@ -62,7 +62,7 @@ import SwiftUI
         // A borderless NSPanel's system shadow follows its rectangular frame.
         p.hasShadow = false
         // Like the glow, the island asks to stay out of screenshots and recordings.
-        p.sharingType = .none
+        p.sharingType = AppSettings.overlaySharingType
         p.isFloatingPanel = true
         p.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.statusWindow)) + 2)
         // Hover doesn't activate this app, so moving on activation isn't enough.

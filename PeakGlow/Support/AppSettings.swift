@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import Combine
 
 enum PreviewLevel: Int, CaseIterable {
@@ -35,6 +35,14 @@ enum PreviewLevel: Int, CaseIterable {
 /// Preferences accessed by main-thread sampling, rendering and SwiftUI controls.
 @MainActor final class AppSettings: ObservableObject {
     static let shared = AppSettings()
+
+    /// The glow and the island ask to stay out of screenshots and recordings. For documentation
+    /// images the maintainer can allow capture with
+    /// `defaults write com.aweekdayz.peakglow allowScreenCapture -bool true` and a relaunch.
+    /// It is off by default and has no control in the interface.
+    static var overlaySharingType: NSWindow.SharingType {
+        UserDefaults.standard.bool(forKey: "allowScreenCapture") ? .readOnly : .none
+    }
     static let changedNotification = Notification.Name("AppSettingsChanged")
 
     private let d = UserDefaults.standard
