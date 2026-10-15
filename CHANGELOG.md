@@ -1,8 +1,9 @@
 # Changelog
 
-## Unreleased
+## 1.7.5 — October 15, 2026 (Build 49)
 
 - The app icon now fills the whole icon instead of showing a screen inset with a thick dark border: the icon itself is the top of a screen, with the notch hanging from the top edge and its glow spreading well down the icon, and the system supplies the outer shape. The notch layer now uses the system's Liquid Glass treatment. The separate "screen" layer is removed. Checked by building and rendering the compiled icon (default appearance); the Dark, Clear and Tinted appearances are derived by the system and were not reviewed by hand. An attempt to give the Tinted appearance its own single-color glow was not accepted by the icon compiler and was dropped.
+- Add a hidden switch for documentation images. The glow and the island ask the system to stay out of screenshots and recordings; `defaults write com.aweekdayz.peakglow allowScreenCapture -bool true` and a relaunch allows capture. It is off by default and has no control in the interface, so behavior for users is unchanged.
 
 ## 1.7.4 — October 15, 2026 (Build 48)
 
