@@ -183,7 +183,7 @@ struct BubbleContentView: View {
           .islandReveal(motion.expanded, delay: 0.20, reduceMotion: reduceMotion)
         GlowModeControl(app: app)
           .frame(height: 48)
-          .islandReveal(motion.expanded, delay: 0.24, reduceMotion: reduceMotion)
+          .islandReveal(motion.expanded, delay: 0.24, reduceMotion: reduceMotion, blurs: false)
         BubbleFooter(onClose: onClose)
           .frame(height: 28)
           .islandReveal(motion.expanded, delay: 0.28, reduceMotion: reduceMotion)
@@ -233,15 +233,24 @@ struct BubbleContentView: View {
 }
 
 private extension View {
-  /// Layers settle in turn after the shell has started to open and leave quickly. Opacity and
-  /// offset are animated by SwiftUI without re-evaluating the content each frame.
-  func islandReveal(_ expanded: Bool, delay: Double, reduceMotion: Bool) -> some View {
-    self
+  /// Layers rise out of the notch in turn as the shell opens, and draw back up into it as it closes.
+  /// Opening: a spring settles each layer from slightly small, blurred and high; the layers lower
+  /// down start later, so the content follows the shell's own bounce. Closing: the lowest layers
+  /// leave first, in under 0.12 s; the shell starts to contract a moment later, so the content has already gone when the shell passes it.
+  /// Opacity, scale, blur and offset are animated by SwiftUI without re-evaluating the content.
+  /// `blurs` is false for native AppKit controls, which keep to opacity and offset.
+  /// With Reduce Motion the layers only fade.
+  func islandReveal(_ expanded: Bool, delay: Double, reduceMotion: Bool, blurs: Bool = true) -> some View {
+    let last = 0.28
+    return self
       .opacity(expanded ? 1 : 0)
-      .offset(y: (expanded || reduceMotion) ? 0 : 6)
+      .scaleEffect((expanded || reduceMotion) ? 1 : 0.94, anchor: .top)
+      .blur(radius: (expanded || reduceMotion || !blurs) ? 0 : 5)
+      .offset(y: (expanded || reduceMotion) ? 0 : -8)
       .animation(
         reduceMotion ? .easeInOut(duration: 0.16)
-          : (expanded ? .easeOut(duration: 0.26).delay(delay) : .easeIn(duration: 0.10)),
+          : (expanded ? .spring(response: 0.42, dampingFraction: 0.82).delay(delay)
+                      : .easeIn(duration: 0.09).delay((last - delay) * 0.15)),
         value: expanded)
   }
 }

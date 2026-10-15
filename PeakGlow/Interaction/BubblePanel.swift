@@ -13,6 +13,8 @@ import SwiftUI
     private var notchSize: CGSize = .zero
     /// Guards the delayed removal of the window after the island has contracted.
     private var presentationGeneration: UInt = 0
+    /// How long the shell waits after the content starts to leave.
+    private static let shellContractionDelay: TimeInterval = 0.05
     /// Draws the island's shell and glow; it tells us when the island is back in the notch.
     weak var glow: GlowWindow? {
         didSet { glow?.onIslandHidden = { [weak self] in self?.islandHidden() } }
@@ -148,7 +150,11 @@ import SwiftUI
         // The island contracts back into the notch; the window is removed once the renderer
         // reports it is hidden. The timer is a fallback if the renderer is unavailable.
         motion.expanded = false
-        glow?.setIsland(expanded: false, size: islandSize)
+        // The content leaves first; the shell follows a moment later so it never trails the content.
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.shellContractionDelay) { [weak self] in
+            guard let self, self.presentationGeneration == generation, !self.motion.expanded else { return }
+            self.glow?.setIsland(expanded: false, size: self.islandSize)
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
             guard let self, self.presentationGeneration == generation, !self.motion.expanded else { return }
             self.panel?.orderOut(nil)
