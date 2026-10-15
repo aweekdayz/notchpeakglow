@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.7.3 — October 14, 2026 (Build 47)
 
 - Settings no longer freezes the first time it is opened after launch. The system's hang reports from 1.5.3 to 1.7.0 show the main thread busy for 1.2 to 3.4 s inside the first `setContentView` (SwiftUI toolbar bridging, a window resize and a first full layout), with page-ins from disk on an 8 GB Mac. Settings is now built invisibly 2.5 s after launch, while nobody is waiting, and shown from that ready window. The cost moves to launch: the glow can stall for about a second or two once, shortly after start. If Settings is opened during that build it opens as soon as the build has settled, with a 10 s safety timeout. Checked by building; the open time itself was not measured.
 
