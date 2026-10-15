@@ -1,6 +1,6 @@
 # Release audit — October 12, 2026
 
-Historical audit of 1.6.1 / Build 38 (never published separately; its changes shipped in 1.6.2). **Current public release: 1.7.2 / Build 46** — see the follow-up sections below, which supersede earlier status lines.
+Historical audit of 1.6.1 / Build 38 (never published separately; its changes shipped in 1.6.2). **Current public release: 1.7.3 / Build 47** — see the follow-up sections below, which supersede earlier status lines.
 
 ## Checks completed
 
@@ -92,3 +92,7 @@ Build 45 is the 1.7.0 code, signed with a Developer ID Application certificate a
 ## 1.7.2 release — October 14, 2026
 
 Published as v1.7.2, signed with Developer ID and notarized (Apple: Accepted). The ZIP downloaded from GitHub was checked: checksum, version 1.7.2 / 46, strict code signature, hardened runtime, `stapler validate` and `spctl` (`accepted`, source `Notarized Developer ID`). New in this release: MIT `LICENSE` and credits, and a steadier island collapse (the glow window is no longer resized while the island moves). The collapse change was checked by building and running from Xcode on one MacBook Air (M2); frame rate and whole-app CPU, GPU or energy use were not measured. Other Mac models, external displays, VoiceOver and keyboard focus order remain unverified.
+
+## 1.7.3 release — October 14, 2026
+
+Published as v1.7.3, signed with Developer ID and notarized (Apple: Accepted). The ZIP downloaded from GitHub was checked: checksum, version 1.7.3 / 47, strict code signature, hardened runtime, `stapler validate` and `spctl` (`accepted`, source `Notarized Developer ID`). New in this release: the Settings window is built invisibly after launch, because the system's hang reports for 1.5.3 to 1.7.0 show 1.2 to 3.4 s on the main thread during the first open, and the island's content motion was reworked. Both were tried by the maintainer from Xcode on one MacBook Air (M2); Settings open time, animation frame rate and whole-app CPU, GPU or energy use were not measured. The hang reports also contain many WebKit frames although the app has no web view; their source is unknown. Other Mac models, external displays, VoiceOver and keyboard focus order remain unverified.
