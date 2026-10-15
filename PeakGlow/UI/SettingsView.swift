@@ -5,8 +5,36 @@ import ServiceManagement
 @MainActor final class SettingsWindowController {
     static let shared = SettingsWindowController()
     private var window: NSWindow?
+    /// True while the window is being built out of sight, shortly after launch.
+    private var warming = false
+    private var showWhenReady = false
+
+    /// Build the window a moment after launch, while nobody is waiting for it. The first build
+    /// (toolbar, split view and first layout of SwiftUI) takes one to several seconds on the main
+    /// thread, which showed as a freeze when it happened on the first click. It is invisible
+    /// (zero alpha, no mouse events, no activation) and is taken off screen when it has settled.
+    func prewarm() {
+        guard window == nil, !warming else { return }
+        warming = true
+        let w = makeWindow()
+        window = w
+        w.ignoresMouseEvents = true
+        w.orderFrontRegardless()
+        // If the window never reports ready, do not leave Settings unable to open.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self, weak w] in
+            MainActor.assumeIsolated {
+                guard let self, self.warming, let w else { return }
+                self.warming = false
+                w.orderOut(nil)
+                w.ignoresMouseEvents = false
+                if self.showWhenReady { self.showWhenReady = false; self.show() }
+            }
+        }
+    }
 
     func show() {
+        // Asked for while it is still being built: open it as soon as it has settled.
+        if warming { showWhenReady = true; return }
         // An accessory app has no menu bar. Present as a regular app while Settings is open,
         // so the menu bar and its commands are visible; revert when the window closes.
         NSApp.setActivationPolicy(.regular)
@@ -15,9 +43,17 @@ import ServiceManagement
         // Establish active-app appearance before the initially selected row is rendered.
         NSApp.activate(ignoringOtherApps: true)
         if let window {
+            window.alphaValue = 1
             window.makeKeyAndOrderFront(nil)
             return
         }
+        let w = makeWindow()
+        w.center()
+        w.makeKeyAndOrderFront(nil)
+        window = w
+    }
+
+    private func makeWindow() -> NSWindow {
         let w = SettingsWindow(
             contentRect: NSRect(x: 0, y: 0, width: 760, height: 560),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -28,15 +64,26 @@ import ServiceManagement
         w.toolbarStyle = .unified
         w.setFrameAutosaveName("PeakGlowSettings")
         w.alphaValue = 0
-        let hosting = NSHostingView(rootView: SettingsView(onReady: { [weak w] in
+        let hosting = NSHostingView(rootView: SettingsView(onReady: { [weak self, weak w] in
             // Publish initial selection after mounting, then reveal its settled layout.
-            DispatchQueue.main.async { [weak w] in
-                guard let w else { return }
+            DispatchQueue.main.async { [weak self, weak w] in
+                guard let self, let w else { return }
                 w.contentView?.needsLayout = true
                 w.contentView?.layoutSubtreeIfNeeded()
                 w.contentView?.displayIfNeeded()
                 w.alignResetToolbar()
-                w.alphaValue = 1
+                if self.warming {
+                    // Built out of sight: put it away until it is asked for.
+                    self.warming = false
+                    w.orderOut(nil)
+                    w.ignoresMouseEvents = false
+                    if self.showWhenReady {
+                        self.showWhenReady = false
+                        self.show()
+                    }
+                } else {
+                    w.alphaValue = 1
+                }
             }
         }))
         // The window owns its bounds. Avoid repeated min/ideal/max content measurements.
@@ -50,8 +97,7 @@ import ServiceManagement
             }
         }
         w.center()
-        w.makeKeyAndOrderFront(nil)
-        window = w
+        return w
     }
 }
 
