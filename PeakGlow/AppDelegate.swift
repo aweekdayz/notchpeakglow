@@ -127,7 +127,14 @@ import ServiceManagement
         applyLevel()   // Apply again after the renderer has been created.
 
         FirstRunWindow.showIfNeeded()
-        if NotchedScreenFinder.find() == nil { SettingsWindowController.shared.show() }
+        if NotchedScreenFinder.find() == nil {
+            SettingsWindowController.shared.show()
+        } else {
+            // Build Settings while idle, so the first click does not wait for it.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                MainActor.assumeIsolated { SettingsWindowController.shared.prewarm() }
+            }
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

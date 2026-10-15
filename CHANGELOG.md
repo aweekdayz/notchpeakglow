@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Settings no longer freezes the first time it is opened after launch. The system's hang reports from 1.5.3 to 1.7.0 show the main thread busy for 1.2 to 3.4 s inside the first `setContentView` (SwiftUI toolbar bridging, a window resize and a first full layout), with page-ins from disk on an 8 GB Mac. Settings is now built invisibly 2.5 s after launch, while nobody is waiting, and shown from that ready window. The cost moves to launch: the glow can stall for about a second or two once, shortly after start. If Settings is opened during that build it opens as soon as the build has settled, with a 10 s safety timeout. Checked by building; the open time itself was not measured.
+
 - Rework how the island's content appears and leaves. Opening: each layer settles with a spring from slightly small (94%), blurred and 8 pt high, in turn from the top down, so the content follows the shell's bounce instead of fading in flat. Closing: the lowest layers leave first in about 0.1 s and the shell starts to contract 50 ms later, so the content never trails the shell. The Glow selector, a native control, keeps to opacity and offset. With Reduce Motion the layers only fade, as before. Checked by building; how it feels in motion has not been checked.
 
 ## 1.7.2 — October 14, 2026 (Build 46)
