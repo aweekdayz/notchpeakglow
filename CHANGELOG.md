@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- The app icon now fills the whole icon instead of showing a screen inset with a thick dark border: the icon itself is the top of a screen, with the notch hanging from the top edge and its glow spreading below, and the system supplies the outer shape. The notch layer now uses the system's Liquid Glass treatment. The separate "screen" layer is removed. Checked by building and rendering the compiled icon (default appearance); the Dark, Clear and Tinted appearances are derived by the system and were not reviewed by hand. An attempt to give the Tinted appearance its own single-color glow was not accepted by the icon compiler and was dropped.
+
 ## 1.7.4 — October 15, 2026 (Build 48)
 
 - New app icon and menu bar icon. The icon is a screen with the notch lit by the glow's own colors (blue, cyan, green, yellow), replacing the rainbow arc, and a leftover unused background image was removed from the icon bundle. The menu bar icon (also used in the island's header) is a drawn template image of a screen with a notch instead of the generic "waveform.path" symbol, so it follows light and dark menu bars. Checked by building and by rendering the compiled app icon; the menu bar icon was checked only as a drawing, not in the real menu bar.
