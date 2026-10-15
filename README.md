@@ -6,6 +6,20 @@ A small macOS utility that shows system load as a soft glow around the MacBook n
 
 [Credits and provenance](CREDITS.md) acknowledge the original project and contributors.
 
+## Screenshots
+
+The glow follows system power: blue at low power, then cyan, green and yellow as it rises. The images below were taken on a MacBook Air (M2) with the glow previews in Settings → Glow, so they show what each level looks like rather than a live workload.
+
+| Mid | High |
+| --- | --- |
+| ![Mid glow: a cyan-green light around the notch](docs/images/glow-mid.png) | ![High glow: a strong yellow light around the notch](docs/images/glow-high.png) |
+
+Hovering over the notch opens the controls as an island that grows out of it, with the glow following its outline. The live power reading and a meter in the glow's own colors are at the top.
+
+![The controls island, showing the power reading, the power meter and the Glow selector](docs/images/panel.png)
+
+macOS screenshots do not include the hardware notch, so the black notch in the first two images is drawn in at its real size. The glow and the island are as the app draws them. The island image was taken while previewing High, which is why the reading is low while the glow is yellow.
+
 ## Download
 
 [Latest published release](https://github.com/aweekdayz/notchpeakglow/releases/latest).
