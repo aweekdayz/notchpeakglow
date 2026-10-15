@@ -12,7 +12,7 @@ A small macOS utility that shows system load as a soft glow around the MacBook n
 
 Quit any running copy, extract the ZIP and move `PeakGlow.app` to Applications. Existing preferences are retained. From 1.7.1 the app is signed with a Developer ID certificate and **notarized by Apple**, so it opens normally. Earlier releases (up to 1.7.0) are ad-hoc signed and not notarized; macOS may restrict their first launch, and System Settings → Privacy & Security is the place to allow one only if you trust the download.
 
-The latest published release is **1.7.3 / Build 47**, built with the full Xcode workflow and verified shader, layered-icon and Credits resources. See [Release audit](docs/Release-Audit.md) for validation and outstanding work.
+The latest published release is **1.7.4 / Build 48**, built with the full Xcode workflow and verified shader, layered-icon and Credits resources. See [Release audit](docs/Release-Audit.md) for validation and outstanding work.
 
 ## Requirements and compatibility
 
