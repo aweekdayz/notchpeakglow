@@ -24,8 +24,8 @@ targets:
         INFOPLIST_FILE: PeakGlow/Info.plist
         PRODUCT_BUNDLE_IDENTIFIER: com.aweekdayz.peakglow
         PRODUCT_NAME: PeakGlow
-        MARKETING_VERSION: "1.7.1"
-        CURRENT_PROJECT_VERSION: "45"
+        MARKETING_VERSION: "1.7.2"
+        CURRENT_PROJECT_VERSION: "46"
         METAL_ENABLED: "YES"
         GENERATE_INFOPLIST_FILE: "NO"
         ENABLE_HARDENED_RUNTIME: "YES"
