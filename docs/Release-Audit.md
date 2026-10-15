@@ -1,6 +1,6 @@
 # Release audit — October 12, 2026
 
-Historical audit of 1.6.1 / Build 38 (never published separately; its changes shipped in 1.6.2). **Current public release: 1.7.4 / Build 48** — see the follow-up sections below, which supersede earlier status lines.
+Historical audit of 1.6.1 / Build 38 (never published separately; its changes shipped in 1.6.2). **Current public release: 1.7.5 / Build 49** — see the follow-up sections below, which supersede earlier status lines.
 
 ## Checks completed
 
@@ -100,3 +100,7 @@ Published as v1.7.3, signed with Developer ID and notarized (Apple: Accepted). T
 ## 1.7.4 release — October 15, 2026
 
 Published as v1.7.4, signed with Developer ID and notarized (Apple: Accepted). The ZIP downloaded from GitHub was checked: checksum, version 1.7.4 / 48, strict code signature, hardened runtime, `stapler validate` and `spctl` (`accepted`, source `Notarized Developer ID`). New in this release: the app icon and the menu bar icon. The compiled app icon was rendered and checked; the menu bar icon was checked as a drawing and from Xcode on one MacBook Air (M2). Other Mac models, external displays, VoiceOver and keyboard focus order remain unverified.
+
+## 1.7.5 release — October 15, 2026
+
+Published as v1.7.5, signed with Developer ID and notarized (Apple: Accepted). The ZIP downloaded from GitHub was checked: checksum, version 1.7.5 / 49, strict code signature, hardened runtime, `stapler validate` and `spctl` (`accepted`, source `Notarized Developer ID`). New in this release: the full-bleed app icon (the compiled icon was rendered and checked in its default appearance; Dark, Clear and Tinted are system-derived and were not reviewed by hand) and a hidden, default-off switch that lets the glow and the island be captured for documentation. The README screenshots were taken on one MacBook Air (M2) with that switch; the black notch in the glow images is drawn in because macOS screenshots omit it. Other Mac models, external displays, VoiceOver and keyboard focus order remain unverified.
