@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- New app icon and menu bar icon. The icon is a screen with the notch lit by the glow's own colors (blue, cyan, green, yellow), replacing the rainbow arc, and a leftover unused background image was removed from the icon bundle. The menu bar icon (also used in the island's header) is a drawn template image of a screen with a notch instead of the generic "waveform.path" symbol, so it follows light and dark menu bars. Checked by building and by rendering the compiled app icon; the menu bar icon was checked only as a drawing, not in the real menu bar.
+
 ## 1.7.3 — October 14, 2026 (Build 47)
 
 - Settings no longer freezes the first time it is opened after launch. The system's hang reports from 1.5.3 to 1.7.0 show the main thread busy for 1.2 to 3.4 s inside the first `setContentView` (SwiftUI toolbar bridging, a window resize and a first full layout), with page-ins from disk on an 8 GB Mac. Settings is now built invisibly 2.5 s after launch, while nobody is waiting, and shown from that ready window. The cost moves to launch: the glow can stall for about a second or two once, shortly after start. If Settings is opened during that build it opens as soon as the build has settled, with a 10 s safety timeout. Checked by building; the open time itself was not measured.

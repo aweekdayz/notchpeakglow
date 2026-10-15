@@ -135,7 +135,7 @@ struct BubbleContentView: View {
     let wing = (IslandMetrics.width - notchSize.width) / 2
     VStack(spacing: 0) {
       HStack(spacing: 0) {
-        Label("PeakGlow", systemImage: "waveform.path")
+        Label { Text("PeakGlow") } icon: { Image(nsImage: AppGlyph.image) }
           .font(.caption.weight(.semibold))
           .lineLimit(1)
           .minimumScaleFactor(0.8)
@@ -394,4 +394,26 @@ private struct NativeGlowSelector: NSViewRepresentable {
       if selection.wrappedValue != mode { selection.wrappedValue = mode }
     }
   }
+}
+
+/// The app's mark in the menu bar and in the island: a screen with the notch. Drawn as a template
+/// image, so the system tints it for light and dark menu bars and for the island.
+enum AppGlyph {
+  static let image: NSImage = {
+    let image = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { _ in
+      NSColor.black.setStroke()
+      NSColor.black.setFill()
+      let screen = NSBezierPath(roundedRect: NSRect(x: 1.4, y: 2.6, width: 15.2, height: 11.8),
+                                xRadius: 2.8, yRadius: 2.8)
+      screen.lineWidth = 1.35
+      screen.stroke()
+      // The notch hangs from the screen's top edge.
+      NSBezierPath(roundedRect: NSRect(x: 6.7, y: 2.3, width: 4.6, height: 3.9), xRadius: 1.6, yRadius: 1.6).fill()
+      NSBezierPath(rect: NSRect(x: 6.7, y: 2.3, width: 4.6, height: 1.6)).fill()
+      return true
+    }
+    image.isTemplate = true
+    image.accessibilityDescription = "PeakGlow"
+    return image
+  }()
 }
