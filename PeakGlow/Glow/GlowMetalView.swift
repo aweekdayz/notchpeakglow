@@ -64,6 +64,17 @@ final class GlowMetalView: NSView {
         renderer?.wake()
         guard renderer?.isIdle == false else { return }
         startDisplayLinkIfNeeded()
+        applyLinkRate()
+    }
+
+    /// Ask for the renderer's rate now instead of on the next tick, which may be a calm 30 fps
+    /// tick away; the island's first frames would otherwise run slowly.
+    private func applyLinkRate() {
+        guard let renderLink, let renderer else { return }
+        let rate = Float(renderer.preferredFrameRate)
+        guard abs(Double(rate) - linkRate) > 0.5 else { return }
+        renderLink.preferredFrameRateRange = CAFrameRateRange(minimum: min(10, rate), maximum: rate, preferred: rate)
+        linkRate = Double(rate)
     }
 
     func sleep() {
@@ -88,11 +99,7 @@ final class GlowMetalView: NSView {
         renderer.renderFrame(now: link.timestamp)
         if renderer.isIdle { sleep(); return }
         // Run slower while the glow is steady and at the configured rate while it changes.
-        let rate = Float(renderer.preferredFrameRate)
-        if abs(Double(rate) - linkRate) > 0.5 {
-            link.preferredFrameRateRange = CAFrameRateRange(minimum: min(10, rate), maximum: rate, preferred: rate)
-            linkRate = Double(rate)
-        }
+        applyLinkRate()
     }
 
     /// Convert global notch geometry to view pixels with a top-left origin.

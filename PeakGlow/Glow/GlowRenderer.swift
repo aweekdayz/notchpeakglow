@@ -165,7 +165,7 @@ import QuartzCore
         settings = RenderingSettings()
         // A change of state restores the full rate at once.
         calmSince = CACurrentMediaTime()
-        preferredFrameRate = settings.frameRate
+        preferredFrameRate = islandActive ? Self.islandFrameRate : settings.frameRate
         if isIdle {
             guard Self.targetIntensity(level: targetLevel, paused: paused, ambient: ambientEnabled) > 0 || islandActive else { return }
             // Don't integrate the whole time spent idle into the first resumed frame.
