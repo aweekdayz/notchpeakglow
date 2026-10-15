@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.7.2 — Build 46 (unreleased)
+## 1.7.2 — October 14, 2026 (Build 46)
 
 - Add an MIT `LICENSE` for this repository, listing the original author and the maintainer. The About window's credits now say the app is released under the MIT License and link to it, instead of saying redistribution permission needs confirmation. The upstream README declares MIT; the upstream repository has no license file, which is recorded in `CREDITS.md`.
 - Make the island's collapse steadier. The glow window is no longer resized when the island opens or finishes contracting (a resize showed one stretched frame of the old drawable at the end of the collapse, and a late "island hidden" callback could shrink the window after a quick re-open); it always holds the island and its halo, so the glow drawable is larger at rest (about 1 M pixels instead of 0.4 M). Waking the renderer no longer resets the requested frame rate from 120 Hz to the normal rate, and the display link takes the new rate at once instead of on its next tick, so the first frames of the island's motion are not slow. Checked by building and by running from Xcode; frame rate and whole-app GPU or energy use were not measured.

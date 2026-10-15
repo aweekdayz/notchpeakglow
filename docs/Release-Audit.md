@@ -1,6 +1,6 @@
 # Release audit — October 12, 2026
 
-Historical audit of 1.6.1 / Build 38 (never published separately; its changes shipped in 1.6.2). **Current public release: 1.7.1 / Build 45** — see the follow-up sections below, which supersede earlier status lines.
+Historical audit of 1.6.1 / Build 38 (never published separately; its changes shipped in 1.6.2). **Current public release: 1.7.2 / Build 46** — see the follow-up sections below, which supersede earlier status lines.
 
 ## Checks completed
 
@@ -88,3 +88,7 @@ The ZIP was built with `scripts/build-release.sh` and its extracted contents wer
 ## 1.7.1 follow-up — October 14, 2026
 
 Build 45 is the 1.7.0 code, signed with a Developer ID Application certificate and notarized by Apple (ticket stapled). `scripts/notarize.sh` was validated first as a dry run on the 1.7.0 source (Apple's notary service returned Accepted; the stapled app passed `stapler validate` and `spctl --assess` as Notarized Developer ID), then run for this release. Each release package is verified by extracting the final ZIP into a new directory and checking its version, strict code signature, `stapler validate`, `spctl --assess` and checksum. Notarization removes the first-launch Gatekeeper warning; it does not change what was and was not verified about the app itself, which is unchanged from the 1.7.0 section. Upstream redistribution permission and Mac App Store eligibility remain unresolved.
+
+## 1.7.2 release — October 14, 2026
+
+Published as v1.7.2, signed with Developer ID and notarized (Apple: Accepted). The ZIP downloaded from GitHub was checked: checksum, version 1.7.2 / 46, strict code signature, hardened runtime, `stapler validate` and `spctl` (`accepted`, source `Notarized Developer ID`). New in this release: MIT `LICENSE` and credits, and a steadier island collapse (the glow window is no longer resized while the island moves). The collapse change was checked by building and running from Xcode on one MacBook Air (M2); frame rate and whole-app CPU, GPU or energy use were not measured. Other Mac models, external displays, VoiceOver and keyboard focus order remain unverified.
