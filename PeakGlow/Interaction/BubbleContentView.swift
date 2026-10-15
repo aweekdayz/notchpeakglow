@@ -408,8 +408,8 @@ enum AppGlyph {
       screen.lineWidth = 1.35
       screen.stroke()
       // The notch hangs from the screen's top edge.
-      NSBezierPath(roundedRect: NSRect(x: 6.2, y: 2.3, width: 5.6, height: 4.7), xRadius: 1.9, yRadius: 1.9).fill()
-      NSBezierPath(rect: NSRect(x: 6.2, y: 2.3, width: 5.6, height: 1.9)).fill()
+      NSBezierPath(roundedRect: NSRect(x: 6.7, y: 2.3, width: 4.6, height: 3.9), xRadius: 1.6, yRadius: 1.6).fill()
+      NSBezierPath(rect: NSRect(x: 6.7, y: 2.3, width: 4.6, height: 1.6)).fill()
       return true
     }
     image.isTemplate = true
