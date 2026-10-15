@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.7.4 — October 15, 2026 (Build 48)
 
 - New app icon and menu bar icon. The icon is a screen with the notch lit by the glow's own colors (blue, cyan, green, yellow), replacing the rainbow arc, and a leftover unused background image was removed from the icon bundle. The menu bar icon (also used in the island's header) is a drawn template image of a screen with a notch instead of the generic "waveform.path" symbol, so it follows light and dark menu bars. Checked by building and by rendering the compiled app icon; the menu bar icon was checked only as a drawing, not in the real menu bar.
 
