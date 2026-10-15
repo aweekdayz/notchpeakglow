@@ -140,7 +140,7 @@ import AppKit
             p.ignoresMouseEvents = true
             p.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.statusWindow)) + 1)
             p.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
-            p.sharingType = .none          // Request capture exclusion; capture behavior depends on macOS and the capture API.
+            p.sharingType = AppSettings.overlaySharingType          // Request capture exclusion; capture behavior depends on macOS and the capture API.
             p.isMovable = false
 
             let view = GlowMetalView(frame: NSRect(origin: .zero, size: frame.size))
