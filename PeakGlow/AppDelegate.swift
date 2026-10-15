@@ -214,7 +214,7 @@ import ServiceManagement
         }
         guard statusItem == nil else { return }
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.image = NSImage(systemSymbolName: "waveform.path", accessibilityDescription: "PeakGlow")
+        item.button?.image = AppGlyph.image
         let menu = NSMenu(title: "PeakGlow")
         menu.delegate = self
         let power = NSMenuItem(title: "", action: nil, keyEquivalent: "")
