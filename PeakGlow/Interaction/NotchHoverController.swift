@@ -174,9 +174,9 @@ import AppKit
 
     private func showBubble() {
         bubbleVisible = true
-        // Chosen by feel in a blind comparison of the three patterns. Apple describes `.alignment` for a
-        // dragged object lining up with something; here it is the pointer settling onto the notch.
-        Haptics.play(.alignment)
+        // `.generic`: Apple's pattern for an action no other pattern describes. Chosen by feel in a
+        // blind comparison; `.alignment` was too light to notice and `.levelChange` is for discrete levels.
+        Haptics.play(.generic)
         onShowBubble?()
         startOutsideWatch()
         installClickMonitor()
