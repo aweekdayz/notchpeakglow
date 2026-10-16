@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Release packaging: `scripts/notarize.sh` now also builds a disk image with the app beside an Applications shortcut, signed, notarized and stapled, so installing is one drag instead of moving the app by hand. The ZIP stays as an alternative. Run end to end; the mounted image was checked (contents, the app's signature, stapling and Gatekeeper).
+
 ## 1.7.6 beta — October 16, 2026 (Build 50)
 
 - Support macOS 26. The deployment target and `LSMinimumSystemVersion` are now 26.0 (they were 27.0). Building with the macOS 27 SDK for a macOS 26 target, the compiler flagged one newer API, the Glow selector's tabs role, which is now used only on macOS 27 or later; on macOS 26 the selector is a plain segmented control. The binary's minimum OS is 26.0. Not verified: the app has not been run on macOS 26, so look, layout and behavior there are unchecked.
