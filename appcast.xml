@@ -5,5 +5,22 @@
     <link>https://github.com/aweekdayz/notchpeakglow</link>
     <description>Updates for PeakGlow, a notch glow utility for MacBooks.</description>
     <language>en</language>
+    <item>
+      <title>PeakGlow 1.8.0</title>
+      <pubDate>Fri, 16 Oct 2026 10:15:26 -0000</pubDate>
+      <sparkle:version>52</sparkle:version>
+      <sparkle:shortVersionString>1.8.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<h3>PeakGlow 1.8.0</h3>
+<ul>
+  <li>Automatic updates: PeakGlow now checks for new versions about once a day.</li>
+  <li>A designed installer window: drag PeakGlow to Applications.</li>
+  <li>macOS 26 is supported.</li>
+  <li>A steadier power readout, one light haptic when the controls open, and less explanatory text.</li>
+  <li>Settings opens in front more reliably, and a Help menu was added.</li>
+</ul>
+]]></description>
+      <enclosure url="https://github.com/aweekdayz/notchpeakglow/releases/download/v1.8.0/PeakGlow-1.8.0-macOS-arm64.dmg" sparkle:edSignature="KftX+k/pMT7Dq4m/pXhnVb8AQVcGn3NH/5iOoxUuqqXFL1LZeAv3Lkvq8I4OYkhEK2UvPtXvf38OILEYXgDwBw==" length="3968924" type="application/octet-stream"/>
+    </item>
   </channel>
 </rss>
