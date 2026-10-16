@@ -24,6 +24,14 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/aweekdayz/notchpeakglow/main/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>oG+S41ZMpev+Kl9OoJ2pfFBINCus4YmXctq5w0feK5s=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
 	<key>LSMinimumSystemVersion</key>
 	<string>26.0</string>
 	<key>LSUIElement</key>

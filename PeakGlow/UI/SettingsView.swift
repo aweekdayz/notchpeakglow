@@ -135,6 +135,7 @@ struct SettingsView: View {
     @State private var advancedExpanded = false
     @ObservedObject private var power = AppState.shared.power
     @ObservedObject private var app = AppState.shared
+    @ObservedObject private var updates = UpdateController.shared
     @State private var notchDisplayAvailable = NotchedScreenFinder.find() != nil
 
     var body: some View {
@@ -398,6 +399,18 @@ struct SettingsView: View {
             SettingsNote(notchDisplayAvailable
                 ? "Copy Diagnostics puts the Mac model, macOS version and sensor status on the clipboard for a bug report. It contains no serial number or personal data."
                 : "Glow and notch controls require a built-in notch display. External displays and closed-display mode are not supported.")
+        }
+        Section {
+            Toggle("Check for updates automatically", isOn: $updates.automaticChecks)
+            Button("Check for Updates…") {
+                updates.checkForUpdates(nil)
+            }
+            .nativeGlassAction()
+            .disabled(!updates.canCheckForUpdates)
+        } header: {
+            Text("Updates")
+        } footer: {
+            SettingsNote("PeakGlow looks for a new version about once a day. Updates are signed, and each one is checked before it replaces the app. Test versions are never offered.")
         }
         Section {
             LabeledContent("Version", value: Self.versionText)

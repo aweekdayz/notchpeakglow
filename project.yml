@@ -11,6 +11,10 @@ settings:
     CODE_SIGN_IDENTITY: ""
     ARCHS: arm64
     DEVELOPMENT_LANGUAGE: en
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.10.0
 targets:
   PeakGlow:
     type: application
@@ -31,5 +35,12 @@ targets:
         ENABLE_HARDENED_RUNTIME: "YES"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: "YES"
+      configs:
+        Debug:
+          # Local Xcode runs are not signed with a team, so the hardened runtime's library
+          # validation would refuse the embedded Sparkle framework. Release keeps it on and
+          # signs everything with one Developer ID.
+          ENABLE_HARDENED_RUNTIME: "NO"
+    dependencies:
+      - package: Sparkle
     scheme: {}
-

@@ -12,6 +12,10 @@ The aweekdayz version adds the native macOS interface refresh, refined pointer i
 
 The original project identifies **[exelban/stats](https://github.com/exelban/stats)** as a reference for SMC access. Relevant third-party provenance and license obligations must be confirmed before declaring redistribution clearance.
 
+## Updates
+
+Automatic updates use **[Sparkle](https://github.com/sparkle-project/Sparkle)** by the Sparkle Project and its contributors (MIT License, with its bundled components' licenses in the framework). It is embedded in the app and downloaded through Swift Package Manager at an exact version.
+
 ## Licensing status
 
 The upstream README declares the project as **MIT** (a license badge and a License section). The upstream repository has no `LICENSE` file, so GitHub detects no license and the declaration carries no copyright line or license text. This repository is released under the MIT License (see `LICENSE`), which lists the original author and the maintainer. It relies on the upstream declaration, keeps the original Git history and attribution, and does not relicense upstream code or grant rights on the original author's behalf. A formal `LICENSE` from the author, and confirmation of any third-party obligations such as the SMC reference above, would still be needed before an App Store submission.

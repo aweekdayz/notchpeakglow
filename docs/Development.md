@@ -68,3 +68,7 @@ Static review and direct optimized Swift compilation are available in the curren
 ## Maintainer identity update — Build 39
 
 The project and bundle use `com.aweekdayz.peakglow`. Recognized preferences are imported once from the previous namespace; existing values in the new namespace win. The old identifier is retained only for compatibility. Automatic launch registration is managed by macOS and may need reenabling. Original credits are bundled as Credits.rtf and displayed in the native About panel; this changes maintenance branding without rewriting source authorship.
+
+## Project file and dependencies
+
+`project.yml` is the source for `PeakGlow.xcodeproj` (XcodeGen); the generated project is checked in. After changing `project.yml`, regenerate it with `xcodegen generate`. Homebrew does not support the newest macOS releases yet, so build XcodeGen from its source if needed. The only package dependency is Sparkle (pinned to an exact version in `project.yml`, resolved revision in `PeakGlow.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`). In Debug builds the hardened runtime is off, because local builds are not signed with a team and library validation would refuse the embedded framework; Release builds keep it on.

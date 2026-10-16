@@ -47,3 +47,17 @@ The script:
 - Add a changelog entry that states what was actually verified (the `stapler validate` and `spctl` results).
 
 The notarized, unsandboxed build is a direct-distribution build only. It does not make the app eligible for the Mac App Store; see [Release audit](Release-Audit.md).
+
+## 4. Updates (Sparkle)
+
+The app checks `appcast.xml` on `main` (served from raw.githubusercontent.com) about once a day. Each release adds one entry, signed with the Sparkle EdDSA key. The matching public key is in `PeakGlow/Info.plist` as `SUPublicEDKey`; the private key is in the maintainer's login keychain (item "https://sparkle-project.org"). **Back it up** (`generate_keys -x file`, stored somewhere safe and never in this repository): if it is lost, installed copies can no longer verify updates and people would have to download a new version by hand once.
+
+For each release, after `scripts/notarize.sh` has built the DMG and before the GitHub release is published:
+
+```sh
+SPARKLE_BIN=/path/to/Sparkle/bin bash scripts/update-appcast.sh [notes.html]
+```
+
+`SPARKLE_BIN` is the `bin` folder of the Sparkle release tarball (it holds `sign_update`). Commit the changed `appcast.xml` to `main` in the same release, and publish the GitHub release with the DMG as an asset named in the entry. For a test release set `PEAKGLOW_CHANNEL=beta`: the entry is on the `beta` channel and people on the stable channel are never offered it.
+
+Sparkle is embedded in the app, so `scripts/build-release.sh` signs its helpers, the framework and the app in that order with the same identity; notarization rejects the app otherwise.
