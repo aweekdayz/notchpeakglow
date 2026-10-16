@@ -3,6 +3,9 @@
 ## Unreleased
 
 - Fix the release script's safety checks. They used `[[ ]]`, and under macOS's bash 3.2 a failing `[[ ]]` does not stop a `set -e` script, so none of them could fail (one still required the minimum system version to be 27.0 after it became 26.0, and passed anyway). They now use `[ ]`, the stale version check is corrected, and the script was run to confirm that every check passes on the current build.
+- Release packaging: `scripts/notarize.sh` now also builds a disk image with the app beside an Applications shortcut, signed, notarized and stapled, so installing is one drag instead of moving the app by hand. The ZIP stays as an alternative. Run end to end; the mounted image was checked (contents, the app's signature, stapling and Gatekeeper).
+- The power readout changes more slowly and steadily. It shows the mean of the last five samples (about two and a half seconds) and updates every one and a half seconds, instead of every half second with the raw sample. The meter, the dot color and the Settings meter follow the same value; the glow itself is unchanged. Opening the controls or Settings shows the current value at once.
+- One haptic: a light tap on a Force Touch trackpad when the controls open as the pointer settles on the notch, with an on/off switch in Settings → General → Notch controls (on by default). Nothing else in the app taps, so the tap keeps its meaning. The tap uses the `generic` pattern, Apple's choice for an action no other pattern describes, picked by the maintainer in a blind comparison: `alignment` was too light to notice and `levelChange` is for discrete levels. It plays only while a finger is on the trackpad, and the system's trackpad setting applies.
 
 ## 1.7.6 beta — October 16, 2026 (Build 50)
 
