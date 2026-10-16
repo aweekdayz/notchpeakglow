@@ -44,13 +44,32 @@ import ServiceManagement
         NSApp.activate(ignoringOtherApps: true)
         if let window {
             window.alphaValue = 1
-            window.makeKeyAndOrderFront(nil)
+            bringToFront(window)
             return
         }
         let w = makeWindow()
         w.center()
-        w.makeKeyAndOrderFront(nil)
         window = w
+        bringToFront(w)
+    }
+
+    /// Make Settings the front window of an active app. Right after the activation policy changes
+    /// from background to regular the system may not honour the first request, which left the
+    /// window behind other apps' windows and drawn as inactive (gray window buttons). So ask,
+    /// check, and ask again a few times over the next second, stopping as soon as it has worked.
+    private func bringToFront(_ w: NSWindow, attempt: Int = 0) {
+        NSApp.activate(ignoringOtherApps: true)
+        w.makeKeyAndOrderFront(nil)
+        w.orderFrontRegardless()
+        let delays: [TimeInterval] = [0.05, 0.12, 0.25, 0.5, 0.9]
+        guard attempt < delays.count else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + delays[attempt]) { [weak self, weak w] in
+            MainActor.assumeIsolated {
+                guard let self, let w, w.isVisible, AppState.shared.settingsVisible else { return }
+                if NSApp.isActive && w.isKeyWindow { return }
+                self.bringToFront(w, attempt: attempt + 1)
+            }
+        }
     }
 
     private func makeWindow() -> NSWindow {
