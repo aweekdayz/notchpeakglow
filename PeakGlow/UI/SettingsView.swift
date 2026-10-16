@@ -251,25 +251,22 @@ struct SettingsView: View {
             Toggle("Show menu bar icon", isOn: binding(\.menuBarIcon))
         } header: {
             Text("Menu bar")
-        } footer: {
-            SettingsNote("The menu bar icon shows system power and lets you choose a Glow mode, open Settings or quit, without the pointer.")
         }
         Section {
             slider("Hover delay", binding(\.hoverDwell), in: 0...0.8,
-                   value: String(format: "%.0f ms", s.hoverDwell * 1000), step: 0.01, unit: "ms", scale: 1000,
-                   explanation: "How long to hover over the notch before the controls open.")
+                   value: String(format: "%.0f ms", s.hoverDwell * 1000), step: 0.01, unit: "ms", scale: 1000)
             Toggle("Haptic feedback", isOn: binding(\.hapticsEnabled))
         } header: {
             Text("Notch controls")
         } footer: {
-            SettingsNote("Haptic feedback is a light tap on a Force Touch trackpad when the controls open. Your trackpad settings still apply. Move away or press Esc to close the controls. In Auto, a connected game controller pauses the glow.")
+            SettingsNote("In Auto, a connected game controller pauses the glow.")
         }
         Section {
             Toggle("Warn when the Mac runs hot", isOn: binding(\.overheatAlertEnabled))
         } header: {
             Text("Temperature")
         } footer: {
-            SettingsNote("The glow turns orange when the temperature stays high. It is a hint, not a hardware safety feature.")
+            SettingsNote("The glow turns orange when the temperature stays high. This is a hint, not a safety feature.")
         }
     }
 
@@ -287,8 +284,6 @@ struct SettingsView: View {
                 .foregroundStyle(.secondary)
         } header: {
             Text("Glow mode")
-        } footer: {
-            SettingsNote("Auto follows your Mac's power. Off turns the glow off. Mid, High and Hot are previews: they show the glow as it looks at medium power, at high power and with the temperature warning, so you can tune its colors and brightness. Choose Auto when you are done.")
         }
         Section {
             VStack(alignment: .leading, spacing: 12) {
@@ -297,8 +292,10 @@ struct SettingsView: View {
                         .font(.title2.weight(.semibold))
                         .monospacedDigit()
                     Spacer()
-                    Text(power.reading.availability == .current ? "System power" : "Power data unavailable")
-                        .foregroundStyle(.secondary)
+                    if power.reading.availability != .current {
+                        Text("Power data unavailable")
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 PowerMeter(watts: gaugeWatts, medium: s.mediumWatts, high: s.highWatts,
                            maximum: gaugeMaximum, gradient: gaugeGradient)
@@ -311,8 +308,6 @@ struct SettingsView: View {
             .padding(.vertical, 4)
         } header: {
             Text("Power now")
-        } footer: {
-            SettingsNote("The colors are the glow's own, from low power on the left to high power on the right. The lit part shows where your Mac is now.")
         }
         Section {
             slider("Brighter glow from", Binding(get: { s.mediumWatts },
@@ -332,14 +327,11 @@ struct SettingsView: View {
             .nativeGlassAction()
         } header: {
             Text("When the glow changes")
-        } footer: {
-            SettingsNote("Different Macs draw different power, so these start at values suited to your MacBook. Adjust them until the glow matches how busy your Mac feels.")
         }
         Section {
             Toggle("Keep a faint glow when idle", isOn: binding(\.ambientGlow))
             slider("Glow size", binding(\.glowScale), in: 0.4...1.6,
-                   value: "\(Int(s.glowScale * 100))%",
-                   explanation: "How far the light spreads from the notch.")
+                   value: "\(Int(s.glowScale * 100))%")
             slider("Brightness", binding(\.glowIntensity), in: 0.2...2,
                    value: "\(Int(s.glowIntensity * 100))%")
             Picker("Wallpaper", selection: binding(\.glowWallpaper)) {
@@ -347,7 +339,7 @@ struct SettingsView: View {
                 Text("Light").tag(1)
                 Text("Dark").tag(2)
             }
-            SettingsNote("Automatic follows the system appearance. Choose Light if the glow is hard to see on a bright wallpaper, or Dark for a dark one.")
+            SettingsNote("Choose Light if the glow is hard to see on a bright wallpaper.")
             Button { s.resetAppearance() } label: {
                 Text("Use Default Look").foregroundStyle(.primary)
             }
@@ -358,23 +350,19 @@ struct SettingsView: View {
         Section {
             DisclosureGroup("Fine-tuning", isExpanded: $advancedExpanded) {
                 slider("Base opacity", binding(\.mediumAlpha), in: 0.2...0.8,
-                       value: "\(Int(s.mediumAlpha * 100))%",
-                       explanation: "Opacity of the glow at moderate power.")
+                       value: "\(Int(s.mediumAlpha * 100))%")
                 slider("Breathing rate", binding(\.pulseHz), in: 0.1...2,
-                       value: String(format: "%.1f Hz", s.pulseHz), step: 0.1, unit: "Hz",
-                       explanation: "Speed of the slow pulse at high power.")
+                       value: String(format: "%.1f Hz", s.pulseHz), step: 0.1, unit: "Hz")
                 slider("HDR gain", binding(\.hdrFactor), in: 1...8,
                        value: String(format: "%.1f×", s.hdrFactor), step: 0.1, unit: "×",
-                       explanation: "Brightness above standard white. HDR headroom depends on your display and its brightness.")
+                       explanation: "Brightness above standard white. It depends on your display.")
                 slider("Maximum frame rate", binding(\.frameRate), in: 15...60,
                        value: "\(Int(s.frameRate)) fps", step: 1, unit: "fps",
-                       explanation: "Used while the glow changes. It slows to 30 fps when nothing is moving. Higher is smoother and uses more energy.")
+                       explanation: "Higher is smoother and uses more energy. It slows to 30 fps when nothing moves.")
                 slider("Warning brightness", binding(\.overheatGain), in: 0.5...2,
-                       value: String(format: "%.1f×", s.overheatGain), step: 0.1, unit: "×",
-                       explanation: "Brightness of the orange temperature warning.")
+                       value: String(format: "%.1f×", s.overheatGain), step: 0.1, unit: "×")
                 slider("Warning size", binding(\.overheatScale), in: 0.6...1.8,
-                       value: "\(Int(s.overheatScale * 100))%",
-                       explanation: "How far the warning glow spreads.")
+                       value: "\(Int(s.overheatScale * 100))%")
                 slider("Dimming margin", binding(\.hysteresisWatts), in: 1...10,
                        value: String(format: "%.1f W", s.hysteresisWatts), step: 0.1, unit: "W",
                        explanation: "Power must drop this far below a threshold before the glow dims.")
@@ -383,7 +371,7 @@ struct SettingsView: View {
                        explanation: "Time above a threshold before brightening. Dimming waits 2 seconds longer.")
                 slider("Sampling interval", binding(\.sampleInterval), in: 0.2...3,
                        value: String(format: "%.1f s", s.sampleInterval), step: 0.1, unit: "s",
-                       explanation: "Time between power readings. Shorter intervals update more often and use more resources.")
+                       explanation: "Shorter uses more energy.")
             }
         } header: {
             Text("Advanced")
@@ -417,8 +405,8 @@ struct SettingsView: View {
             Text("This Mac")
         } footer: {
             SettingsNote(notchDisplayAvailable
-                ? "Copy Diagnostics puts the Mac model, macOS version and sensor status on the clipboard for a bug report. It contains no serial number or personal data."
-                : "Glow and notch controls require a built-in notch display. External displays and closed-display mode are not supported.")
+                ? "Copy Diagnostics copies the Mac model, macOS version and sensor status for a bug report, with no serial number or personal data."
+                : "The glow and the controls need a built-in notch display.")
         }
         Section {
             Toggle("Check for updates automatically", isOn: $updates.automaticChecks)
@@ -429,8 +417,6 @@ struct SettingsView: View {
             .disabled(!updates.canCheckForUpdates)
         } header: {
             Text("Updates")
-        } footer: {
-            SettingsNote("PeakGlow looks for a new version about once a day. Updates are signed, and each one is checked before it replaces the app. Test versions are never offered.")
         }
         Section {
             LabeledContent("Version", value: Self.versionText)

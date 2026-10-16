@@ -327,7 +327,6 @@ private struct BubbleFooter: View {
           .font(.callout)
       }
       .buttonStyle(.borderless)
-      .help("Open Settings")
       .accessibilityLabel("Open Settings")
       Spacer()
       Button { NSApp.terminate(nil) } label: {
@@ -337,7 +336,6 @@ private struct BubbleFooter: View {
       .buttonStyle(.glass)
       .buttonBorderShape(.circle)
       .controlSize(.small)
-      .help("Quit PeakGlow")
       .accessibilityLabel("Quit PeakGlow")
     }
   }
