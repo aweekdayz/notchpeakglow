@@ -37,12 +37,14 @@ The script:
 2. Runs `scripts/build-release.sh`, which signs with the hardened runtime and a secure timestamp when `PEAKGLOW_SIGN_IDENTITY` is set (ad-hoc builds are unchanged without it).
 3. Submits the ZIP with `notarytool` and waits. If Apple rejects it, the script stops and prints the command to fetch the log.
 4. Staples the ticket to the app, validates it, runs `codesign --verify` and `spctl --assess`.
-5. Replaces the ZIP and `SHA256SUMS.txt` in `build/release/v<version>/` with the stapled archive.
+5. Replaces the ZIP in `build/release/v<version>/` with the stapled archive.
+6. Builds a disk image (`PeakGlow-<version>-macOS-arm64.dmg`) holding the stapled app beside an Applications shortcut, signs it, notarizes and staples it, and checks it with `spctl`. This is the download to recommend, because installing is one drag.
+7. Writes `SHA256SUMS.txt` with both files.
 
 ## 3. Check and publish
 
 - Extract the final ZIP on a Mac that has not seen the app and confirm it opens without the Gatekeeper warning.
-- Upload the ZIP and `SHA256SUMS.txt` to the GitHub release.
+- Upload the DMG, the ZIP and `SHA256SUMS.txt` to the GitHub release.
 - Update the README download note, which currently says the app is not notarized, and the release notes.
 - Add a changelog entry that states what was actually verified (the `stapler validate` and `spctl` results).
 
