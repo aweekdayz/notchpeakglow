@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- The power readout changes more slowly. It shows the mean of the last four samples (about two seconds) and updates about once a second, instead of every half second with the raw sample, so the number is readable. The meter, the dot color and the Settings meter follow the same value; the glow itself is unchanged. Opening the controls or Settings shows the current value at once.
+- Haptic feedback, with an on/off switch in Settings → General → Notch controls (on by default). A light `generic` tap when the controls open and when a Glow mode is chosen, and a `levelChange` tick for each whole watt while a power threshold slider moves; never more than one tap every 40 ms. The hover tap used the `alignment` pattern, which Apple describes for a dragged object lining up with something, so it is now `generic`. Haptics play only on a Force Touch trackpad while a finger is on it, and the system's trackpad setting applies. Checked by building; the feel was not tested.
+
 ## 1.7.6 beta — October 16, 2026 (Build 50)
 
 - Support macOS 26. The deployment target and `LSMinimumSystemVersion` are now 26.0 (they were 27.0). Building with the macOS 27 SDK for a macOS 26 target, the compiler flagged one newer API, the Glow selector's tabs role, which is now used only on macOS 27 or later; on macOS 26 the selector is a plain segmented control. The binary's minimum OS is 26.0. Not verified: the app has not been run on macOS 26, so look, layout and behavior there are unchecked.

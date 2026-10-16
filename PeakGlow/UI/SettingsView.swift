@@ -238,10 +238,11 @@ struct SettingsView: View {
             slider("Hover delay", binding(\.hoverDwell), in: 0...0.8,
                    value: String(format: "%.0f ms", s.hoverDwell * 1000), step: 0.01, unit: "ms", scale: 1000,
                    explanation: "How long to hover over the notch before the controls open.")
+            Toggle("Haptic feedback", isOn: binding(\.hapticsEnabled))
         } header: {
             Text("Notch controls")
         } footer: {
-            SettingsNote("Move away or press Esc to close the controls. In Auto, a connected game controller pauses the glow.")
+            SettingsNote("Haptic feedback is a light tap on a Force Touch trackpad when the controls open, when you choose a Glow mode and as a power threshold steps. Your trackpad settings still apply. Move away or press Esc to close the controls. In Auto, a connected game controller pauses the glow.")
         }
         Section {
             Toggle("Warn when the Mac runs hot", isOn: binding(\.overheatAlertEnabled))
@@ -597,6 +598,10 @@ private struct NativeSettingsSlider: View {
             // Entry precision is not a set of meaningful visual stops.
             // Keep the system's unmarked track; numeric entry supplies precision.
             Slider(value: sliderValue, in: range) { Text(title) }
+                // Whole-watt thresholds move between discrete values, so each step ticks.
+                .onChange(of: Int((value * scale).rounded())) { _, _ in
+                    if unit == "W" { Haptics.play(.levelChange) }
+                }
                 .labelsHidden()
                 .controlSize(.regular)
                 .tint(.accentColor)

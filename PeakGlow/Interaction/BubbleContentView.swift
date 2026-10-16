@@ -392,7 +392,10 @@ private struct NativeGlowSelector: NSViewRepresentable {
     @objc func select(_ sender: NSSegmentedControl) {
       guard NativeGlowSelector.modes.indices.contains(sender.selectedSegment) else { return }
       let mode = NativeGlowSelector.modes[sender.selectedSegment]
-      if selection.wrappedValue != mode { selection.wrappedValue = mode }
+      if selection.wrappedValue != mode {
+        selection.wrappedValue = mode
+        Haptics.play(.generic)
+      }
     }
   }
 }

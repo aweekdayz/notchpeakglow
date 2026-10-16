@@ -174,8 +174,7 @@ import AppKit
 
     private func showBubble() {
         bubbleVisible = true
-        // Alignment feedback on supported trackpads.
-        NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+        Haptics.play(.generic)
         onShowBubble?()
         startOutsideWatch()
         installClickMonitor()
