@@ -174,8 +174,9 @@ import AppKit
 
     private func showBubble() {
         bubbleVisible = true
-        // Alignment feedback on supported trackpads.
-        NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+        // `.generic`: Apple's pattern for an action no other pattern describes. Chosen by feel in a
+        // blind comparison; `.alignment` was too light to notice and `.levelChange` is for discrete levels.
+        Haptics.play(.generic)
         onShowBubble?()
         startOutsideWatch()
         installClickMonitor()
