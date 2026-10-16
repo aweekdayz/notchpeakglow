@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Support macOS 26. The deployment target and `LSMinimumSystemVersion` are now 26.0 (they were 27.0). Building with the macOS 27 SDK for a macOS 26 target, the compiler flagged one newer API, the Glow selector's tabs role, which is now used only on macOS 27 or later; on macOS 26 the selector is a plain segmented control. The binary's minimum OS is 26.0. Not verified: the app has not been run on macOS 26, so look, layout and behavior there are unchecked.
+
 ## 1.7.5 — October 15, 2026 (Build 49)
 
 - The app icon now fills the whole icon instead of showing a screen inset with a thick dark border: the icon itself is the top of a screen, with the notch hanging from the top edge and its glow spreading well down the icon, and the system supplies the outer shape. The notch layer now uses the system's Liquid Glass treatment. The separate "screen" layer is removed. Checked by building and rendering the compiled icon (default appearance); the Dark, Clear and Tinted appearances are derived by the system and were not reviewed by hand. An attempt to give the Tinted appearance its own single-color glow was not accepted by the icon compiler and was dropped.

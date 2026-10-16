@@ -2,7 +2,7 @@ name: PeakGlow
 options:
   bundleIdPrefix: com.aweekdayz
   deploymentTarget:
-    macOS: "27.0"
+    macOS: "26.0"
   createIntermediateGroups: true
 settings:
   base:
