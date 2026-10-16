@@ -19,9 +19,9 @@ enum PreviewLevel: Int, CaseIterable {
         switch self {
         case .auto: return "Follows your Mac's power"
         case .low: return "Glow is off"
-        case .medium: return "Preview: medium power"
-        case .high: return "Preview: high power"
-        case .overheat: return "Preview: temperature warning"
+        case .medium: return "Preview: medium power. Choose Auto to stop"
+        case .high: return "Preview: high power. Choose Auto to stop"
+        case .overheat: return "Preview: temperature warning. Choose Auto to stop"
         }
     }
 
