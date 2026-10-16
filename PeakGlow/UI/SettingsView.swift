@@ -154,6 +154,7 @@ struct SettingsView: View {
     @State private var advancedExpanded = false
     @ObservedObject private var power = AppState.shared.power
     @ObservedObject private var app = AppState.shared
+    @ObservedObject private var updates = UpdateController.shared
     @State private var notchDisplayAvailable = NotchedScreenFinder.find() != nil
 
     var body: some View {
@@ -257,10 +258,11 @@ struct SettingsView: View {
             slider("Hover delay", binding(\.hoverDwell), in: 0...0.8,
                    value: String(format: "%.0f ms", s.hoverDwell * 1000), step: 0.01, unit: "ms", scale: 1000,
                    explanation: "How long to hover over the notch before the controls open.")
+            Toggle("Haptic feedback", isOn: binding(\.hapticsEnabled))
         } header: {
             Text("Notch controls")
         } footer: {
-            SettingsNote("Move away or press Esc to close the controls. In Auto, a connected game controller pauses the glow.")
+            SettingsNote("Haptic feedback is a light tap on a Force Touch trackpad when the controls open. Your trackpad settings still apply. Move away or press Esc to close the controls. In Auto, a connected game controller pauses the glow.")
         }
         Section {
             Toggle("Warn when the Mac runs hot", isOn: binding(\.overheatAlertEnabled))
@@ -417,6 +419,18 @@ struct SettingsView: View {
             SettingsNote(notchDisplayAvailable
                 ? "Copy Diagnostics puts the Mac model, macOS version and sensor status on the clipboard for a bug report. It contains no serial number or personal data."
                 : "Glow and notch controls require a built-in notch display. External displays and closed-display mode are not supported.")
+        }
+        Section {
+            Toggle("Check for updates automatically", isOn: $updates.automaticChecks)
+            Button("Check for Updates…") {
+                updates.checkForUpdates(nil)
+            }
+            .nativeGlassAction()
+            .disabled(!updates.canCheckForUpdates)
+        } header: {
+            Text("Updates")
+        } footer: {
+            SettingsNote("PeakGlow looks for a new version about once a day. Updates are signed, and each one is checked before it replaces the app. Test versions are never offered.")
         }
         Section {
             LabeledContent("Version", value: Self.versionText)

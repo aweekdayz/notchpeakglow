@@ -37,13 +37,29 @@ The script:
 2. Runs `scripts/build-release.sh`, which signs with the hardened runtime and a secure timestamp when `PEAKGLOW_SIGN_IDENTITY` is set (ad-hoc builds are unchanged without it).
 3. Submits the ZIP with `notarytool` and waits. If Apple rejects it, the script stops and prints the command to fetch the log.
 4. Staples the ticket to the app, validates it, runs `codesign --verify` and `spctl --assess`.
-5. Replaces the ZIP and `SHA256SUMS.txt` in `build/release/v<version>/` with the stapled archive.
+5. Replaces the ZIP in `build/release/v<version>/` with the stapled archive.
+6. Builds a disk image (`PeakGlow-<version>-macOS-arm64.dmg`) holding the stapled app beside an Applications shortcut, signs it, notarizes and staples it, and checks it with `spctl`. This is the download to recommend, because installing is one drag.
+7. Writes `SHA256SUMS.txt` with both files.
 
 ## 3. Check and publish
 
 - Extract the final ZIP on a Mac that has not seen the app and confirm it opens without the Gatekeeper warning.
-- Upload the ZIP and `SHA256SUMS.txt` to the GitHub release.
+- Upload the DMG, the ZIP and `SHA256SUMS.txt` to the GitHub release.
 - Update the README download note, which currently says the app is not notarized, and the release notes.
 - Add a changelog entry that states what was actually verified (the `stapler validate` and `spctl` results).
 
 The notarized, unsandboxed build is a direct-distribution build only. It does not make the app eligible for the Mac App Store; see [Release audit](Release-Audit.md).
+
+## 4. Updates (Sparkle)
+
+The app checks `appcast.xml` on `main` (served from raw.githubusercontent.com) about once a day. Each release adds one entry, signed with the Sparkle EdDSA key. The matching public key is in `PeakGlow/Info.plist` as `SUPublicEDKey`; the private key is in the maintainer's login keychain (item "https://sparkle-project.org"). **Back it up** (`generate_keys -x file`, stored somewhere safe and never in this repository): if it is lost, installed copies can no longer verify updates and people would have to download a new version by hand once.
+
+For each release, after `scripts/notarize.sh` has built the DMG and before the GitHub release is published:
+
+```sh
+SPARKLE_BIN=/path/to/Sparkle/bin bash scripts/update-appcast.sh [notes.html]
+```
+
+`SPARKLE_BIN` is the `bin` folder of the Sparkle release tarball (it holds `sign_update`). Commit the changed `appcast.xml` to `main` in the same release, and publish the GitHub release with the DMG as an asset named in the entry. For a test release set `PEAKGLOW_CHANNEL=beta`: the entry is on the `beta` channel and people on the stable channel are never offered it.
+
+Sparkle is embedded in the app, so `scripts/build-release.sh` signs its helpers, the framework and the app in that order with the same identity; notarization rejects the app otherwise.

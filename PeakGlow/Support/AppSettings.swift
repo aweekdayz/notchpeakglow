@@ -91,6 +91,7 @@ enum PreviewLevel: Int, CaseIterable {
         static let overheatAlarm = "overheatAlarm"
         static let overheatAlertEnabled = "overheatAlertEnabled"
         static let menuBarIcon = "menuBarIcon"
+        static let haptics = "hapticFeedback"
         static let glowWallpaper = "glowWallpaper"
         static let migratable = [mediumWatts, highWatts, holdOnSeconds, hysteresisWatts,
             sampleInterval, ambientGlow, glowScale, glowIntensity, mediumAlpha, pulseHz,
@@ -244,6 +245,11 @@ enum PreviewLevel: Int, CaseIterable {
     }
 
     /// Whether the menu bar icon, a keyboard- and VoiceOver-reachable way to the controls, is shown.
+    /// Trackpad haptic feedback for the app's own discrete actions (see `Haptics`).
+    var hapticsEnabled: Bool {
+        get { get(Key.haptics, true) }
+        set { set(newValue, Key.haptics) }
+    }
     var menuBarIcon: Bool {
         get { get(Key.menuBarIcon, true) }
         set { set(newValue, Key.menuBarIcon) }
@@ -278,3 +284,20 @@ enum PreviewLevel: Int, CaseIterable {
     }
 }
 
+
+
+/// One trackpad haptic: a light tap as the controls open when the pointer settles on the notch.
+/// It plays only on a Force Touch trackpad while a finger is on it, and the system's trackpad
+/// setting still applies. Nothing else in the app taps, so the one tap keeps its meaning.
+@MainActor enum Haptics {
+    private static var last: CFTimeInterval = 0
+
+    static func play(_ pattern: NSHapticFeedbackManager.FeedbackPattern) {
+        guard AppSettings.shared.hapticsEnabled else { return }
+        // Never stack feedback, for example while a slider is dragged quickly.
+        let now = CACurrentMediaTime()
+        guard now - last > 0.04 else { return }
+        last = now
+        NSHapticFeedbackManager.defaultPerformer.perform(pattern, performanceTime: .now)
+    }
+}

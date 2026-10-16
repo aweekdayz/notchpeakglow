@@ -126,6 +126,7 @@ import ServiceManagement
         powerSampler.start(interval: AppSettings.shared.sampleInterval)
         applyLevel()   // Apply again after the renderer has been created.
 
+        UpdateController.shared.start()
         FirstRunWindow.showIfNeeded()
         if NotchedScreenFinder.find() == nil {
             SettingsWindowController.shared.show()
@@ -152,6 +153,8 @@ import ServiceManagement
         menu.addItem(appItem)
         let about = appMenu.addItem(withTitle: "About PeakGlow", action: #selector(showAbout), keyEquivalent: "")
         about.target = self
+        let appUpdates = appMenu.addItem(withTitle: "Check for Updates…", action: #selector(UpdateController.checkForUpdates(_:)), keyEquivalent: "")
+        appUpdates.target = UpdateController.shared
         appMenu.addItem(.separator())
         let settings = appMenu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
@@ -234,6 +237,8 @@ import ServiceManagement
         menu.addItem(.separator())
         let settings = menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: "")
         settings.target = self
+        let updates = menu.addItem(withTitle: "Check for Updates…", action: #selector(UpdateController.checkForUpdates(_:)), keyEquivalent: "")
+        updates.target = UpdateController.shared
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit PeakGlow", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         item.menu = menu
