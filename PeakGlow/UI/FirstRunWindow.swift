@@ -46,21 +46,15 @@ private struct FirstRunContentView: View {
 
             VStack(alignment: .leading, spacing: 10) {
                 Label {
-                    Text("Runs quietly in the background, without a Dock or menu bar icon.")
-                } icon: {
-                    Image(systemName: "eye.slash")
-                        .foregroundStyle(.secondary)
-                }
-                Label {
                     Text(notchAvailable
-                         ? "Hover over the notch to see power usage and preview the glow."
-                         : "Glow and hover controls require an available built-in notch display.")
+                         ? "Hover over the notch to see your Mac's power."
+                         : "The glow and the controls need a built-in notch display.")
                 } icon: {
                     Image(systemName: "camera.metering.center")
                         .foregroundStyle(.secondary)
                 }
                 Label {
-                    Text("Open Settings to adjust the glow and power thresholds.")
+                    Text("Settings are in the menu bar icon.")
                 } icon: {
                     Image(systemName: "slider.horizontal.3")
                         .foregroundStyle(.secondary)
@@ -78,7 +72,7 @@ private struct FirstRunContentView: View {
             .padding(.top, 4)
         }
         .padding(24)
-        .frame(width: 420, height: 340)
+        .frame(width: 420, height: 300)
     }
 }
 
