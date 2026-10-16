@@ -29,7 +29,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.aweekdayz.peakglow
         PRODUCT_NAME: PeakGlow
         MARKETING_VERSION: "1.8.0"
-        CURRENT_PROJECT_VERSION: "51"
+        CURRENT_PROJECT_VERSION: "52"
         METAL_ENABLED: "YES"
         GENERATE_INFOPLIST_FILE: "NO"
         ENABLE_HARDENED_RUNTIME: "YES"
