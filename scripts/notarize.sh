@@ -65,14 +65,22 @@ ditto -c -k --sequesterRsrc --keepParent "$app" "$work/$archive_name"
 cp "$work/$archive_name" "$archive"
 (cd "$output" && shasum -a 256 "$archive_name" > SHA256SUMS.txt)
 
-# Disk image: the stapled app beside an Applications shortcut. The image itself is signed,
-# notarized and stapled so it opens without a Gatekeeper warning, also offline.
+# Disk image: the stapled app beside an Applications shortcut, on the background from scripts/dmg.
+# The image itself is signed, notarized and stapled so it opens without a Gatekeeper warning, also offline.
+# It is laid out with dmgbuild (pip install dmgbuild; set PEAKGLOW_DMGBUILD if it is not on PATH).
 dmg_name="PeakGlow-$version-macOS-arm64.dmg"
-stage="$work/dmg"
-mkdir -p "$stage"
-cp -R "$app" "$stage/PeakGlow.app"
-ln -s /Applications "$stage/Applications"
-hdiutil create -volname "PeakGlow $version" -srcfolder "$stage" -fs HFS+ -format UDZO -ov "$work/$dmg_name" > /dev/null
+dmgbuild_bin="${PEAKGLOW_DMGBUILD:-$(command -v dmgbuild || true)}"
+if [[ -n "$dmgbuild_bin" ]]; then
+  "$dmgbuild_bin" -s "$repo_root/scripts/dmg/settings.py" -D app="$app" -D assets="$repo_root/scripts/dmg" \
+    "PeakGlow $version" "$work/$dmg_name" > /dev/null 2>&1
+else
+  echo "dmgbuild not found: making a plain disk image without the custom layout." >&2
+  stage="$work/dmg"
+  mkdir -p "$stage"
+  cp -R "$app" "$stage/PeakGlow.app"
+  ln -s /Applications "$stage/Applications"
+  hdiutil create -volname "PeakGlow $version" -srcfolder "$stage" -fs HFS+ -format UDZO -ov "$work/$dmg_name" > /dev/null
+fi
 codesign --sign "$identity" --timestamp "$work/$dmg_name"
 
 echo "Submitting $dmg_name for notarization..."

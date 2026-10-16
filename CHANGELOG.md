@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- A designed installer window. The disk image now opens to a slate background with the notch and its glow at the top, a large arrow from the app to the Applications folder and "Drag PeakGlow to Applications", with large icons. It is laid out by dmgbuild (`scripts/dmg`), so Finder's own scripting is not needed. The slate is a mid-tone on purpose: Finder draws the file names in black or white and cannot be told otherwise, so a mid-tone keeps them readable in light and dark appearance. Checked by opening the image in Finder; the pipeline ran end to end and Apple accepted it.
+
 ## 1.8.0 beta — October 16, 2026 (Build 51)
 
 - Fix Settings sometimes opening behind other windows and looking inactive (gray window buttons, no focus) even after clicking it. Right after the app switches from a background app to a regular one, the system may ignore the first request to activate it. Settings now asks, checks that the app is active and the window is key, and asks again a few times over the next second until it has worked. The cause is inferred from the symptom and the activation rules; it could not be reproduced here, so whether it is fully fixed needs checking over several openings.
