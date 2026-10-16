@@ -29,7 +29,7 @@ This version is maintained by aweekdayz with AI-assisted development. See [Credi
 
 ## Display and hardware boundaries
 
-The application supports arm64 and macOS 27+. Geometry is derived from the built-in display, not the main display. There is no external-display glow fallback. When the notch display is unavailable, rendering stops and the hover panel and controls are dismissed. Finder reopening still provides access to Settings.
+The application supports arm64 and macOS 26+ (built with the macOS 27 SDK, deployment target 26.0; only the segmented control's tabs role is guarded with `#available(macOS 27.0, *)`). Geometry is derived from the built-in display, not the main display. There is no external-display glow fallback. When the notch display is unavailable, rendering stops and the hover panel and controls are dismissed. Finder reopening still provides access to Settings.
 
 Air and Pro presets are family defaults, not a watt-per-core model or an independently measured calibration for each chip. The profile uses product metadata; a recognized Pro can use physical display width to distinguish 14 from 16 inches without relying on a user-selected scaled resolution. Unrecognized products remain unknown instead of being assumed to be a Pro.
 

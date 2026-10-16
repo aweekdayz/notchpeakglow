@@ -32,9 +32,9 @@ The latest published release is **1.7.5 / Build 49**, built with the full Xcode 
 
 ## Requirements and compatibility
 
-- macOS 27 or later.
+- macOS 26 or later. Developed and checked on macOS 27.2; macOS 26 is supported by the build (minimum system version 26.0) but has not been run on a Mac with macOS 26 yet.
 - Apple Silicon MacBook with an available built-in notch display.
-- Xcode with the macOS 27 SDK and Metal Toolchain for source builds.
+- Xcode with the macOS 27 SDK and Metal Toolchain for source builds (the app deploys back to macOS 26).
 
 | Device or configuration | Behavior | Validation status |
 | --- | --- | --- |
@@ -109,7 +109,7 @@ PeakGlow has only been verified on one MacBook Air (M2, 2022). If you have anoth
 1. Open Settings → About and click **Copy Diagnostics**.
 2. Open a [report](https://github.com/aweekdayz/notchpeakglow/issues/new?template=bug_report.md) and paste the text. Say whether the glow, the island panel and the power reading looked right.
 
-Also welcome: whether the island animation is smooth on a 120 Hz (ProMotion) display, and how the glow behaves with an external display connected.
+Also welcome: a report from a Mac running **macOS 26**, which no one has tried yet (on macOS 26 the Glow selector is a plain segmented control, because the tabs role is new in macOS 27); whether the island animation is smooth on a 120 Hz (ProMotion) display, and how the glow behaves with an external display connected.
 
 ## Limitations
 

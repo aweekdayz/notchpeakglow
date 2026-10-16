@@ -342,7 +342,7 @@ private struct BubbleFooter: View {
 }
 
 /// A system segmented control, not a drawn replacement. AppKit exposes equal segment
-/// distribution and the macOS 27 tabs role to SwiftUI hosting.
+/// distribution to SwiftUI hosting, and macOS 27 adds the tabs role.
 private struct NativeGlowSelector: NSViewRepresentable {
   @Binding var selection: PreviewLevel
   // The panel is for quick choices. The previews that tune colors live in Settings.
@@ -356,7 +356,8 @@ private struct NativeGlowSelector: NSViewRepresentable {
     let control = NSSegmentedControl(
       labels: Self.labels, trackingMode: .selectOne,
       target: context.coordinator, action: #selector(Coordinator.select(_:)))
-    control.role = .tabs
+    // The tabs role is new in macOS 27; macOS 26 keeps the plain segmented control.
+    if #available(macOS 27.0, *) { control.role = .tabs }
     control.segmentStyle = .automatic
     control.borderShape = .capsule
     control.segmentDistribution = .fillEqually
