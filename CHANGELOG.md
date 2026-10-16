@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Automatic updates with Sparkle. The app checks for a new version about once a day, and "Check for Updates…" is in the menu bar menu, the app menu and Settings → About, together with a switch for the daily check. Updates come from a signed `appcast.xml`, and each is verified against an EdDSA key and the app's Developer ID signature before it replaces the app. Test releases are on a separate channel and are not offered to stable users. Builds and notarizes with Sparkle embedded and every component signed with the same identity; the update flow itself has not been exercised yet, because it needs a second release to update to. People on versions before this one must install it by hand once.
+
 ## 1.7.6 beta — October 16, 2026 (Build 50)
 
 - Support macOS 26. The deployment target and `LSMinimumSystemVersion` are now 26.0 (they were 27.0). Building with the macOS 27 SDK for a macOS 26 target, the compiler flagged one newer API, the Glow selector's tabs role, which is now used only on macOS 27 or later; on macOS 26 the selector is a plain segmented control. The binary's minimum OS is 26.0. Not verified: the app has not been run on macOS 26, so look, layout and behavior there are unchecked.
