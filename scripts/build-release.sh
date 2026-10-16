@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
+# Checks below use `[ ]`, not `[[ ]]`: under macOS's bash 3.2 a failing `[[ ]]` does not stop a `set -e` script.
 # Full resource build. Never substitute previously compiled shaders or icons.
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$repo_root"
@@ -43,15 +44,15 @@ plist="$app/Contents/Info.plist"
 version="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$plist")"
 build_number="$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$plist")"
 minimum="$(/usr/libexec/PlistBuddy -c 'Print LSMinimumSystemVersion' "$plist")"
-[[ "$minimum" == "27.0" ]]
-[[ "$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$plist")" == "com.aweekdayz.peakglow" ]]
-[[ "$(lipo -archs "$app/Contents/MacOS/PeakGlow")" == "arm64" ]]
-[[ -s "$app/Contents/Resources/default.metallib" ]]
-[[ -s "$app/Contents/Resources/Assets.car" ]]
-[[ -s "$app/Contents/Resources/Credits.rtf" ]]
-[[ "$(/usr/libexec/PlistBuddy -c 'Print CFBundleIconName' "$plist")" == "AppIcon" ]]
+[ "$minimum" = "26.0" ]
+[ "$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$plist")" = "com.aweekdayz.peakglow" ]
+[ "$(lipo -archs "$app/Contents/MacOS/PeakGlow")" = "arm64" ]
+[ -s "$app/Contents/Resources/default.metallib" ]
+[ -s "$app/Contents/Resources/Assets.car" ]
+[ -s "$app/Contents/Resources/Credits.rtf" ]
+[ "$(/usr/libexec/PlistBuddy -c 'Print CFBundleIconName' "$plist")" = "AppIcon" ]
 recorded_sdk="$(otool -l "$app/Contents/MacOS/PeakGlow" | awk '/LC_BUILD_VERSION/{found=1} found && $1=="sdk"{print $2; found=0}')"
-[[ "$recorded_sdk" == "$sdk_version" ]]
+[ "$recorded_sdk" = "$sdk_version" ]
 
 # Clear file-provider/Finder attributes only in this temporary packaging copy.
 /usr/bin/xattr -cr "$app"
