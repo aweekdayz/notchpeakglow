@@ -174,7 +174,9 @@ import AppKit
 
     private func showBubble() {
         bubbleVisible = true
-        Haptics.play(.generic)
+        // Chosen by feel in a blind comparison of the three patterns. Apple describes `.alignment` for a
+        // dragged object lining up with something; here it is the pointer settling onto the notch.
+        Haptics.play(.alignment)
         onShowBubble?()
         startOutsideWatch()
         installClickMonitor()

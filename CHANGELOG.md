@@ -3,7 +3,7 @@
 ## Unreleased
 
 - The power readout changes more slowly and steadily. It shows the mean of the last six samples (about three seconds) and updates every two seconds, instead of every half second with the raw sample. The meter, the dot color and the Settings meter follow the same value; the glow itself is unchanged. Opening the controls or Settings shows the current value at once.
-- One haptic: a light tap on a Force Touch trackpad when the controls open as the pointer settles on the notch, with an on/off switch in Settings → General → Notch controls (on by default). Nothing else in the app taps, so the tap keeps its meaning. Its pattern is chosen by feel (see the pull request); it plays only while a finger is on the trackpad, and the system's trackpad setting applies.
+- One haptic: a light tap on a Force Touch trackpad when the controls open as the pointer settles on the notch, with an on/off switch in Settings → General → Notch controls (on by default). Nothing else in the app taps, so the tap keeps its meaning. The tap uses the `alignment` pattern, chosen by the maintainer in a blind comparison with `generic` and `levelChange` (Apple describes `alignment` for a dragged object lining up with something, so this is a choice by feel, not by the pattern's stated purpose). It plays only while a finger is on the trackpad, and the system's trackpad setting applies.
 
 ## 1.7.6 beta — October 16, 2026 (Build 50)
 
