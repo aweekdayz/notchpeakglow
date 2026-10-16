@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+
+- Fix the release script's safety checks. They used `[[ ]]`, and under macOS's bash 3.2 a failing `[[ ]]` does not stop a `set -e` script, so none of them could fail (one still required the minimum system version to be 27.0 after it became 26.0, and passed anyway). They now use `[ ]`, the stale version check is corrected, and the script was run to confirm that every check passes on the current build.
 ## 1.7.6 beta — October 16, 2026 (Build 50)
 
 - Support macOS 26. The deployment target and `LSMinimumSystemVersion` are now 26.0 (they were 27.0). Building with the macOS 27 SDK for a macOS 26 target, the compiler flagged one newer API, the Glow selector's tabs role, which is now used only on macOS 27 or later; on macOS 26 the selector is a plain segmented control. The binary's minimum OS is 26.0. Not verified: the app has not been run on macOS 26, so look, layout and behavior there are unchecked.
