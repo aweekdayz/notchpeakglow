@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.8.0 beta — October 16, 2026 (Build 51)
 
 - Fix Settings sometimes opening behind other windows and looking inactive (gray window buttons, no focus) even after clicking it. Right after the app switches from a background app to a regular one, the system may ignore the first request to activate it. Settings now asks, checks that the app is active and the window is key, and asks again a few times over the next second until it has worked. The cause is inferred from the symptom and the activation rules; it could not be reproduced here, so whether it is fully fixed needs checking over several openings.
 - Automatic updates with Sparkle. The app checks for a new version about once a day, and "Check for Updates…" is in the menu bar menu, the app menu and Settings → About, together with a switch for the daily check. Updates come from a signed `appcast.xml`, and each is verified against an EdDSA key and the app's Developer ID signature before it replaces the app. Test releases are on a separate channel and are not offered to stable users. Builds and notarizes with Sparkle embedded and every component signed with the same identity; the update flow itself has not been exercised yet, because it needs a second release to update to. People on versions before this one must install it by hand once.
