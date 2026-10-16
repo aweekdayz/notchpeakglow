@@ -57,11 +57,27 @@ recorded_sdk="$(otool -l "$app/Contents/MacOS/PeakGlow" | awk '/LC_BUILD_VERSION
 # Clear file-provider/Finder attributes only in this temporary packaging copy.
 /usr/bin/xattr -cr "$app"
 # A secure timestamp is required for notarization; ad-hoc signatures cannot carry one.
+# Sign from the inside out: Sparkle's helpers, then the framework, then the app. Notarization
+# rejects nested code that is unsigned or signed with a different identity.
 if [[ -n "${PEAKGLOW_SIGN_IDENTITY:-}" ]]; then
-  codesign --force --options runtime --timestamp --sign "$PEAKGLOW_SIGN_IDENTITY" "$app"
+  identity="$PEAKGLOW_SIGN_IDENTITY"
+  stamp="--timestamp"
 else
-  codesign --force --options runtime --sign - "$app"
+  identity="-"
+  stamp=""
 fi
+sparkle="$app/Contents/Frameworks/Sparkle.framework"
+[ -d "$sparkle/Versions/B" ]
+# $stamp is empty for ad-hoc builds and is deliberately left unquoted.
+# shellcheck disable=SC2086
+{
+  codesign --force --options runtime $stamp --sign "$identity" "$sparkle/Versions/B/XPCServices/Installer.xpc"
+  codesign --force --options runtime $stamp --sign "$identity" --preserve-metadata=entitlements "$sparkle/Versions/B/XPCServices/Downloader.xpc"
+  codesign --force --options runtime $stamp --sign "$identity" "$sparkle/Versions/B/Autoupdate"
+  codesign --force --options runtime $stamp --sign "$identity" "$sparkle/Versions/B/Updater.app"
+  codesign --force --options runtime $stamp --sign "$identity" "$sparkle"
+  codesign --force --options runtime $stamp --sign "$identity" "$app"
+}
 codesign --verify --deep --strict "$app"
 archive="PeakGlow-$version-macOS-arm64.zip"
 ditto -c -k --sequesterRsrc --keepParent "$app" "$staging/$archive"

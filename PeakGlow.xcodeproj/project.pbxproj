@@ -14,11 +14,14 @@
 		2B032AFD630F3D52844285AB /* MachineProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFC475527A2DCCC0F019E87C /* MachineProfile.swift */; };
 		33DEBAD1296BBB9C53D2CC7B /* FirstRunWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE4F84256D3BFB04B82F10C2 /* FirstRunWindow.swift */; };
 		5ADA518D0A58FE3C346AFD29 /* LoadLevel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 041F8511C918A713E5CA7422 /* LoadLevel.swift */; };
+		653F08587B22F1B2917C1D60 /* Updater.swift in Sources */ = {isa = PBXBuildFile; fileRef = C31358000C7B62FFE59BD8B2 /* Updater.swift */; };
 		75E52D962DBF0DA416B232AB /* GlowRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE98DF89F29E5522CA839459 /* GlowRenderer.swift */; };
+		7C07E5C7E31202D1D7380473 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 947B51C0D6B1161669E0CD41 /* Credits.rtf */; };
 		7E4B5EF42BE98B66535685D6 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 921A1EC63FCD5D81D85E9DB8 /* AppSettings.swift */; };
 		8247575F1B04868197DAA8E4 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = E325D50F3CD2289EC27B9B37 /* main.swift */; };
 		9472BD2A8EE4018D1BE65F4D /* BubblePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D149312326374FC6AAE91C3 /* BubblePanel.swift */; };
 		AF112D09527C13BCA0D2F736 /* GlowWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BC3B4E0AABB45544D7FD46F /* GlowWindow.swift */; };
+		C485D9C5F41DE5843D11B526 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 6CF76252A06A05A697CF4BDC /* Sparkle */; };
 		C84C3ADC8A669FE527FADEC3 /* PowerSampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC527218437FDBCE3745D7C7 /* PowerSampler.swift */; };
 		C85DF53558B1C2147F97FAC4 /* GlowMetalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E117F4343DB12781F2BF067 /* GlowMetalView.swift */; };
 		C8CE40F8867D1AE1641656A5 /* NotchHoverController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEE289D61299F7311EF8C24D /* NotchHoverController.swift */; };
@@ -28,7 +31,6 @@
 		DA161A58960978E50627FF11 /* ThermalMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BADE20C64EADC092E8B2D15C /* ThermalMonitor.swift */; };
 		EAB5C494BCEC6905F683DB32 /* BubbleContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5507590C1DD1C460678DA601 /* BubbleContentView.swift */; };
 		F6B5AC507E4F5D935F9247EF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 765566A9E74AE98C9852F586 /* SettingsView.swift */; };
-		0BD592C4CEE703AA31B28366 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = D39DC3708C9152AC6A062667 /* Credits.rtf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,6 +42,7 @@
 		873C19AC9710E7C3E5B33550 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		8BC3B4E0AABB45544D7FD46F /* GlowWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlowWindow.swift; sourceTree = "<group>"; };
 		921A1EC63FCD5D81D85E9DB8 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		947B51C0D6B1161669E0CD41 /* Credits.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = Credits.rtf; sourceTree = "<group>"; };
 		9E117F4343DB12781F2BF067 /* GlowMetalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlowMetalView.swift; sourceTree = "<group>"; };
 		AD53F473276B7C760EF4F271 /* Shaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
 		AE98DF89F29E5522CA839459 /* GlowRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlowRenderer.swift; sourceTree = "<group>"; };
@@ -48,14 +51,25 @@
 		BBC15F8F50226CE5F4139255 /* GamepadDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamepadDetector.swift; sourceTree = "<group>"; };
 		BD9C61170DDE7370117EE80E /* NotchedScreenFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchedScreenFinder.swift; sourceTree = "<group>"; };
 		BEE289D61299F7311EF8C24D /* NotchHoverController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchHoverController.swift; sourceTree = "<group>"; };
+		C31358000C7B62FFE59BD8B2 /* Updater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Updater.swift; sourceTree = "<group>"; };
 		CFC475527A2DCCC0F019E87C /* MachineProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MachineProfile.swift; sourceTree = "<group>"; };
 		DB7017F1642EF8284228D25F /* PeakGlow.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PeakGlow.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E325D50F3CD2289EC27B9B37 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		EE4F84256D3BFB04B82F10C2 /* FirstRunWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstRunWindow.swift; sourceTree = "<group>"; };
 		F2B9FD6D34CBBFF87048788A /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		FC527218437FDBCE3745D7C7 /* PowerSampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerSampler.swift; sourceTree = "<group>"; };
-		D39DC3708C9152AC6A062667 /* Credits.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = Credits.rtf; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		5DA771C8D097653A48D995F4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C485D9C5F41DE5843D11B526 /* Sparkle in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		2C80B063B77A4206FA01ABB2 /* Monitor */ = {
@@ -82,8 +96,8 @@
 			isa = PBXGroup;
 			children = (
 				20EA2667F8029096F50783C6 /* AppDelegate.swift */,
-				D39DC3708C9152AC6A062667 /* Credits.rtf */,
 				F2B9FD6D34CBBFF87048788A /* AppIcon.icon */,
+				947B51C0D6B1161669E0CD41 /* Credits.rtf */,
 				E325D50F3CD2289EC27B9B37 /* main.swift */,
 				C5F59C6FF6C2C311F55594CF /* Glow */,
 				F5755BD0F6F07EB7BF0DDC89 /* Interaction */,
@@ -109,6 +123,7 @@
 				873C19AC9710E7C3E5B33550 /* AppState.swift */,
 				CFC475527A2DCCC0F019E87C /* MachineProfile.swift */,
 				BD9C61170DDE7370117EE80E /* NotchedScreenFinder.swift */,
+				C31358000C7B62FFE59BD8B2 /* Updater.swift */,
 			);
 			path = Support;
 			sourceTree = "<group>";
@@ -152,6 +167,7 @@
 			buildPhases = (
 				73B1EF4AACF42CFBCCAD97F0 /* Sources */,
 				32E8D9BE2312CDB4650B74E5 /* Resources */,
+				5DA771C8D097653A48D995F4 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -159,6 +175,7 @@
 			);
 			name = PeakGlow;
 			packageProductDependencies = (
+				6CF76252A06A05A697CF4BDC /* Sparkle */,
 			);
 			productName = PeakGlow;
 			productReference = DB7017F1642EF8284228D25F /* PeakGlow.app */;
@@ -184,6 +201,9 @@
 			);
 			mainGroup = CF2147FB37C9CE6FDC2F4469;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				FBC493B5248D8484931F717F /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 739E21D7B2F1F625E0C76BD8 /* Products */;
 			projectDirPath = "";
@@ -200,7 +220,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CAA88B5EB9E75ADD581A79A2 /* AppIcon.icon in Resources */,
-				0BD592C4CEE703AA31B28366 /* Credits.rtf in Resources */,
+				7C07E5C7E31202D1D7380473 /* Credits.rtf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -230,6 +250,7 @@
 				F6B5AC507E4F5D935F9247EF /* SettingsView.swift in Sources */,
 				CA05C618538B330CE92761A3 /* Shaders.metal in Sources */,
 				DA161A58960978E50627FF11 /* ThermalMonitor.swift in Sources */,
+				653F08587B22F1B2917C1D60 /* Updater.swift in Sources */,
 				8247575F1B04868197DAA8E4 /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -240,13 +261,11 @@
 		0C06D988E72CC4F6B5699CEB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = arm64;
-				DEVELOPMENT_LANGUAGE = en;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 50;
-				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = PeakGlow/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -265,6 +284,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = arm64;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -298,6 +318,7 @@
 				CODE_SIGN_IDENTITY = "";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_LANGUAGE = en;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -322,8 +343,6 @@
 		9C40740F73F0241EC4702019 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = arm64;
-				DEVELOPMENT_LANGUAGE = en;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -347,6 +366,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = arm64;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -380,6 +400,7 @@
 				CODE_SIGN_IDENTITY = "";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_LANGUAGE = en;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -430,7 +451,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		FBC493B5248D8484931F717F /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = exactVersion;
+				version = 2.10.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		6CF76252A06A05A697CF4BDC /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FBC493B5248D8484931F717F /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = F92FF475928BCF9F197C59F9 /* Project object */;
 }
-
