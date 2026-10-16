@@ -11,12 +11,12 @@ import Combine
     var settingsVisible = false
     var latestWatts: Double = 0
     private var lastPowerSample: Date?
-    /// The readout shows the mean of the last few samples and changes about once a second;
+    /// The readout shows the mean of the last few samples and changes about every two seconds;
     /// the sensor itself is read faster, and raw samples jump around too much to read.
     private var recentWatts: [Double] = []
     private var lastPublish = Date.distantPast
-    private static let readoutSamples = 4
-    private static let readoutInterval: TimeInterval = 1.0
+    private static let readoutSamples = 6
+    private static let readoutInterval: TimeInterval = 2.0
     enum PowerAvailability { case waiting, current, unavailable }
     var latestPowerAvailability: PowerAvailability = .waiting
     let power = PowerReadingState()

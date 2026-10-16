@@ -286,12 +286,9 @@ enum PreviewLevel: Int, CaseIterable {
 
 
 
-/// Trackpad haptics for the app's own discrete actions, on Macs that have a Force Touch trackpad
-/// (they play only while a finger is on it, and the system's trackpad setting still applies).
-/// Used sparingly and always paired with something visible: opening the island, choosing a Glow
-/// mode and stepping a power threshold. `.generic` marks an action; `.levelChange` marks moving
-/// between discrete values. `.alignment` is for a dragged object lining up with something, so it
-/// is not used here.
+/// One trackpad haptic: a light tap as the controls open when the pointer settles on the notch.
+/// It plays only on a Force Touch trackpad while a finger is on it, and the system's trackpad
+/// setting still applies. Nothing else in the app taps, so the one tap keeps its meaning.
 @MainActor enum Haptics {
     private static var last: CFTimeInterval = 0
 
