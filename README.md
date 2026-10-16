@@ -109,7 +109,7 @@ PeakGlow has only been verified on one MacBook Air (M2, 2022). If you have anoth
 1. Open Settings → About and click **Copy Diagnostics**.
 2. Open a [report](https://github.com/aweekdayz/notchpeakglow/issues/new?template=bug_report.md) and paste the text. Say whether the glow, the island panel and the power reading looked right.
 
-Also welcome: a report from a Mac running **macOS 26**, which no one has tried yet. The [1.7.6 beta](https://github.com/aweekdayz/notchpeakglow/releases/tag/v1.7.6-beta) is the build to try (on macOS 26 the Glow selector is a plain segmented control, because the tabs role is new in macOS 27); whether the island animation is smooth on a 120 Hz (ProMotion) display, and how the glow behaves with an external display connected.
+Also welcome: a report from a Mac running **macOS 26**, which no one has tried yet. The [1.8.0 beta](https://github.com/aweekdayz/notchpeakglow/releases/tag/v1.8.0-beta) is the build to try (on macOS 26 the Glow selector is a plain segmented control, because the tabs role is new in macOS 27); whether the island animation is smooth on a 120 Hz (ProMotion) display, and how the glow behaves with an external display connected.
 
 ## Limitations
 
