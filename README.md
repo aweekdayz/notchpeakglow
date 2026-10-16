@@ -26,9 +26,9 @@ macOS screenshots do not include the hardware notch, so the black notch in the g
 
 [Latest published release](https://github.com/aweekdayz/notchpeakglow/releases/latest).
 
-Quit any running copy, extract the ZIP and move `PeakGlow.app` to Applications. Existing preferences are retained. From 1.7.1 the app is signed with a Developer ID certificate and **notarized by Apple**, so it opens normally. Earlier releases (up to 1.7.0) are ad-hoc signed and not notarized; macOS may restrict their first launch, and System Settings → Privacy & Security is the place to allow one only if you trust the download.
+Quit any running copy, open the **DMG** and drag PeakGlow to Applications. (A ZIP is also provided.) Existing preferences are retained. From 1.7.1 the app is signed with a Developer ID certificate and **notarized by Apple**, so it opens normally. From 1.8.0 it **updates itself**: it checks about once a day, and Settings → About has a switch and a Check for Updates… button. Earlier versions have no updater, so install 1.8.0 by hand once.
 
-The latest published release is **1.7.5 / Build 49**, built with the full Xcode workflow and verified shader, layered-icon and Credits resources. See [Release audit](docs/Release-Audit.md) for validation and outstanding work.
+The latest published release is **1.8.0 / Build 52**. See [Release audit](docs/Release-Audit.md) for what was checked and what was not.
 
 ## Requirements and compatibility
 
