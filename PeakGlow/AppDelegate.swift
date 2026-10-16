@@ -188,8 +188,23 @@ import ServiceManagement
         windowMenu.addItem(.separator())
         let close = windowMenu.addItem(withTitle: "Close Window", action: #selector(closeActiveWindow), keyEquivalent: "w")
         close.target = self
+        let helpItem = NSMenuItem()
+        let helpMenu = NSMenu(title: "Help")
+        helpItem.submenu = helpMenu
+        menu.addItem(helpItem)
+        helpMenu.addItem(withTitle: "PeakGlow Help", action: #selector(openHelp), keyEquivalent: "?").target = self
+        helpMenu.addItem(withTitle: "Report an Issue…", action: #selector(reportIssue), keyEquivalent: "").target = self
         NSApp.mainMenu = menu
         NSApp.windowsMenu = windowMenu
+        NSApp.helpMenu = helpMenu
+    }
+
+    @objc private func openHelp() {
+        NSWorkspace.shared.open(URL(string: "https://github.com/aweekdayz/notchpeakglow#readme")!)
+    }
+
+    @objc private func reportIssue() {
+        NSWorkspace.shared.open(URL(string: "https://github.com/aweekdayz/notchpeakglow/issues/new?template=bug_report.md")!)
     }
 
     @objc private func openSettings() {

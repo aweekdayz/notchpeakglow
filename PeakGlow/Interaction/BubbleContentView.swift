@@ -58,6 +58,7 @@ struct PowerMeter: View {
     /// False draws the meter empty; turning it on fills it, which the panel uses as it opens.
     var revealed: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorSchemeContrast) private var contrast
 
     private let barHeight: CGFloat = 8
     private let edgeWidth: CGFloat = 14
@@ -69,7 +70,8 @@ struct PowerMeter: View {
                 let lit = revealed ? width * min(max(watts / max(maximum, 1), 0), 1) : 0
                 let fill = LinearGradient(gradient: gradient, startPoint: .leading, endPoint: .trailing)
                 ZStack(alignment: .leading) {
-                    Rectangle().fill(fill).opacity(0.28)
+                    // With Increase Contrast on, the unlit part is easier to tell from the background.
+                    Rectangle().fill(fill).opacity(contrast == .increased ? 0.5 : 0.28)
                     Rectangle().fill(fill)
                         .mask(alignment: .leading) { Rectangle().frame(width: lit) }
                     // A soft highlight on the leading edge of the lit part.
@@ -112,9 +114,9 @@ struct PowerMeter: View {
 
     private func tick(at x: CGFloat) -> some View {
         Rectangle()
-            .fill(Color.primary.opacity(0.55))
-            .frame(width: 1.5, height: barHeight + 6)
-            .offset(x: x - 0.75)
+            .fill(Color.primary.opacity(contrast == .increased ? 0.95 : 0.55))
+            .frame(width: contrast == .increased ? 2.5 : 1.5, height: barHeight + 6)
+            .offset(x: x - (contrast == .increased ? 1.25 : 0.75))
     }
 }
 

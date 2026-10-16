@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- HIG review of the whole app (see `docs/HIG-Review.md`), with four fixes: a Help menu (PeakGlow Help and Report an Issue…); "Check for Updates…" is dimmed while a check is running; the Settings window no longer has a minimize button; and with Increase Contrast on, the power meter's unlit track and its threshold ticks are stronger. VoiceOver and Full Keyboard Access were not tested.
+
 ## 1.8.0 beta — October 16, 2026 (Build 51)
 
 - Fix Settings sometimes opening behind other windows and looking inactive (gray window buttons, no focus) even after clicking it. Right after the app switches from a background app to a regular one, the system may ignore the first request to activate it. Settings now asks, checks that the app is active and the window is key, and asks again a few times over the next second until it has worked. The cause is inferred from the symptom and the activation rules; it could not be reproduced here, so whether it is fully fixed needs checking over several openings.

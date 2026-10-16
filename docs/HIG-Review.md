@@ -304,3 +304,25 @@ Build 36 passed Swift compilation with SDK/minimum OS 27.0, source whitespace ch
 The user's screenshot identifies the concrete layout failure: Dimming margin appears correctly at the left, but the native numeric TextField repeats the label in its compact right-side allocation and wraps it into a tall column of fragments. The shared slider row supplied TextField(title, value: ...) without labelsHidden. The native field now uses an empty visual label and labelsHidden, retaining the explicit accessibility label and value, native editing and stable field/unit widths. This removes the duplicate visual label in every numeric slider row: power thresholds, hover delay, breathing rate, HDR gain, frame rate, alert brightness, dimming margin, transition delay and sampling interval. The native Slider already hides its redundant label; other Settings controls were reviewed for this duplication pattern. No main-panel or behavior changes are made. No Computer Use, app launch or visual interaction testing is performed; the corrected Settings layout remains for user verification.
 
 Build 37 passed Swift compilation with SDK/minimum OS 27.0, source whitespace checks and package signature verification.
+
+## Audit — October 16, 2026 (1.8.0)
+
+A review of the whole app against Apple's Human Interface Guidelines, from the code and the built app. Apple's HIG pages could not be fetched in full from here, so the judgments below rest on the AppKit and SwiftUI behavior and on the guidelines as generally known, not on quoted text. **Nothing here was tested with VoiceOver or Full Keyboard Access**; those rows say so.
+
+| Area | Finding | Status |
+| --- | --- | --- |
+| App icon | Layered `.icon` with full-bleed artwork, the system supplies the shape and glass. The default appearance was rendered and checked; Dark, Clear and Tinted are derived by the system and were not reviewed by hand. | Mostly checked |
+| Menu bar | Standard App, Edit, Window menus with the usual key equivalents (⌘, ⌘W ⌘H ⌘Q); ellipses on items that need more input; "Check for Updates…" after About. There was no Help menu. | Fixed: Help menu added (PeakGlow Help, Report an Issue…) |
+| Menu items | "Check for Updates…" stayed enabled while a check was running. | Fixed: it follows Sparkle's state |
+| Menu bar icon | A template image drawn at 18 pt with an accessibility description; its menu offers power, Glow mode, Settings…, Check for Updates… and Quit, so every function has a pointer-free path. | Compliant |
+| Settings window | Sidebar and grouped form, a toolbar Reset with a confirmation, system controls. It had a minimize button, which a settings window does not need. | Fixed: minimize removed |
+| Controls | System toggles, pickers, segmented control and sliders; every slider also takes a typed value. | Compliant |
+| Writing | Title case for buttons and menu items, sentence case for labels. Redundant explanations were removed (see the changelog). The app is English only. | Compliant; localization is an open choice |
+| Motion | The slowest pulse is 2 Hz at most, nothing flashes. Reduce Motion turns the island into a fade and stops the meter's motion. | Compliant |
+| Color | Color carries power in the glow, but the number is always shown beside it in the panel, and the status text accompanies the status dot. | Compliant |
+| Increase Contrast | System colors adapt by themselves; the custom power meter did not. | Fixed: stronger unlit track and ticks |
+| Haptics | One light tap when the controls open, optional, never the only feedback. | Compliant (HIG text not read) |
+| Windows | The glow and island are non-activating panels; Settings briefly makes the app a regular app so the menu bar appears, and it could stay behind other windows (fixed in 1.8.0). | Compliant after the fix; needs checking over several openings |
+| Keyboard | Esc closes the island, ⌘W closes windows, Settings has a focused sidebar. The island itself opens on hover; its keyboard path is the menu bar icon. | Not verified with Full Keyboard Access |
+| VoiceOver | Readout, meter, selector and buttons have labels and values; the island's own meter is hidden because the readout carries the value. | Not verified with VoiceOver |
+| Localization | English only. | Open |
