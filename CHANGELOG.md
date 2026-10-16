@@ -2,7 +2,7 @@
 
 ## 1.8.0 — October 16, 2026 (Build 52)
 
-The first stable release with automatic updates, the disk image and macOS 26 support. It includes everything in the 1.8.0 beta below, plus:
+The first stable release with automatic updates, the disk image and macOS 26 support. The automatic update from the 1.8.0 beta to this release has been run successfully on one Mac. It includes everything in the 1.8.0 beta below, plus:
 
 - HIG review of the whole app (see `docs/HIG-Review.md`), with four fixes: a Help menu (PeakGlow Help and Report an Issue…); "Check for Updates…" is dimmed while a check is running; the Settings window no longer has a minimize button; and with Increase Contrast on, the power meter's unlit track and its threshold ticks are stronger. VoiceOver and Full Keyboard Access were not tested.
 - A designed installer window. The disk image now opens to a slate background with the notch and its glow at the top, a large arrow from the app to the Applications folder and "Drag PeakGlow to Applications", with large icons. It is laid out by dmgbuild (`scripts/dmg`), so Finder's own scripting is not needed. The slate is a mid-tone on purpose: Finder draws the file names in black or white and cannot be told otherwise, so a mid-tone keeps them readable in light and dark appearance. Checked by opening the image in Finder; the pipeline ran end to end and Apple accepted it.
