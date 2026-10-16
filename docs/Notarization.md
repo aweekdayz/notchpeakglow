@@ -38,7 +38,7 @@ The script:
 3. Submits the ZIP with `notarytool` and waits. If Apple rejects it, the script stops and prints the command to fetch the log.
 4. Staples the ticket to the app, validates it, runs `codesign --verify` and `spctl --assess`.
 5. Replaces the ZIP in `build/release/v<version>/` with the stapled archive.
-6. Builds a disk image (`PeakGlow-<version>-macOS-arm64.dmg`) holding the stapled app beside an Applications shortcut, signs it, notarizes and staples it, and checks it with `spctl`. This is the download to recommend, because installing is one drag.
+6. Builds a disk image (`PeakGlow-<version>-macOS-arm64.dmg`) with [dmgbuild](https://github.com/dmgbuild/dmgbuild) (`pip install dmgbuild`; set `PEAKGLOW_DMGBUILD` if it is not on `PATH`; without it a plain image is made). The window uses the background in `scripts/dmg` (regenerate it with `python3 scripts/dmg/make-background.py`, which needs numpy and Pillow) and shows the stapled app beside an Applications shortcut. The image is signed, notarized, stapled and checked with `spctl`. This is the download to recommend, because installing is one drag.
 7. Writes `SHA256SUMS.txt` with both files.
 
 ## 3. Check and publish
