@@ -120,3 +120,7 @@ Published as v1.8.0 (Build 52), signed with Developer ID and notarized for both 
 ### Automatic update verified — October 16, 2026
 
 The maintainer updated the installed 1.8.0 beta (Build 51) to 1.8.0 (Build 52) with Check for Updates… on a MacBook Air (M2) running macOS 27.2, and it succeeded. This is the first end-to-end run of the update path: the appcast was fetched, the new version was offered, and the download was verified and installed. It covers one Mac, one macOS version and an update from the beta to the stable release; an update between two stable releases, the automatic daily check without a click, and updates on macOS 26 have not been run.
+
+### The test releases were removed — October 16, 2026
+
+The pre-releases 1.7.6 beta and 1.8.0 beta, and their tags, were deleted from GitHub once 1.8.0 superseded them. The audit entries above remain as the record of what those builds were and what was checked on them. The stable releases, including the older ones, remain.
