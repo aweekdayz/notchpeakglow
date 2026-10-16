@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Cut the app's explanatory text. Removed what repeats the control's own label or is obvious from it: the notes under the Menu bar section, the hover delay, glow size, base opacity, breathing rate, warning brightness and warning size sliders, the Updates note, the long Glow mode and Power now notes, the "System power" label beside the number (it now appears only when power data is unavailable), and the tooltips that repeated the Settings and Quit button labels. Shortened what remained: the Temperature, Wallpaper, sampling interval, frame rate, HDR and About notes. The first-run window no longer says the app has no menu bar icon, which has been untrue since the menu bar icon was added; it now says to hover over the notch and where Settings is, and the window is shorter. The Mid, High and Hot captions in Settings now say how to stop previewing.
+
 ## 1.8.0 beta — October 16, 2026 (Build 51)
 
 - Fix Settings sometimes opening behind other windows and looking inactive (gray window buttons, no focus) even after clicking it. Right after the app switches from a background app to a regular one, the system may ignore the first request to activate it. Settings now asks, checks that the app is active and the window is key, and asks again a few times over the next second until it has worked. The cause is inferred from the symptom and the activation rules; it could not be reproduced here, so whether it is fully fixed needs checking over several openings.
