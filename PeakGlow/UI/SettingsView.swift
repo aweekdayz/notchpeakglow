@@ -75,7 +75,7 @@ import ServiceManagement
     private func makeWindow() -> NSWindow {
         let w = SettingsWindow(
             contentRect: NSRect(x: 0, y: 0, width: 760, height: 560),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            styleMask: [.titled, .closable, .resizable],
             backing: .buffered, defer: false)
         w.title = "PeakGlow Settings"
         w.isReleasedWhenClosed = false
