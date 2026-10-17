@@ -42,6 +42,17 @@ struct BatterySnapshot: Equatable {
     /// True while the battery is taking power in.
     var isChargingNow: Bool { externalConnected && isCharging }
 
+    /// Whether the battery is taking power in, from three signals together. Right after the charger is
+    /// connected the registry's flag can lag behind by several seconds, and some chargers never set it,
+    /// so the system's own power-source state and the direction of the current count as well. A Mac that is
+    /// plugged in and holding its charge, for example at 80%, has none of the three.
+    static func charging(flag: Bool, systemSays: Bool?, current: Double?, external: Bool, fullyCharged: Bool) -> Bool {
+        guard external, !fullyCharged else { return false }
+        if flag || systemSays == true { return true }
+        if let current, current > 0.05 { return true }
+        return false
+    }
+
     /// A few words for what the battery is doing.
     var statusText: String {
         if externalConnected {
@@ -160,6 +171,15 @@ struct BatterySnapshot: Equatable {
         if on { refresh(announce: false) }
     }
 
+    /// The charging flag can take a few seconds to follow a newly connected charger, so look again soon.
+    private func settleReads() {
+        for delay in [1.0, 3.0, 6.0, 12.0] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                MainActor.assumeIsolated { self?.refresh(announce: true) }
+            }
+        }
+    }
+
     private func scheduleTimer() {
         timer?.invalidate()
         let t = Timer(timeInterval: watching ? 2 : 60, repeats: true) { [weak self] _ in
@@ -180,7 +200,10 @@ struct BatterySnapshot: Equatable {
         if new != old { snapshot = new }
         onUpdate?(new)
         guard announce, let old, let new else { return }
-        if !old.externalConnected && new.externalConnected { onEvent?(.pluggedIn) }
+        if !old.externalConnected && new.externalConnected {
+            onEvent?(.pluggedIn)
+            settleReads()
+        }
         else if old.externalConnected && !new.externalConnected { onEvent?(.unplugged) }
         else if new.externalConnected && !old.fullyCharged && new.fullyCharged { onEvent?(.fullyCharged) }
     }
@@ -193,6 +216,22 @@ struct BatterySnapshot: Equatable {
         var props: Unmanaged<CFMutableDictionary>?
         guard IORegistryEntryCreateCFProperties(service, &props, kCFAllocatorDefault, 0) == KERN_SUCCESS,
               let dictionary = props?.takeRetainedValue() as? [String: Any] else { return nil }
-        return BatterySnapshot.parse(dictionary)
+        guard var snapshot = BatterySnapshot.parse(dictionary) else { return nil }
+        snapshot.isCharging = BatterySnapshot.charging(
+            flag: snapshot.isCharging, systemSays: systemSaysCharging(), current: snapshot.current,
+            external: snapshot.externalConnected, fullyCharged: snapshot.fullyCharged)
+        return snapshot
+    }
+
+    /// The charging state that `pmset -g batt` and the battery menu use, from the public power-source API.
+    nonisolated static func systemSaysCharging() -> Bool? {
+        guard let info = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
+              let list = IOPSCopyPowerSourcesList(info)?.takeRetainedValue() as? [CFTypeRef] else { return nil }
+        for source in list {
+            guard let description = IOPSGetPowerSourceDescription(info, source)?.takeUnretainedValue() as? [String: Any],
+                  (description[kIOPSTypeKey] as? String) == kIOPSInternalBatteryType else { continue }
+            return description[kIOPSIsChargingKey] as? Bool
+        }
+        return nil
     }
 }

@@ -98,7 +98,7 @@ struct BatterySettingsContent: View {
                 Text("Health")
             } footer: {
                 if let health = b.healthPercent, health < 80 {
-                    SettingsNote("macOS may recommend service for a battery below 80% of its design capacity.")
+                    Text("macOS may recommend service for a battery below 80% of its design capacity.")
                 }
             }
             Section {
@@ -116,7 +116,7 @@ struct BatterySettingsContent: View {
                 Text("Power")
             } footer: {
                 if b.externalConnected && !b.isCharging && !b.fullyCharged && b.percent < 100 {
-                    SettingsNote("The Mac is plugged in but not charging. macOS may be holding the charge, for example at 80% to protect the battery.")
+                    Text("The Mac is plugged in but not charging. macOS may be holding the charge, for example at 80% to protect the battery.")
                 }
             }
             Section {

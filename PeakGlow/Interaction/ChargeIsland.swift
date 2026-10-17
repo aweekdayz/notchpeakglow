@@ -25,9 +25,9 @@ import SwiftUI
         generation &+= 1
         let current = generation
 
-        // A little wider than the notch on each side and a little taller, rounded to a pill, so the
-        // content sits close to the notch instead of at the ends of a wide bar.
-        let size = CGSize(width: notch.width + 2 * ChargeIslandMetrics.wing, height: notch.height + 8)
+        // Exactly as tall as the notch and a little wider than it on each side, so it reads as the
+        // notch itself widening, with the content centered on the notch's own height.
+        let size = CGSize(width: notch.width + 2 * ChargeIslandMetrics.wing, height: notch.height)
         let frame = CGRect(x: notch.midX - size.width / 2, y: screen.frame.maxY - size.height,
                            width: size.width, height: size.height)
         model.percent = percent
@@ -113,7 +113,7 @@ enum ChargeIslandMetrics {
     @Published var percent = 0
     @Published var full = false
     @Published var notchSize = CGSize(width: 180, height: 32)
-    @Published var size = CGSize(width: 180 + 2 * ChargeIslandMetrics.wing, height: 40)
+    @Published var size = CGSize(width: 180 + 2 * ChargeIslandMetrics.wing, height: 32)
 }
 
 struct ChargeIslandView: View {
@@ -141,8 +141,7 @@ struct ChargeIslandView: View {
                 .frame(width: wing, alignment: .trailing)
                 .islandReveal(motion.expanded, delay: 0.20, reduceMotion: reduceMotion, blurs: false)
         }
-        .frame(width: model.size.width, height: model.notchSize.height, alignment: .top)
-        .frame(width: model.size.width, height: model.size.height, alignment: .top)
+        .frame(width: model.size.width, height: model.size.height)
         .environment(\.colorScheme, .dark)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(model.full ? "Fully charged" : "Charging, \(model.percent) percent")

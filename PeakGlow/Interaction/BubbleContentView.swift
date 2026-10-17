@@ -177,7 +177,7 @@ struct BubbleContentView: View {
           .accessibilityValue(power.reading.availability == .current ? "\(powerText) watts" : powerDescription)
           if let b = battery.snapshot {
             PanelBatteryColumn(snapshot: b, readoutSize: readoutSize)
-              .frame(maxWidth: .infinity, alignment: .leading)
+              .frame(maxWidth: .infinity, alignment: .trailing)
               .padding(.leading, 16)
               .overlay(alignment: .leading) {
                 Rectangle()
@@ -442,7 +442,7 @@ private struct PanelBatteryColumn: View {
   let readoutSize: CGFloat
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 3) {
+    VStack(alignment: .trailing, spacing: 3) {
       HStack(alignment: .lastTextBaseline, spacing: 4) {
         Text("\(snapshot.percent)")
           .font(.system(size: readoutSize, weight: .semibold, design: .rounded))

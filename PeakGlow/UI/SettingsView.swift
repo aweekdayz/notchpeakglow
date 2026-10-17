@@ -73,14 +73,13 @@ import ServiceManagement
     }
 
     private func makeWindow() -> NSWindow {
-        let w = SettingsWindow(
+        let w = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 760, height: 560),
             styleMask: [.titled, .closable, .resizable],
             backing: .buffered, defer: false)
         w.title = "PeakGlow Settings"
         w.isReleasedWhenClosed = false
         w.minSize = NSSize(width: 700, height: 540)
-        w.toolbarStyle = .unified
         w.setFrameAutosaveName("PeakGlowSettings")
         w.alphaValue = 0
         let hosting = NSHostingView(rootView: SettingsView(onReady: { [weak self, weak w] in
@@ -90,7 +89,6 @@ import ServiceManagement
                 w.contentView?.needsLayout = true
                 w.contentView?.layoutSubtreeIfNeeded()
                 w.contentView?.displayIfNeeded()
-                w.alignResetToolbar()
                 if self.warming {
                     // Built out of sight: put it away until it is asked for.
                     self.warming = false
@@ -120,31 +118,11 @@ import ServiceManagement
     }
 }
 
-/// The AppKit window owns native toolbar spacing; SwiftUI owns the controls.
-private final class SettingsWindow: NSWindow {
-    override func update() {
-        super.update()
-        alignResetToolbar()
-    }
-
-    func alignResetToolbar() {
-        guard let toolbar, toolbar.items.count >= 2 else { return }
-        if !toolbar.centeredItemIdentifiers.isEmpty { toolbar.centeredItemIdentifiers = [] }
-        let actionIndex = toolbar.items.count - 1
-        // Reset is the final action. Use NSToolbar's real flexible-space item,
-        // rather than a hosted SwiftUI spacer with an intrinsic view width.
-        if toolbar.items[actionIndex - 1].itemIdentifier != .flexibleSpace {
-            toolbar.insertItem(withItemIdentifier: .flexibleSpace, at: actionIndex)
-        }
-    }
-}
-
 struct SettingsView: View {
     var onReady: () -> Void = {}
     @ObservedObject private var s = AppSettings.shared
     @State private var selection: SettingsPage?
     @State private var initializedSelection = false
-    @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @FocusState private var sidebarFocused: Bool
     @State private var loginEnabled = Self.loginRequested
     @State private var loginNeedsApproval = SMAppService.mainApp.status == .requiresApproval
@@ -159,7 +137,7 @@ struct SettingsView: View {
     @State private var notchDisplayAvailable = NotchedScreenFinder.find() != nil
 
     var body: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
+        NavigationSplitView {
             List(selection: $selection) {
                 ForEach(SettingsPage.allCases) { page in
                     NavigationLink(value: page) {
@@ -190,13 +168,6 @@ struct SettingsView: View {
             .navigationTitle((selection ?? .general).title)
         }
         .toolbar(removing: .sidebarToggle)
-        .toolbar {
-            // Both toolbar items keep the same identity through sidebar transitions.
-            ToolbarItem(id: "PeakGlowSidebarToggle", placement: .navigation) { sidebarToggle }
-            ToolbarItem(id: "PeakGlowReset", placement: .automatic) {
-                resetButton
-            }
-        }
         .task {
             guard !initializedSelection else { return }
             initializedSelection = true
@@ -213,11 +184,10 @@ struct SettingsView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)) { _ in
             notchDisplayAvailable = NotchedScreenFinder.find() != nil
         }
-        .navigationSplitViewStyle(.prominentDetail)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .alert("Reset settings?", isPresented: $confirmReset) {
             Button("Cancel", role: .cancel) {}
-            Button("Reset") {
+            Button("Reset", role: .destructive) {
                 s.resetAll()
                 AppState.shared.preview = .auto
             }
@@ -226,12 +196,18 @@ struct SettingsView: View {
         }
     }
 
-    /// The Battery entry's icon shows the charge, with a bolt while charging.
+    /// Each page has a white symbol on a colored rounded square, as in System Settings. The Battery
+    /// entry shows the charge, with a bolt while charging.
     @ViewBuilder private func sidebarLabel(_ page: SettingsPage) -> some View {
-        if page == .battery, let b = battery.snapshot {
-            Label(page.title, systemImage: BatterySymbol.name(b))
-        } else {
-            Label(page.title, systemImage: page.symbol)
+        let symbol = page == .battery ? (battery.snapshot.map { BatterySymbol.name($0) } ?? page.symbol) : page.symbol
+        Label {
+            Text(page.title)
+        } icon: {
+            Image(systemName: symbol)
+                .font(.system(size: page == .battery ? 11 : 13, weight: .medium))
+                .foregroundStyle(.white)
+                .frame(width: 24, height: 24)
+                .background(page.badgeColor.gradient, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
         }
     }
 
@@ -244,11 +220,11 @@ struct SettingsView: View {
                     updateLogin(enabled)
                 }
             if loginNeedsApproval {
-                SettingsNote("Allow PeakGlow in System Settings to open at login.")
-                Button("Open Login Items…") {
-                    SMAppService.openSystemSettingsLoginItems()
+                LabeledContent("Allow PeakGlow in System Settings to open at login.") {
+                    Button("Open Login Items…") {
+                        SMAppService.openSystemSettingsLoginItems()
+                    }
                 }
-                .nativeGlassAction()
             }
             if let loginError {
                 Text(loginError)
@@ -256,39 +232,39 @@ struct SettingsView: View {
                     .foregroundStyle(.red)
                     .fixedSize(horizontal: false, vertical: true)
             }
-        } header: {
-            Text("Startup")
-        }
-        Section {
             Toggle("Show menu bar icon", isOn: binding(\.menuBarIcon))
-        } header: {
-            Text("Menu bar")
         }
         Section {
             slider("Hover delay", binding(\.hoverDwell), in: 0...0.8,
-                   value: String(format: "%.0f ms", s.hoverDwell * 1000), step: 0.01, unit: "ms", scale: 1000)
+                   value: String(format: "%.0f ms", s.hoverDwell * 1000), step: 0.01)
             Toggle("Haptic feedback", isOn: binding(\.hapticsEnabled))
         } header: {
             Text("Notch controls")
         } footer: {
-            SettingsNote("In Auto, a connected game controller pauses the glow.")
+            Text("In Auto, a connected game controller pauses the glow.")
         }
         Section {
             Toggle("Warn when the Mac runs hot", isOn: binding(\.overheatAlertEnabled))
         } header: {
             Text("Temperature")
         } footer: {
-            SettingsNote("The glow turns orange when the temperature stays high. This is a hint, not a safety feature.")
+            Text("The glow turns orange when the temperature stays high. This is a hint, not a safety feature.")
         }
         Section {
             Toggle("Check for updates automatically", isOn: $updates.automaticChecks)
-            Button("Check for Updates…") {
-                updates.checkForUpdates(nil)
+            LabeledContent("Check now") {
+                Button("Check for Updates…") {
+                    updates.checkForUpdates(nil)
+                }
+                .disabled(!updates.canCheckForUpdates)
             }
-            .nativeGlassAction()
-            .disabled(!updates.canCheckForUpdates)
         } header: {
             Text("Updates")
+        }
+        Section {
+            LabeledContent("Restore the default settings") {
+                Button("Reset…", role: .destructive) { confirmReset = true }
+            }
         }
     }
 
@@ -340,13 +316,12 @@ struct SettingsView: View {
                 set: { s.highWatts = max($0, s.mediumWatts + 1) }),
                 in: 9...90, value: "\(Int(s.highWatts)) W", step: 1, unit: "W",
                 explanation: "Above this power the glow is at its strongest and turns yellow.")
-            Button {
-                s.mediumWatts = MachineProfile.current.suggestedMediumWatts
-                s.highWatts = MachineProfile.current.suggestedHighWatts
-            } label: {
-                Text("Use Recommended for This Mac").foregroundStyle(.primary)
+            LabeledContent("Suited to this MacBook") {
+                Button("Use Recommended") {
+                    s.mediumWatts = MachineProfile.current.suggestedMediumWatts
+                    s.highWatts = MachineProfile.current.suggestedHighWatts
+                }
             }
-            .nativeGlassAction()
         } header: {
             Text("When the glow changes")
         }
@@ -361,13 +336,13 @@ struct SettingsView: View {
                 Text("Light").tag(1)
                 Text("Dark").tag(2)
             }
-            SettingsNote("Choose Light if the glow is hard to see on a bright wallpaper.")
-            Button { s.resetAppearance() } label: {
-                Text("Use Default Look").foregroundStyle(.primary)
+            LabeledContent("Restore the default look") {
+                Button("Use Default Look") { s.resetAppearance() }
             }
-            .nativeGlassAction()
         } header: {
             Text("Look")
+        } footer: {
+            Text("Choose Light if the glow is hard to see on a bright wallpaper.")
         }
         Section {
             DisclosureGroup("Fine-tuning", isExpanded: $advancedExpanded) {
@@ -407,44 +382,57 @@ struct SettingsView: View {
 
     @ViewBuilder private var aboutPage: some View {
         Section {
+            VStack(spacing: 6) {
+                Image(nsImage: NSApplication.shared.applicationIconImage)
+                    .resizable()
+                    .frame(width: 80, height: 80)
+                    .accessibilityHidden(true)
+                Text("PeakGlow")
+                    .font(.title2.weight(.semibold))
+                Text("Version \(Self.versionText)")
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .accessibilityElement(children: .combine)
+        }
+        Section {
             LabeledContent("Model") {
                 Text(MachineProfile.current.summary)
-                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.trailing)
                     .fixedSize(horizontal: false, vertical: true)
             }
             LabeledContent("Display", value: notchDisplayAvailable
                            ? "Built-in notch display available" : "Notch display unavailable")
-            Button {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(Diagnostics.report(), forType: .string)
-                diagnosticsCopied = true
-                Task {
-                    try? await Task.sleep(for: .seconds(2))
-                    diagnosticsCopied = false
+            LabeledContent("Report a problem") {
+                Button(diagnosticsCopied ? "Copied" : "Copy Diagnostics") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(Diagnostics.report(), forType: .string)
+                    diagnosticsCopied = true
+                    Task {
+                        try? await Task.sleep(for: .seconds(2))
+                        diagnosticsCopied = false
+                    }
                 }
-            } label: {
-                Text(diagnosticsCopied ? "Copied" : "Copy Diagnostics").foregroundStyle(.primary)
+                .accessibilityHint("Copies the Mac model, macOS version and sensor status to the clipboard for a bug report")
             }
-            .nativeGlassAction()
-            .accessibilityHint("Copies the Mac model, macOS version and sensor status to the clipboard for a bug report")
         } header: {
             Text("This Mac")
         } footer: {
-            SettingsNote(notchDisplayAvailable
+            Text(notchDisplayAvailable
                 ? "Copy Diagnostics copies the Mac model, macOS version and sensor status for a bug report, with no serial number or personal data."
                 : "The glow and the controls need a built-in notch display.")
         }
         Section {
-            LabeledContent("Version", value: Self.versionText)
             LabeledContent("Maintained by", value: "aweekdayz")
-            Button("Credits and Licensing…") {
-                (NSApp.delegate as? AppDelegate)?.showAbout()
+            LabeledContent("Credits and licensing") {
+                Button("Show…") {
+                    (NSApp.delegate as? AppDelegate)?.showAbout()
+                }
             }
-            .nativeGlassAction()
-            Link("Source code and releases", destination: URL(string: "https://github.com/aweekdayz/notchpeakglow")!)
-        } header: {
-            Text("PeakGlow")
+            LabeledContent("Source code") {
+                Link("GitHub", destination: URL(string: "https://github.com/aweekdayz/notchpeakglow")!)
+            }
         }
     }
 
@@ -468,28 +456,6 @@ struct SettingsView: View {
         PowerRamp.gradient(medium: s.mediumWatts, high: s.highWatts)
     }
 
-    private var sidebarToggle: some View {
-        Button {
-            withAnimation {
-                columnVisibility = columnVisibility == .detailOnly ? .all : .detailOnly
-            }
-        } label: {
-            Label("Toggle Sidebar", systemImage: "sidebar.left")
-        }
-        .labelStyle(.iconOnly)
-        .help(columnVisibility == .detailOnly ? "Show sidebar" : "Hide sidebar")
-        .accessibilityLabel(columnVisibility == .detailOnly ? "Show sidebar" : "Hide sidebar")
-    }
-
-    private var resetButton: some View {
-        Button { confirmReset = true } label: {
-            Label("Reset…", systemImage: "arrow.counterclockwise")
-                .foregroundStyle(.primary)
-        }
-        .nativeGlassAction()
-        .help("Reset all settings")
-    }
-
     private func binding<T>(_ keyPath: ReferenceWritableKeyPath<AppSettings, T>) -> Binding<T> {
         Binding(get: { s[keyPath: keyPath] }, set: { s[keyPath: keyPath] = $0 })
     }
@@ -498,8 +464,7 @@ struct SettingsView: View {
                         in range: ClosedRange<Double>, value text: String,
                         step: Double? = nil, unit: String = "", scale: Double = 1,
                         explanation: String? = nil) -> some View {
-        NativeSettingsSlider(title: title, value: value, range: range, formattedValue: text,
-                             step: step, unit: unit, scale: scale, explanation: explanation)
+        SettingSliderRow(title: title, value: value, range: range, step: step, valueText: text, note: explanation)
     }
 
     private static var loginRequested: Bool {
@@ -547,105 +512,55 @@ private enum SettingsPage: String, CaseIterable, Identifiable {
         case .about: "About"
         }
     }
-}
-
-private extension View {
-    func nativeGlassAction() -> some View {
-        self.buttonStyle(.glass)
+    var badgeColor: Color {
+        switch self {
+        case .general: .gray
+        case .glow: .indigo
+        case .battery: .green
+        case .about: .blue
+        }
     }
 }
 
-/// One readable secondary text style for inline help and native section footers.
-struct SettingsNote: View {
-    let text: String
-
-    init(_ text: String) { self.text = text }
-
-    var body: some View {
-        Text(text)
-            .font(.callout)
-            .foregroundStyle(.secondary)
-            .lineSpacing(2)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-/// Keeps the system slider intact, including its thumb, tracking, and keyboard behavior.
-private struct NativeSettingsSlider: View {
+/// A setting with a slider: the label on the left, the system slider and its value on the right, and a
+/// short note underneath when one is needed.
+private struct SettingSliderRow: View {
     let title: String
     @Binding var value: Double
     let range: ClosedRange<Double>
-    let formattedValue: String
     let step: Double?
-    let unit: String
-    let scale: Double
-    let explanation: String?
-
-    private var sliderValue: Binding<Double> {
-        Binding(get: { value }, set: { input in
-            guard input.isFinite else { return }
-            let adjusted = unit == "fps" ? input.rounded() : input
-            value = min(range.upperBound, max(range.lowerBound, adjusted))
-        })
-    }
-
-    private var numericValue: Binding<Double> {
-        Binding(get: { value * scale }, set: { input in
-            guard input.isFinite else { return }
-            let clamped = min(range.upperBound, max(range.lowerBound, input / scale))
-            let rounded = step.map { range.lowerBound + ((clamped - range.lowerBound) / $0).rounded() * $0 } ?? clamped
-            value = min(range.upperBound, max(range.lowerBound, rounded))
-        })
-    }
+    let valueText: String
+    let note: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(title)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .layoutPriority(1)
-                Spacer(minLength: 12)
-                if step != nil {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        TextField("", value: numericValue,
-                                  format: .number.precision(.fractionLength(0...1)))
-                            // The row already has a title; don't let Form render
-                            // a second label inside this compact numeric field.
-                            .labelsHidden()
-                            .textFieldStyle(.roundedBorder)
-                            .multilineTextAlignment(.trailing)
-                            .monospacedDigit()
-                            .frame(width: 64)
-                            .help("Allowed range: \(range.lowerBound * scale)–\(range.upperBound * scale) \(unit)")
-                            .accessibilityLabel("\(title), numeric value")
-                            .accessibilityValue(formattedValue)
-                        Text(unit)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 24, alignment: .leading)
-                    }
-                    .fixedSize(horizontal: true, vertical: false)
-                } else {
-                    Text(formattedValue)
+        VStack(alignment: .leading, spacing: 4) {
+            LabeledContent(title) {
+                HStack(spacing: 10) {
+                    // The slider is continuous (a stepped one draws a row of tick dots); the value is
+                    // rounded to its step as it is set.
+                    Slider(value: Binding(
+                        get: { value },
+                        set: { input in
+                            guard input.isFinite else { return }
+                            let rounded = step.map { range.lowerBound + ((input - range.lowerBound) / $0).rounded() * $0 } ?? input
+                            value = min(range.upperBound, max(range.lowerBound, rounded))
+                        }), in: range)
+                    .labelsHidden()
+                    .frame(minWidth: 140, idealWidth: 220, maxWidth: 260)
+                    Text(valueText)
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
-                        .frame(width: 94, alignment: .trailing)
+                        .frame(width: 62, alignment: .trailing)
                 }
             }
-            // Entry precision is not a set of meaningful visual stops.
-            // Keep the system's unmarked track; numeric entry supplies precision.
-            Slider(value: sliderValue, in: range) { Text(title) }
-                .labelsHidden()
-                .controlSize(.regular)
-                .tint(.accentColor)
-                .help(formattedValue)
-                .accessibilityLabel(title)
-                .accessibilityValue(formattedValue)
-            if let explanation {
-                SettingsNote(explanation)
+            if let note {
+                Text(note)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.vertical, 4)
-        .accessibilityElement(children: .contain)
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(valueText)
     }
 }

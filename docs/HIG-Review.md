@@ -341,3 +341,15 @@ A second pass over what was added for the battery. The principle applied: system
 | Colors | Fixed white in the island's text and divider. | Fixed: semantic `.primary`, which is white on the island's dark appearance. |
 | Remaining custom drawing | The power meter (the system has no meter in the glow's colors), the island's black shell (drawn by the renderer so it moves with the glow) and the menu bar mark. | Kept on purpose |
 | VoiceOver, Full Keyboard Access | Not tested. | Open |
+
+### Settings and the island, third pass — October 16, 2026
+
+Checked on the real window and on renders, not only from the code.
+
+| Area | Finding | Status |
+| --- | --- | --- |
+| Settings window | Large glass toolbar buttons (sidebar toggle, Reset), glass buttons below their rows, one card per single setting, slider rows with a number field. None of it matched System Settings. | Fixed: a plain titled window; sidebar icons as symbols on colored rounded squares; related settings grouped; the system slider with its value on the right; standard buttons on the right of their rows; footers in the system style. Reset is a row at the end of General. |
+| Sliders | A stepped slider draws a row of tick dots. | Fixed: continuous sliders that round the value as it is set. |
+| Charging island | Taller than the notch, and the content was not centered on it. | Fixed: exactly the notch's height; content centered (measured: both items centered on the island's middle). |
+| Controls panel | The battery column was left-aligned in the right half. | Fixed: right-aligned to the same edge as the meter and the status. |
+| Charging state | A charging Mac could read "not charging". | Fixed: three signals instead of one flag, and re-reads after a plug. |
