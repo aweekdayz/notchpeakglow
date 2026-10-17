@@ -153,8 +153,7 @@ struct ChargeIslandView: View {
                     .lineLimit(1)
                     .fixedSize()
                 Image(systemName: "battery.100percent.bolt")
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.green)
+                    .symbolRenderingMode(.multicolor)   // the symbol's own colors: green charge, bolt in the text color
                     .font(.title2)
             }
             .padding(.trailing, 14)
