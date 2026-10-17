@@ -4,9 +4,7 @@ import SwiftUI
 /// the number beside the symbol gives the exact charge. While charging the symbol is the green battery
 /// with a bolt; on battery it is red at 20% or less.
 enum BatterySymbol {
-    /// The system has a bolt version only of the full battery; see `ChargeBatteryGlyph`.
-    static func name(_ b: BatterySnapshot) -> String { quarter(b.percent) }
-
+    /// See `ChargeBatteryGlyph` for the charging look.
     static func quarter(_ percent: Int) -> String {
         switch percent {
         case ..<13: return "battery.0percent"
@@ -35,10 +33,10 @@ struct BatterySymbolView: View {
     }
 }
 
-/// The system's battery symbols, used as they come: only the rendering mode and the tint are set, and the
-/// size follows a text style. While charging that is the system's battery with a bolt, `battery.100percent.bolt`,
-/// which the system draws full; so the number beside it gives the charge. At full charge, or when not charging,
-/// the symbol for the level.
+/// The battery wherever the app shows one, made only of unchanged system symbols whose size follows a
+/// text style. Not charging, it is the system's battery for the level. Charging, it is that battery in
+/// green with the system's `bolt.fill` on it, which is how the system's own battery looks; the system draws
+/// a bolt battery only when it is full, so the two symbols are combined to keep the level visible.
 struct ChargeBatteryGlyph: View {
     let percent: Int
     let charging: Bool
@@ -46,19 +44,21 @@ struct ChargeBatteryGlyph: View {
     var font: Font = .body
 
     var body: some View {
-        Group {
-            if charging && percent < 100 {
-                Image(systemName: "battery.100percent.bolt")
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(.white, .green)
-            } else {
-                Image(systemName: BatterySymbol.quarter(percent))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(charging ? Color.green : tint)
+        Image(systemName: BatterySymbol.quarter(percent))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(charging ? Color.green : tint)
+            .font(font)
+            .overlay {
+                if charging && percent < 100 {
+                    Image(systemName: "bolt.fill")
+                        .font(font.weight(.bold))
+                        .imageScale(.small)
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.4), radius: 0.8)
+                        .padding(.trailing, 2)
+                }
             }
-        }
-        .font(font)
-        .accessibilityHidden(true)
+            .accessibilityHidden(true)
     }
 }
 

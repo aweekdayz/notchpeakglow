@@ -360,8 +360,8 @@ Native first, at the maintainer's decision, for both.
 | Area | Finding | Status |
 | --- | --- | --- |
 | Type | Fixed point sizes (`.system(size:)`, a scaled 36 pt readout) and the rounded design in the controls panel, the island and the Battery page. | Fixed: only the system text styles in the default design (`largeTitle` for the readings, `title3` for units, `headline` and `caption` elsewhere); symbols are sized by a text style too |
-| Charging battery | A partly filled battery with a bolt put on it by hand (and, before that, the full bolt symbol). | Decided: the system's `battery.100percent.bolt` unchanged, tinted green. It is drawn full, so the level is read from the number beside it. The system provides no partly filled bolt symbol to apps, and its menu bar glyph is not available |
-| Other batteries | The five quarter-filled system symbols. | Unchanged symbols, hierarchical rendering and a tint |
+| Battery symbols | A battery drawn by hand, then a partly filled symbol with a hand-sized bolt, then the full bolt symbol on its own (which hid the level). | Decided: one component everywhere (panel, island, Battery page, sidebar) of unchanged system symbols: the system's battery for the level, and while charging that battery in green with the system's `bolt.fill` combined with it. Only the rendering mode, the tint and a text-style size are set |
+| Why a combination | The system draws a bolt battery only when it is full, and its menu bar glyph is not available to apps. | A Mac at 61% needs the combination to show 61% |
 | Still custom | The power meter, the island's shell and the menu bar mark. | Kept on purpose (see earlier) |
 
 The HIG text itself could not be read from here; this follows the guidance as generally understood (system text styles, SF Symbols used unchanged).

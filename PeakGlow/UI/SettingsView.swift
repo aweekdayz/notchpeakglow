@@ -618,7 +618,11 @@ private struct SidebarLabel: View {
 
     var body: some View {
         if page == .battery, let b = battery.snapshot {
-            Label(page.title, systemImage: BatterySymbol.name(b))
+            Label {
+                Text(page.title)
+            } icon: {
+                BatterySymbolView(snapshot: b)
+            }
         } else {
             Label(page.title, systemImage: page.symbol)
         }
