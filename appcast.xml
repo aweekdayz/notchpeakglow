@@ -6,6 +6,21 @@
     <description>Updates for PeakGlow, a notch glow utility for MacBooks.</description>
     <language>en</language>
     <item>
+      <title>PeakGlow 1.9.0</title>
+      <pubDate>Sat, 17 Oct 2026 08:16:33 -0000</pubDate>
+      <sparkle:version>53</sparkle:version>
+      <sparkle:shortVersionString>1.9.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<h3>PeakGlow 1.9.0</h3>
+<ul>
+  <li>Battery: charge, estimated time, adapter and charging power in the controls, a Battery page in Settings, and a battery line in the menu bar menu.</li>
+  <li>Charging shows in the glow as a soft green light, and plugging in opens an island out of the notch, like iOS.</li>
+  <li>The glow now stops drawing when nothing changes, which uses much less CPU.</li>
+</ul>
+]]></description>
+      <enclosure url="https://github.com/aweekdayz/notchpeakglow/releases/download/v1.9.0/PeakGlow-1.9.0-macOS-arm64.dmg" sparkle:edSignature="HaB2eXu2lQoLeZxUCe25WTHVoZvQe4RBin2n2VbI1uPzOy6kKZShEc74unSZFYLHHZMXsxrtf46fE4R3hjfwBg==" length="4078720" type="application/octet-stream"/>
+    </item>
+    <item>
       <title>PeakGlow 1.8.0</title>
       <pubDate>Fri, 16 Oct 2026 10:15:26 -0000</pubDate>
       <sparkle:version>52</sparkle:version>
