@@ -14,7 +14,7 @@ import SwiftUI
 enum IslandMetrics {
   static let width: CGFloat = 384
   /// Height below the notch, where the controls sit.
-  static let contentHeight: CGFloat = 218
+  static let contentHeight: CGFloat = 236
   static let expandedCornerRadius: CGFloat = 24
 }
 
@@ -163,21 +163,37 @@ struct BubbleContentView: View {
           .accessibilityLabel("System power")
           .accessibilityValue(power.reading.availability == .current ? "\(powerText) watts" : powerDescription)
           if let b = battery.snapshot {
+            // The charge and the estimated time; nothing else about the battery's state.
             ReadoutColumn(number: "\(b.percent)", unit: "%", alignment: .trailing,
                           animatesNumber: false, numberID: Double(b.percent)) {
-              HStack(spacing: 4) {
-                BatterySymbolView(snapshot: b, font: .caption)
-                Text(b.panelText)
-              }
+              Text(b.timeText ?? "—")
+                .monospacedDigit()
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Battery")
-            .accessibilityValue([ "\(b.percent) percent", b.statusText, b.timeText ].compactMap { $0 }.joined(separator: ", "))
+            .accessibilityValue([ "\(b.percent) percent", b.timeText ].compactMap { $0 }.joined(separator: ", "))
           }
         }
         .frame(height: 48)
         .padding(.top, 14)
         .islandReveal(motion.expanded, delay: 0.16, reduceMotion: reduceMotion)
+
+        if let b = battery.snapshot, b.adapterText != nil || b.powerText != nil {
+          HStack {
+            Text(b.adapterText ?? "")
+            Spacer(minLength: 8)
+            Text(b.powerText ?? "")
+          }
+          .font(.caption)
+          .monospacedDigit()
+          .foregroundStyle(.secondary)
+          .lineLimit(1)
+          .padding(.top, 6)
+          .accessibilityElement(children: .ignore)
+          .accessibilityLabel("Power adapter and battery power")
+          .accessibilityValue([ b.adapterText, b.powerText ].compactMap { $0 }.joined(separator: ", "))
+          .islandReveal(motion.expanded, delay: 0.18, reduceMotion: reduceMotion)
+        }
 
         PowerMeter(watts: meterWatts, medium: settings.mediumWatts, high: settings.highWatts,
                    maximum: max(settings.highWatts * 1.4, 1),

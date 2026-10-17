@@ -72,16 +72,16 @@ struct BatterySnapshot: Equatable {
         return "On battery"
     }
 
-    /// One short line for the controls panel: what it is doing and the time when it is known.
-    var panelText: String {
-        if externalConnected {
-            if fullyCharged { return "Fully charged" }
-            if isCharging {
-                return minutesToFull.map { "\(Self.duration($0)) to full" } ?? "Charging"
-            }
-            return "Not charging"
-        }
-        return minutesToEmpty.map { "\(Self.duration($0)) left" } ?? "On battery"
+    /// "Adapter 100 W" while a charger is connected and reports its rating.
+    var adapterText: String? {
+        guard externalConnected, let adapterWatts else { return nil }
+        return "Adapter \(adapterWatts) W"
+    }
+
+    /// The power flowing into or out of the battery, when it is more than a rounding error.
+    var powerText: String? {
+        guard let watts = batteryWatts, abs(watts) >= 0.1 else { return nil }
+        return String(format: watts > 0 ? "Charging %.1f W" : "Discharging %.1f W", abs(watts))
     }
 
     /// "1 h 20 min" for a number of minutes.
