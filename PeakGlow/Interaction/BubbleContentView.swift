@@ -14,7 +14,7 @@ import SwiftUI
 enum IslandMetrics {
   static let width: CGFloat = 384
   /// Height below the notch, where the controls sit.
-  static let contentHeight: CGFloat = 228
+  static let contentHeight: CGFloat = 218
   static let expandedCornerRadius: CGFloat = 24
 }
 
@@ -131,7 +131,6 @@ struct BubbleContentView: View {
   @ObservedObject private var power = AppState.shared.power
   @ObservedObject private var settings = AppSettings.shared
   @ObservedObject private var battery = AppState.shared.battery
-  @ScaledMetric(relativeTo: .largeTitle) private var readoutSize: CGFloat = 36
   private let app = AppState.shared
 
   var body: some View {
@@ -156,7 +155,7 @@ struct BubbleContentView: View {
       VStack(alignment: .leading, spacing: 0) {
         // Two readings built from the same piece: a big number with its unit and one line under it.
         HStack(alignment: .top, spacing: 16) {
-          ReadoutColumn(number: powerText, unit: "W", size: readoutSize, alignment: .leading,
+          ReadoutColumn(number: powerText, unit: "W", alignment: .leading,
                         animatesNumber: !reduceMotion, numberID: power.reading.watts) {
             Text(powerDescription)
           }
@@ -164,10 +163,10 @@ struct BubbleContentView: View {
           .accessibilityLabel("System power")
           .accessibilityValue(power.reading.availability == .current ? "\(powerText) watts" : powerDescription)
           if let b = battery.snapshot {
-            ReadoutColumn(number: "\(b.percent)", unit: "%", size: readoutSize, alignment: .trailing,
+            ReadoutColumn(number: "\(b.percent)", unit: "%", alignment: .trailing,
                           animatesNumber: false, numberID: Double(b.percent)) {
               HStack(spacing: 4) {
-                BatterySymbolView(snapshot: b, size: 12)
+                BatterySymbolView(snapshot: b, font: .caption)
                 Text(b.panelText)
               }
             }
@@ -176,7 +175,7 @@ struct BubbleContentView: View {
             .accessibilityValue([ "\(b.percent) percent", b.statusText, b.timeText ].compactMap { $0 }.joined(separator: ", "))
           }
         }
-        .frame(height: 58)
+        .frame(height: 48)
         .padding(.top, 14)
         .islandReveal(motion.expanded, delay: 0.16, reduceMotion: reduceMotion)
 
@@ -429,7 +428,6 @@ enum AppGlyph {
 private struct ReadoutColumn<Caption: View>: View {
   let number: String
   let unit: String
-  let size: CGFloat
   let alignment: HorizontalAlignment
   let animatesNumber: Bool
   let numberID: Double
@@ -439,12 +437,12 @@ private struct ReadoutColumn<Caption: View>: View {
     VStack(alignment: alignment, spacing: 3) {
       HStack(alignment: .lastTextBaseline, spacing: 4) {
         Text(number)
-          .font(.system(size: size, weight: .semibold, design: .rounded))
+          .font(.largeTitle.weight(.semibold))
           .monospacedDigit()
           .contentTransition(.numericText())
           .animation(animatesNumber ? .easeOut(duration: 0.18) : nil, value: numberID)
         Text(unit)
-          .font(.title3.weight(.medium))
+          .font(.title3)
           .foregroundStyle(.secondary)
       }
       caption

@@ -353,6 +353,15 @@ A second pass over what was added for the battery. The principle applied: system
 | Charging state | A charging Mac could read "not charging". | Fixed: three signals instead of one flag, and re-reads after a plug |
 | Open | What a native Settings window should look like was not settled; VoiceOver and Full Keyboard Access were not tested. | Open |
 
-### Battery symbols, fourth pass — October 16, 2026
+### Type and battery symbols, fourth pass — October 16, 2026
 
-Two versions of the charging battery were tried. The first put the system's `battery.100percent.bolt` in unchanged, which uses the symbol as it comes but is always drawn full, so a Mac at 61% showed a full battery. The maintainer pointed out that the system's own battery in the menu bar shows the level with the bolt on it, and that was restored: the partly filled system battery in green with the system's `bolt.fill` on it, with no bolt at 100% (as on iOS). That is two system symbols put together by hand, which departs from using a symbol unchanged; the system does not provide a partly filled bolt symbol to apps (checked by name on this Mac), and the menu bar's own glyph is not available either. Every other battery in the app is an unmodified system symbol (the five quarter-filled ones, hierarchical rendering and a tint). The HIG text itself could not be read from here.
+Native first, at the maintainer's decision, for both.
+
+| Area | Finding | Status |
+| --- | --- | --- |
+| Type | Fixed point sizes (`.system(size:)`, a scaled 36 pt readout) and the rounded design in the controls panel, the island and the Battery page. | Fixed: only the system text styles in the default design (`largeTitle` for the readings, `title3` for units, `headline` and `caption` elsewhere); symbols are sized by a text style too |
+| Charging battery | A partly filled battery with a bolt put on it by hand (and, before that, the full bolt symbol). | Decided: the system's `battery.100percent.bolt` unchanged, tinted green. It is drawn full, so the level is read from the number beside it. The system provides no partly filled bolt symbol to apps, and its menu bar glyph is not available |
+| Other batteries | The five quarter-filled system symbols. | Unchanged symbols, hierarchical rendering and a tint |
+| Still custom | The power meter, the island's shell and the menu bar mark. | Kept on purpose (see earlier) |
+
+The HIG text itself could not be read from here; this follows the guidance as generally understood (system text styles, SF Symbols used unchanged).
