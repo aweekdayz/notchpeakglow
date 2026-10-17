@@ -152,7 +152,10 @@ import ServiceManagement
         } else {
             // Build Settings while idle, so the first click does not wait for it.
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                MainActor.assumeIsolated { SettingsWindowController.shared.prewarm() }
+                MainActor.assumeIsolated {
+                    SettingsWindowController.shared.prewarm()
+                    self.chargeIsland.prepare()
+                }
             }
         }
     }

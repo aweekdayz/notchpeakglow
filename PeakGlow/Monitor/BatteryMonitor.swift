@@ -72,6 +72,18 @@ struct BatterySnapshot: Equatable {
         return "On battery"
     }
 
+    /// One short line for the controls panel: what it is doing and the time when it is known.
+    var panelText: String {
+        if externalConnected {
+            if fullyCharged { return "Fully charged" }
+            if isCharging {
+                return minutesToFull.map { "\(Self.duration($0)) to full" } ?? "Charging"
+            }
+            return "Not charging"
+        }
+        return minutesToEmpty.map { "\(Self.duration($0)) left" } ?? "On battery"
+    }
+
     /// "1 h 20 min" for a number of minutes.
     static func duration(_ minutes: Int) -> String {
         let h = minutes / 60, m = minutes % 60

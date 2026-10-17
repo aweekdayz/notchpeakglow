@@ -16,6 +16,13 @@ import SwiftUI
 
     init(glow: GlowWindow) { self.glow = glow }
 
+    /// Build the window and its content ahead of time, hidden, so the first plug-in does not create the
+    /// SwiftUI view in the middle of the animation.
+    func prepare() {
+        guard panel == nil else { return }
+        _ = makePanel(size: CGSize(width: 340, height: 32))
+    }
+
     /// Show the island. Returns false when it cannot be drawn, so the caller can use the ripple instead.
     @discardableResult
     func present(percent: Int, full: Bool) -> Bool {

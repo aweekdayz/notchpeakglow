@@ -14,7 +14,7 @@ import SwiftUI
 enum IslandMetrics {
   static let width: CGFloat = 384
   /// Height below the notch, where the controls sit.
-  static let contentHeight: CGFloat = 238
+  static let contentHeight: CGFloat = 228
   static let expandedCornerRadius: CGFloat = 24
 }
 
@@ -55,8 +55,6 @@ struct PowerMeter: View {
     let high: Double
     let maximum: Double
     let gradient: Gradient
-    /// False draws the meter empty; turning it on fills it, which the panel uses as it opens.
-    var revealed: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -67,13 +65,17 @@ struct PowerMeter: View {
         VStack(spacing: 6) {
             GeometryReader { geo in
                 let width = geo.size.width
-                let lit = revealed ? width * min(max(watts / max(maximum, 1), 0), 1) : 0
+                let lit = width * min(max(watts / max(maximum, 1), 0), 1)
                 let fill = LinearGradient(gradient: gradient, startPoint: .leading, endPoint: .trailing)
                 ZStack(alignment: .leading) {
                     // With Increase Contrast on, the unlit part is easier to tell from the background.
                     Rectangle().fill(fill).opacity(contrast == .increased ? 0.5 : 0.28)
+                    // The lit part is the full-width gradient cut off at `lit`; a plain clip is much cheaper
+                    // to animate than a mask.
                     Rectangle().fill(fill)
-                        .mask(alignment: .leading) { Rectangle().frame(width: lit) }
+                        .frame(width: width)
+                        .frame(width: lit, alignment: .leading)
+                        .clipped()
                     // A soft highlight on the leading edge of the lit part.
                     LinearGradient(colors: [.white.opacity(0), .white.opacity(0.45)], startPoint: .leading, endPoint: .trailing)
                         .frame(width: edgeWidth)
@@ -89,8 +91,6 @@ struct PowerMeter: View {
                 }
                 // Readings retarget a running animation, so the motion stays continuous.
                 .animation(reduceMotion ? nil : .smooth(duration: 0.6), value: watts)
-                // Opening fills the meter after the shell has started to open; closing empties it quickly.
-                .animation(reduceMotion ? nil : (revealed ? .smooth(duration: 0.8).delay(0.24) : .easeIn(duration: 0.12)), value: revealed)
                 .frame(height: barHeight)
             }
             .frame(height: barHeight)
@@ -152,62 +152,52 @@ struct BubbleContentView: View {
       .frame(height: notchSize.height)
       .islandReveal(motion.expanded, delay: 0.10, reduceMotion: reduceMotion)
 
-      VStack(alignment: .leading, spacing: 12) {
-        // Two readings of equal weight: system power, and the battery with its estimated time.
-        HStack(alignment: .top, spacing: 0) {
-          VStack(alignment: .leading, spacing: 3) {
-            HStack(alignment: .lastTextBaseline, spacing: 4) {
-              Text(powerText)
-                .font(.system(size: readoutSize, weight: .semibold, design: .rounded))
-                .monospacedDigit()
-                .contentTransition(.numericText())
-                .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: power.reading.watts)
-              Text("W")
-                .font(.title3.weight(.medium))
-                .foregroundStyle(.secondary)
-            }
+      // One column of spacing between the groups, so each group reads as one thing.
+      VStack(alignment: .leading, spacing: 0) {
+        // Two readings built from the same piece: a big number with its unit and one line under it.
+        HStack(alignment: .top, spacing: 16) {
+          ReadoutColumn(number: powerText, unit: "W", size: readoutSize, alignment: .leading,
+                        animatesNumber: !reduceMotion, numberID: power.reading.watts) {
             Text(powerDescription)
-              .font(.caption)
-              .foregroundStyle(.secondary)
-              .lineLimit(1)
           }
-          .frame(maxWidth: .infinity, alignment: .leading)
           .accessibilityElement(children: .ignore)
           .accessibilityLabel("System power")
           .accessibilityValue(power.reading.availability == .current ? "\(powerText) watts" : powerDescription)
           if let b = battery.snapshot {
-            PanelBatteryColumn(snapshot: b, readoutSize: readoutSize)
-              .frame(maxWidth: .infinity, alignment: .trailing)
-              .padding(.leading, 16)
-              .overlay(alignment: .leading) {
-                Rectangle()
-                  .fill(Color.primary.opacity(0.14))
-                  .frame(width: 1)
-                  .padding(.vertical, 4)
-                  .accessibilityHidden(true)
+            ReadoutColumn(number: "\(b.percent)", unit: "%", size: readoutSize, alignment: .trailing,
+                          animatesNumber: false, numberID: Double(b.percent)) {
+              HStack(spacing: 4) {
+                BatterySymbolView(snapshot: b, size: 12)
+                Text(b.panelText)
               }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Battery")
+            .accessibilityValue([ "\(b.percent) percent", b.statusText, b.timeText ].compactMap { $0 }.joined(separator: ", "))
           }
         }
-        .frame(height: 66)
+        .frame(height: 58)
+        .padding(.top, 14)
         .islandReveal(motion.expanded, delay: 0.16, reduceMotion: reduceMotion)
 
         PowerMeter(watts: meterWatts, medium: settings.mediumWatts, high: settings.highWatts,
                    maximum: max(settings.highWatts * 1.4, 1),
-                   gradient: PowerRamp.gradient(medium: settings.mediumWatts, high: settings.highWatts),
-                   revealed: motion.expanded)
+                   gradient: PowerRamp.gradient(medium: settings.mediumWatts, high: settings.highWatts))
           .frame(height: 28)
+          .padding(.top, 10)
           .accessibilityHidden(true)
           .islandReveal(motion.expanded, delay: 0.20, reduceMotion: reduceMotion)
         GlowModeControl(app: app)
           .frame(height: 48)
+          .padding(.top, 14)
           .islandReveal(motion.expanded, delay: 0.24, reduceMotion: reduceMotion, blurs: false)
         BubbleFooter(onClose: onClose)
           .frame(height: 28)
+          .padding(.top, 10)
           .islandReveal(motion.expanded, delay: 0.28, reduceMotion: reduceMotion)
       }
-      .padding(.top, 12)
       .padding(.horizontal, 20)
-      .padding(.bottom, 16)
+      .padding(.bottom, 14)
     }
     .frame(width: IslandMetrics.width, height: notchSize.height + IslandMetrics.contentHeight, alignment: .top)
     // Normally nearly invisible, so a click on the black shell is not passed to the window behind it.
@@ -262,7 +252,6 @@ extension View {
     return self
       .opacity(expanded ? 1 : 0)
       .scaleEffect((expanded || reduceMotion) ? 1 : 0.94, anchor: .top)
-      .blur(radius: (expanded || reduceMotion || !blurs) ? 0 : 5)
       .offset(y: (expanded || reduceMotion) ? 0 : -8)
       .animation(
         reduceMotion ? .easeInOut(duration: 0.16)
@@ -435,40 +424,34 @@ enum AppGlyph {
 }
 
 
-/// The battery in the controls panel: the charge at the same size as the power, the system's battery
-/// symbol with what it is doing, and the time left.
-private struct PanelBatteryColumn: View {
-  let snapshot: BatterySnapshot
-  let readoutSize: CGFloat
+/// A reading in the controls panel: a big number with its unit, and one line of text under it. Both
+/// readings use this, so they have the same size, spacing and baseline; only the alignment differs.
+private struct ReadoutColumn<Caption: View>: View {
+  let number: String
+  let unit: String
+  let size: CGFloat
+  let alignment: HorizontalAlignment
+  let animatesNumber: Bool
+  let numberID: Double
+  @ViewBuilder let caption: Caption
 
   var body: some View {
-    VStack(alignment: .trailing, spacing: 3) {
+    VStack(alignment: alignment, spacing: 3) {
       HStack(alignment: .lastTextBaseline, spacing: 4) {
-        Text("\(snapshot.percent)")
-          .font(.system(size: readoutSize, weight: .semibold, design: .rounded))
+        Text(number)
+          .font(.system(size: size, weight: .semibold, design: .rounded))
           .monospacedDigit()
-        Text("%")
+          .contentTransition(.numericText())
+          .animation(animatesNumber ? .easeOut(duration: 0.18) : nil, value: numberID)
+        Text(unit)
           .font(.title3.weight(.medium))
           .foregroundStyle(.secondary)
       }
-      HStack(spacing: 4) {
-        BatterySymbolView(snapshot: snapshot, size: 13)
-        Text(snapshot.statusText)
-      }
-      .font(.caption)
-      .foregroundStyle(.secondary)
-      .lineLimit(1)
-      if let time = snapshot.timeText {
-        Text(time)
-          .font(.caption)
-          .foregroundStyle(.secondary)
-          .monospacedDigit()
-          .lineLimit(1)
-      }
+      caption
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
     }
-    .accessibilityElement(children: .ignore)
-    .accessibilityLabel("Battery")
-    .accessibilityValue([ "\(snapshot.percent) percent", snapshot.statusText, snapshot.timeText ]
-      .compactMap { $0 }.joined(separator: ", "))
+    .frame(maxWidth: .infinity, alignment: alignment == .leading ? .leading : .trailing)
   }
 }

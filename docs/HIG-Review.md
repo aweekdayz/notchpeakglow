@@ -344,12 +344,11 @@ A second pass over what was added for the battery. The principle applied: system
 
 ### Settings and the island, third pass — October 16, 2026
 
-Checked on the real window and on renders, not only from the code.
-
 | Area | Finding | Status |
 | --- | --- | --- |
-| Settings window | Large glass toolbar buttons (sidebar toggle, Reset), glass buttons below their rows, one card per single setting, slider rows with a number field. None of it matched System Settings. | Fixed: a plain titled window; sidebar icons as symbols on colored rounded squares; related settings grouped; the system slider with its value on the right; standard buttons on the right of their rows; footers in the system style. Reset is a row at the end of General. |
-| Sliders | A stepped slider draws a row of tick dots. | Fixed: continuous sliders that round the value as it is set. |
-| Charging island | Taller than the notch, and the content was not centered on it. | Fixed: exactly the notch's height; content centered (measured: both items centered on the island's middle). |
-| Controls panel | The battery column was left-aligned in the right half. | Fixed: right-aligned to the same edge as the meter and the status. |
-| Charging state | A charging Mac could read "not charging". | Fixed: three signals instead of one flag, and re-reads after a plug. |
+| Settings look | A restyle toward System Settings (colored sidebar icons, regrouped rows, a new slider row) was made and then taken back at the maintainer's request: it looked worse than the original and the colored sidebar was not wanted. | Reverted; the look is as before, Check for Updates stays in About |
+| Settings cost | The whole window watched the live readings and rebuilt its page on every reading. | Fixed: the live parts watch the readings themselves |
+| Charging island | Taller than the notch, content not centered on it. | Fixed: the notch's height; content centered (measured) |
+| Controls panel | Two columns of unequal weight; the battery column left-aligned. | Fixed: one shared readout piece, same size and baseline, right column right-aligned |
+| Charging state | A charging Mac could read "not charging". | Fixed: three signals instead of one flag, and re-reads after a plug |
+| Open | What a native Settings window should look like was not settled; VoiceOver and Full Keyboard Access were not tested. | Open |
