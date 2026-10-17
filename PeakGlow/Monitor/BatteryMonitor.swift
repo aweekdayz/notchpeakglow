@@ -89,13 +89,11 @@ struct BatterySnapshot: Equatable {
         return w >= 0.1 ? w : nil
     }
 
-    /// "Charging 35.7 W" while charging, "Discharging 6.8 W" while running on the battery, nothing otherwise.
-    /// A Mac that is plugged in is never said to be discharging.
+    /// "Charging 35.7 W" while charging. On battery the system power shown beside the charge already is the
+    /// discharge, so nothing is added; a Mac that is plugged in and not charging has no power going in.
     var powerText: String? {
-        if let w = chargingWatts { return String(format: "Charging %.1f W", w) }
-        guard !externalConnected else { return nil }
-        let w = abs(telemetryBatteryWatts ?? batteryWatts ?? 0)
-        return w >= 0.1 ? String(format: "Discharging %.1f W", w) : nil
+        guard let w = chargingWatts else { return nil }
+        return String(format: "Charging %.1f W", w)
     }
 
     /// The estimated time, or, when there is none, what the battery is doing.
@@ -265,20 +263,25 @@ struct BatterySnapshot: Equatable {
         guard IORegistryEntryCreateCFProperties(service, &props, kCFAllocatorDefault, 0) == KERN_SUCCESS,
               let dictionary = props?.takeRetainedValue() as? [String: Any] else { return nil }
         guard var snapshot = BatterySnapshot.parse(dictionary) else { return nil }
+        let system = systemState()
+        // The registry's ExternalConnected can lag behind a plug or unplug by a moment (and keep its old
+        // time and charging flag); the power-source API the system's own battery menu uses is current.
+        if let ac = system?.ac { snapshot.externalConnected = ac }
         snapshot.isCharging = BatterySnapshot.charging(
-            flag: snapshot.isCharging, systemSays: systemSaysCharging(), current: snapshot.current,
+            flag: snapshot.isCharging, systemSays: system?.charging, current: snapshot.current,
             external: snapshot.externalConnected, fullyCharged: snapshot.fullyCharged)
         return snapshot
     }
 
-    /// The charging state that `pmset -g batt` and the battery menu use, from the public power-source API.
-    nonisolated static func systemSaysCharging() -> Bool? {
+    /// The power-source state that `pmset -g batt` and the battery menu use, from the public power-source API.
+    nonisolated static func systemState() -> (ac: Bool, charging: Bool)? {
         guard let info = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
               let list = IOPSCopyPowerSourcesList(info)?.takeRetainedValue() as? [CFTypeRef] else { return nil }
         for source in list {
             guard let description = IOPSGetPowerSourceDescription(info, source)?.takeUnretainedValue() as? [String: Any],
-                  (description[kIOPSTypeKey] as? String) == kIOPSInternalBatteryType else { continue }
-            return description[kIOPSIsChargingKey] as? Bool
+                  (description[kIOPSTypeKey] as? String) == kIOPSInternalBatteryType,
+                  let state = description[kIOPSPowerSourceStateKey] as? String else { continue }
+            return (state == kIOPSACPowerValue, (description[kIOPSIsChargingKey] as? Bool) ?? false)
         }
         return nil
     }
