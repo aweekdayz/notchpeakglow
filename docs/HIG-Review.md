@@ -326,3 +326,18 @@ A review of the whole app against Apple's Human Interface Guidelines, from the c
 | Keyboard | Esc closes the island, ⌘W closes windows, Settings has a focused sidebar. The island itself opens on hover; its keyboard path is the menu bar icon. | Not verified with Full Keyboard Access |
 | VoiceOver | Readout, meter, selector and buttons have labels and values; the island's own meter is hidden because the readout carries the value. | Not verified with VoiceOver |
 | Localization | English only. | Open |
+
+### Battery, charging island and panel — October 16, 2026
+
+A second pass over what was added for the battery. The principle applied: system symbols, system text styles and system controls, with custom drawing only where the system has nothing to offer.
+
+| Area | Finding | Status |
+| --- | --- | --- |
+| Battery glyph | A battery drawn by hand in the panel, the charging island and Settings. | Fixed: replaced by the system's battery symbols (the green battery with a bolt while charging, quarter-filled batteries otherwise, red at 20% or less). The symbols' fill-by-value variant does not work, so the number beside the symbol gives the exact charge. |
+| Charging island | A hand-made fill animation and a fixed-size rounded font. | Fixed: a symbol bounce and the system `headline` text style; the island follows the notch's width instead of the controls panel's. VoiceOver is told "Charging, 62 percent". It ignores the pointer, never takes focus, fades only with Reduce Motion, and has a switch. |
+| Gauges | Hand-drawn bars on the Battery page. | Fixed: the system's linear gauge, tinted. |
+| Controls panel | Two readings of unequal size, the battery squeezed under the power caption. | Fixed: two columns of equal weight with one type size, the system symbol beside the status, the estimated time under it. |
+| Settings | The charging switches sat among the glow's appearance settings, and Updates sat under About. | Fixed: charging switches are on the Battery page, Updates are in General next to the other app-wide settings. |
+| Colors | Fixed white in the island's text and divider. | Fixed: semantic `.primary`, which is white on the island's dark appearance. |
+| Remaining custom drawing | The power meter (the system has no meter in the glow's colors), the island's black shell (drawn by the renderer so it moves with the glow) and the menu bar mark. | Kept on purpose |
+| VoiceOver, Full Keyboard Access | Not tested. | Open |

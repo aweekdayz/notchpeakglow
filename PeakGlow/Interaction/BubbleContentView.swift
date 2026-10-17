@@ -14,7 +14,7 @@ import SwiftUI
 enum IslandMetrics {
   static let width: CGFloat = 384
   /// Height below the notch, where the controls sit.
-  static let contentHeight: CGFloat = 232
+  static let contentHeight: CGFloat = 238
   static let expandedCornerRadius: CGFloat = 24
 }
 
@@ -153,10 +153,10 @@ struct BubbleContentView: View {
       .islandReveal(motion.expanded, delay: 0.10, reduceMotion: reduceMotion)
 
       VStack(alignment: .leading, spacing: 12) {
-        // Two readings side by side: system power, and the battery with its estimated time.
-        HStack(alignment: .top, spacing: 14) {
-          VStack(alignment: .leading, spacing: 2) {
-            HStack(alignment: .lastTextBaseline, spacing: 5) {
+        // Two readings of equal weight: system power, and the battery with its estimated time.
+        HStack(alignment: .top, spacing: 0) {
+          VStack(alignment: .leading, spacing: 3) {
+            HStack(alignment: .lastTextBaseline, spacing: 4) {
               Text(powerText)
                 .font(.system(size: readoutSize, weight: .semibold, design: .rounded))
                 .monospacedDigit()
@@ -171,19 +171,24 @@ struct BubbleContentView: View {
               .foregroundStyle(.secondary)
               .lineLimit(1)
           }
+          .frame(maxWidth: .infinity, alignment: .leading)
           .accessibilityElement(children: .ignore)
           .accessibilityLabel("System power")
           .accessibilityValue(power.reading.availability == .current ? "\(powerText) watts" : powerDescription)
           if let b = battery.snapshot {
-            Rectangle()
-              .fill(Color.white.opacity(0.14))
-              .frame(width: 1, height: 52)
-              .accessibilityHidden(true)
-            PanelBatteryColumn(snapshot: b)
+            PanelBatteryColumn(snapshot: b, readoutSize: readoutSize)
+              .frame(maxWidth: .infinity, alignment: .leading)
+              .padding(.leading, 16)
+              .overlay(alignment: .leading) {
+                Rectangle()
+                  .fill(Color.primary.opacity(0.14))
+                  .frame(width: 1)
+                  .padding(.vertical, 4)
+                  .accessibilityHidden(true)
+              }
           }
-          Spacer(minLength: 0)
         }
-        .frame(height: 60)
+        .frame(height: 66)
         .islandReveal(motion.expanded, delay: 0.16, reduceMotion: reduceMotion)
 
         PowerMeter(watts: meterWatts, medium: settings.mediumWatts, high: settings.highWatts,
@@ -430,24 +435,29 @@ enum AppGlyph {
 }
 
 
-/// The battery in the controls panel: the drawn battery and the charge, what it is doing, and the time left.
+/// The battery in the controls panel: the charge at the same size as the power, the system's battery
+/// symbol with what it is doing, and the time left.
 private struct PanelBatteryColumn: View {
   let snapshot: BatterySnapshot
+  let readoutSize: CGFloat
 
   var body: some View {
     VStack(alignment: .leading, spacing: 3) {
-      HStack(spacing: 8) {
-        BatteryGraphic(level: Double(snapshot.percent) / 100, charging: snapshot.isChargingNow,
-                       tint: BatterySettingsContent.batteryTint(snapshot))
-          .frame(width: 36, height: 17)
-        Text("\(snapshot.percent)%")
-          .font(.system(size: 22, weight: .semibold, design: .rounded))
+      HStack(alignment: .lastTextBaseline, spacing: 4) {
+        Text("\(snapshot.percent)")
+          .font(.system(size: readoutSize, weight: .semibold, design: .rounded))
           .monospacedDigit()
+        Text("%")
+          .font(.title3.weight(.medium))
+          .foregroundStyle(.secondary)
       }
-      Text(snapshot.statusText)
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .lineLimit(1)
+      HStack(spacing: 4) {
+        BatterySymbolView(snapshot: snapshot, size: 13)
+        Text(snapshot.statusText)
+      }
+      .font(.caption)
+      .foregroundStyle(.secondary)
+      .lineLimit(1)
       if let time = snapshot.timeText {
         Text(time)
           .font(.caption)

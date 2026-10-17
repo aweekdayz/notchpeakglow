@@ -1,9 +1,55 @@
 import SwiftUI
 
-/// The Battery page of Settings: the charge, the battery's health and the power flowing in or out.
-/// It takes the reading as a value, so it can be drawn from any snapshot.
+/// The battery's symbol and color, from the system's own battery symbols. Those come in quarters, so
+/// the number beside the symbol gives the exact charge. While charging the symbol is the green battery
+/// with a bolt; on battery it is red at 20% or less.
+enum BatterySymbol {
+    static func name(_ b: BatterySnapshot) -> String {
+        if b.isChargingNow { return "battery.100percent.bolt" }
+        switch b.percent {
+        case ..<13: return "battery.0percent"
+        case ..<38: return "battery.25percent"
+        case ..<63: return "battery.50percent"
+        case ..<88: return "battery.75percent"
+        default: return "battery.100percent"
+        }
+    }
+
+    static func tint(_ b: BatterySnapshot) -> Color {
+        if b.isChargingNow || (b.externalConnected && b.fullyCharged) { return .green }
+        if !b.externalConnected && b.percent <= 20 { return .red }
+        return .primary
+    }
+}
+
+/// The system battery symbol at a given size.
+struct BatterySymbolView: View {
+    let snapshot: BatterySnapshot
+    var size: CGFloat = 17
+
+    var body: some View {
+        Group {
+            if snapshot.isChargingNow {
+                Image(systemName: BatterySymbol.name(snapshot))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(.primary, .green)
+            } else {
+                Image(systemName: BatterySymbol.name(snapshot))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(BatterySymbol.tint(snapshot))
+            }
+        }
+        .font(.system(size: size))
+        .accessibilityHidden(true)
+    }
+}
+
+/// The Battery page of Settings: the charge, the battery's health, the power flowing in or out and how
+/// charging shows in the glow. It takes the reading as a value, so it can be drawn from any snapshot.
 struct BatterySettingsContent: View {
     let snapshot: BatterySnapshot?
+    @Binding var chargingGlow: Bool
+    @Binding var chargeIsland: Bool
 
     @ViewBuilder var body: some View {
         if let b = snapshot {
@@ -11,7 +57,7 @@ struct BatterySettingsContent: View {
                 HStack(alignment: .center, spacing: 16) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("\(b.percent)%")
-                            .font(.system(size: 34, weight: .semibold, design: .rounded))
+                            .font(.largeTitle.weight(.semibold))
                             .monospacedDigit()
                         Text(b.statusText)
                             .foregroundStyle(.secondary)
@@ -22,9 +68,7 @@ struct BatterySettingsContent: View {
                         }
                     }
                     Spacer()
-                    BatteryGraphic(level: Double(b.percent) / 100, charging: b.isChargingNow, tint: Self.batteryTint(b))
-                        .frame(width: 84, height: 40)
-                        .accessibilityHidden(true)
+                    BatterySymbolView(snapshot: b, size: 46)
                 }
                 .padding(.vertical, 6)
                 .accessibilityElement(children: .combine)
@@ -75,6 +119,13 @@ struct BatterySettingsContent: View {
                     SettingsNote("The Mac is plugged in but not charging. macOS may be holding the charge, for example at 80% to protect the battery.")
                 }
             }
+            Section {
+                Toggle("Show charging in the glow", isOn: $chargingGlow)
+                Toggle("Show the charge when the charger is connected", isOn: $chargeIsland)
+                    .disabled(!chargingGlow)
+            } header: {
+                Text("Charging")
+            }
         } else {
             Section {
                 Text("This Mac has no battery.")
@@ -82,16 +133,9 @@ struct BatterySettingsContent: View {
             }
         }
     }
-
-    /// Green while charging, red when low on battery, otherwise the standard color.
-    static func batteryTint(_ b: BatterySnapshot) -> Color {
-        if b.isChargingNow { return .green }
-        if !b.externalConnected && b.percent <= 20 { return .red }
-        return .primary
-    }
 }
 
-/// A title and value with a thin bar underneath.
+/// A title and value with the system's linear gauge underneath.
 private struct MeterRow: View {
     let title: String
     let value: String
@@ -100,67 +144,15 @@ private struct MeterRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(title)
-                Spacer()
-                Text(value)
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.secondary.opacity(0.22))
-                    Capsule().fill(tint)
-                        .frame(width: max(6, geo.size.width * min(max(fraction, 0), 1)))
-                }
-            }
-            .frame(height: 6)
-            .accessibilityHidden(true)
+            LabeledContent(title, value: value)
+            Gauge(value: min(max(fraction, 0), 1)) { EmptyView() }
+                .gaugeStyle(.linearCapacity)
+                .tint(tint)
+                .accessibilityHidden(true)
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
         .accessibilityValue(value)
-    }
-}
-
-/// A battery drawn to fill with the charge, with a bolt over it while charging. Everything scales with the height.
-struct BatteryGraphic: View {
-    let level: Double
-    let charging: Bool
-    let tint: Color
-
-    var body: some View {
-        GeometryReader { geo in
-            let h = geo.size.height
-            let line = max(1.5, h * 0.09)
-            let corner = h * 0.30
-            let inset = max(1.8, h * 0.13)
-            let nubWidth = max(2.2, h * 0.14)
-            let gap = max(0.8, h * 0.05)
-            let bodyWidth = geo.size.width - nubWidth - gap
-            HStack(spacing: gap) {
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: corner, style: .continuous)
-                        .strokeBorder(Color.secondary.opacity(0.6), lineWidth: line)
-                    RoundedRectangle(cornerRadius: max(1, corner - inset * 0.6), style: .continuous)
-                        .fill(tint)
-                        .frame(width: max(h * 0.25, (bodyWidth - inset * 2) * min(max(level, 0), 1)))
-                        .padding(inset)
-                    if charging {
-                        Image(systemName: "bolt.fill")
-                            .font(.system(size: h * 0.55, weight: .bold))
-                            .foregroundStyle(.white)
-                            .shadow(color: .black.opacity(0.4), radius: max(0.8, h * 0.04))
-                            .frame(width: bodyWidth)
-                    }
-                }
-                .frame(width: bodyWidth)
-                UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: 0,
-                                       bottomTrailingRadius: nubWidth, topTrailingRadius: nubWidth)
-                    .fill(Color.secondary.opacity(0.6))
-                    .frame(width: nubWidth, height: h * 0.38)
-            }
-        }
     }
 }

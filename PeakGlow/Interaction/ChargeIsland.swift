@@ -120,22 +120,23 @@ struct ChargeIslandView: View {
     @ObservedObject var motion: IslandMotion
     @ObservedObject var model: ChargeIslandModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// The battery fills from empty to the charge as the island opens.
-    @State private var shownLevel: Double = 0
 
     var body: some View {
         let wing = max(0, (model.size.width - model.notchSize.width) / 2)
         HStack(spacing: 0) {
-            BatteryGraphic(level: shownLevel, charging: !model.full, tint: .green)
-                .frame(width: 38, height: 17)
+            Image(systemName: model.full ? "battery.100percent" : "battery.100percent.bolt")
+                .symbolRenderingMode(model.full ? .hierarchical : .palette)
+                .foregroundStyle(model.full ? AnyShapeStyle(.green) : AnyShapeStyle(.primary), .green)
+                .font(.system(size: 22))
+                .symbolEffect(.bounce, options: .nonRepeating, value: motion.expanded)
                 .padding(.leading, 16)
                 .frame(width: wing, alignment: .leading)
                 .islandReveal(motion.expanded, delay: 0.14, reduceMotion: reduceMotion, blurs: false)
             Spacer(minLength: 0)
             Text(model.full ? "Full" : "\(model.percent)%")
-                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .font(.headline)
                 .monospacedDigit()
-                .foregroundStyle(.white)
+                .foregroundStyle(.primary)
                 .padding(.trailing, 16)
                 .frame(width: wing, alignment: .trailing)
                 .islandReveal(motion.expanded, delay: 0.20, reduceMotion: reduceMotion, blurs: false)
@@ -145,14 +146,5 @@ struct ChargeIslandView: View {
         .environment(\.colorScheme, .dark)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(model.full ? "Fully charged" : "Charging, \(model.percent) percent")
-        .onChange(of: motion.expanded) { _, expanded in
-            if expanded {
-                withAnimation(reduceMotion ? nil : .smooth(duration: 0.9).delay(0.25)) {
-                    shownLevel = Double(model.percent) / 100
-                }
-            } else {
-                shownLevel = 0
-            }
-        }
     }
 }

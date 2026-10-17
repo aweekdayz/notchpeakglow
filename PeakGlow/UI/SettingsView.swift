@@ -229,21 +229,9 @@ struct SettingsView: View {
     /// The Battery entry's icon shows the charge, with a bolt while charging.
     @ViewBuilder private func sidebarLabel(_ page: SettingsPage) -> some View {
         if page == .battery, let b = battery.snapshot {
-            Label(page.title, systemImage: Self.batterySymbol(b))
+            Label(page.title, systemImage: BatterySymbol.name(b))
         } else {
             Label(page.title, systemImage: page.symbol)
-        }
-    }
-
-    /// A battery symbol for the charge, in quarters, with a bolt while charging.
-    private static func batterySymbol(_ b: BatterySnapshot) -> String {
-        if b.isChargingNow { return "battery.100percent.bolt" }
-        switch b.percent {
-        case ..<13: return "battery.0percent"
-        case ..<38: return "battery.25percent"
-        case ..<63: return "battery.50percent"
-        case ..<88: return "battery.75percent"
-        default: return "battery.100percent"
         }
     }
 
@@ -291,6 +279,16 @@ struct SettingsView: View {
             Text("Temperature")
         } footer: {
             SettingsNote("The glow turns orange when the temperature stays high. This is a hint, not a safety feature.")
+        }
+        Section {
+            Toggle("Check for updates automatically", isOn: $updates.automaticChecks)
+            Button("Check for Updates…") {
+                updates.checkForUpdates(nil)
+            }
+            .nativeGlassAction()
+            .disabled(!updates.canCheckForUpdates)
+        } header: {
+            Text("Updates")
         }
     }
 
@@ -354,8 +352,6 @@ struct SettingsView: View {
         }
         Section {
             Toggle("Keep a faint glow when idle", isOn: binding(\.ambientGlow))
-            Toggle("Show charging in the glow", isOn: binding(\.chargingGlow))
-            Toggle("Show the charge when the charger is connected", isOn: binding(\.chargeIsland))
             slider("Glow size", binding(\.glowScale), in: 0.4...1.6,
                    value: "\(Int(s.glowScale * 100))%")
             slider("Brightness", binding(\.glowIntensity), in: 0.2...2,
@@ -405,7 +401,8 @@ struct SettingsView: View {
     }
 
     @ViewBuilder private var batteryPage: some View {
-        BatterySettingsContent(snapshot: battery.snapshot)
+        BatterySettingsContent(snapshot: battery.snapshot, chargingGlow: binding(\.chargingGlow),
+                               chargeIsland: binding(\.chargeIsland))
     }
 
     @ViewBuilder private var aboutPage: some View {
@@ -437,16 +434,6 @@ struct SettingsView: View {
             SettingsNote(notchDisplayAvailable
                 ? "Copy Diagnostics copies the Mac model, macOS version and sensor status for a bug report, with no serial number or personal data."
                 : "The glow and the controls need a built-in notch display.")
-        }
-        Section {
-            Toggle("Check for updates automatically", isOn: $updates.automaticChecks)
-            Button("Check for Updates…") {
-                updates.checkForUpdates(nil)
-            }
-            .nativeGlassAction()
-            .disabled(!updates.canCheckForUpdates)
-        } header: {
-            Text("Updates")
         }
         Section {
             LabeledContent("Version", value: Self.versionText)
