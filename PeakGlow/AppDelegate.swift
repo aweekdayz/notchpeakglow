@@ -9,6 +9,7 @@ import ServiceManagement
     private let hover = NotchHoverController()
     private let gamepad = GamepadDetector()
     private var bubble: BubblePanelController?
+    private lazy var chargeIsland = ChargeIslandController(glow: glow)
     private var statusItem: NSStatusItem?
 
     private var lastAutoLevel: LoadLevel = .low
@@ -31,6 +32,7 @@ import ServiceManagement
         updateStatusItem()
         bubble = BubblePanelController(hover: hover)
         bubble?.glow = glow
+        bubble?.willShow = { [weak self] in self?.chargeIsland.cancel() }
         // Sample power directly; unused CPU readings must not gate this callback.
         var wattWindow: [Double] = []
         powerSampler.onSample = { [weak self] reading in
@@ -126,9 +128,14 @@ import ServiceManagement
             self?.glow.setCharging(AppSettings.shared.chargingGlow && snapshot?.isChargingNow == true)
         }
         battery.onEvent = { [weak self] event in
-            guard AppSettings.shared.chargingGlow else { return }
+            guard let self, AppSettings.shared.chargingGlow else { return }
             switch event {
-            case .pluggedIn, .fullyCharged: self?.glow.chargePulse()
+            case .pluggedIn, .fullyCharged:
+                let snapshot = AppState.shared.battery.snapshot
+                // The island shows the charge; with the controls open, or without the island, a ripple marks it.
+                let shown = AppSettings.shared.chargeIsland && !AppState.shared.bubbleVisible
+                    && self.chargeIsland.present(percent: snapshot?.percent ?? 0, full: event == .fullyCharged)
+                if !shown { self.glow.chargePulse() }
             case .unplugged: break
             }
         }

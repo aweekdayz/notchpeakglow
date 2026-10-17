@@ -163,7 +163,7 @@ struct SettingsView: View {
             List(selection: $selection) {
                 ForEach(SettingsPage.allCases) { page in
                     NavigationLink(value: page) {
-                        Label(page.title, systemImage: page.symbol)
+                        sidebarLabel(page)
                     }
                     .tag(page)
                 }
@@ -223,6 +223,27 @@ struct SettingsView: View {
             }
         } message: {
             Text("Restore the default appearance and recommended load thresholds.")
+        }
+    }
+
+    /// The Battery entry's icon shows the charge, with a bolt while charging.
+    @ViewBuilder private func sidebarLabel(_ page: SettingsPage) -> some View {
+        if page == .battery, let b = battery.snapshot {
+            Label(page.title, systemImage: Self.batterySymbol(b))
+        } else {
+            Label(page.title, systemImage: page.symbol)
+        }
+    }
+
+    /// A battery symbol for the charge, in quarters, with a bolt while charging.
+    private static func batterySymbol(_ b: BatterySnapshot) -> String {
+        if b.isChargingNow { return "battery.100percent.bolt" }
+        switch b.percent {
+        case ..<13: return "battery.0percent"
+        case ..<38: return "battery.25percent"
+        case ..<63: return "battery.50percent"
+        case ..<88: return "battery.75percent"
+        default: return "battery.100percent"
         }
     }
 
@@ -334,6 +355,7 @@ struct SettingsView: View {
         Section {
             Toggle("Keep a faint glow when idle", isOn: binding(\.ambientGlow))
             Toggle("Show charging in the glow", isOn: binding(\.chargingGlow))
+            Toggle("Show the charge when the charger is connected", isOn: binding(\.chargeIsland))
             slider("Glow size", binding(\.glowScale), in: 0.4...1.6,
                    value: "\(Int(s.glowScale * 100))%")
             slider("Brightness", binding(\.glowIntensity), in: 0.2...2,
@@ -383,61 +405,7 @@ struct SettingsView: View {
     }
 
     @ViewBuilder private var batteryPage: some View {
-        if let b = battery.snapshot {
-            Section {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text("\(b.percent)%")
-                            .font(.title2.weight(.semibold))
-                            .monospacedDigit()
-                        Spacer()
-                        Text(b.statusText)
-                            .foregroundStyle(.secondary)
-                    }
-                    ProgressView(value: Double(b.percent), total: 100)
-                        .tint(b.isChargingNow ? .green : .accentColor)
-                        .accessibilityLabel("Charge")
-                        .accessibilityValue("\(b.percent) percent")
-                    if let time = b.timeText {
-                        Text(time)
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .padding(.vertical, 4)
-            } header: {
-                Text("Charge")
-            }
-            Section {
-                if let health = b.healthPercent {
-                    LabeledContent("Maximum capacity", value: "\(health)%")
-                }
-                if let design = b.designCapacity, let maximum = b.maximumCapacity {
-                    LabeledContent("Capacity", value: "\(maximum) of \(design) mAh")
-                }
-                if let cycles = b.cycleCount {
-                    LabeledContent("Cycle count", value: b.designCycleCount.map { "\(cycles) of \($0)" } ?? "\(cycles)")
-                }
-                if let temperature = b.temperature {
-                    LabeledContent("Temperature", value: String(format: "%.1f °C", temperature))
-                }
-            } header: {
-                Text("Health")
-            }
-            Section {
-                LabeledContent("Power adapter", value: b.externalConnected ? (b.adapterWatts.map { "\($0) W" } ?? "Connected") : "Not connected")
-                if let watts = b.batteryWatts, abs(watts) >= 0.1 {
-                    LabeledContent(watts > 0 ? "Charging power" : "Battery power", value: String(format: "%.1f W", abs(watts)))
-                }
-            } header: {
-                Text("Power")
-            }
-        } else {
-            Section {
-                Text("This Mac has no battery.")
-                    .foregroundStyle(.secondary)
-            }
-        }
+        BatterySettingsContent(snapshot: battery.snapshot)
     }
 
     @ViewBuilder private var aboutPage: some View {
@@ -601,7 +569,7 @@ private extension View {
 }
 
 /// One readable secondary text style for inline help and native section footers.
-private struct SettingsNote: View {
+struct SettingsNote: View {
     let text: String
 
     init(_ text: String) { self.text = text }

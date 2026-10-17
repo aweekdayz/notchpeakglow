@@ -46,9 +46,18 @@ import AppKit
     var canDrawIsland: Bool { metalView?.renderer != nil }
 
     /// Run the shared spring; the window is already large enough for the island.
-    func setIsland(expanded: Bool, size: CGSize) {
-        if expanded { metalView?.renderer?.islandSizePoints = size }
+    func setIsland(expanded: Bool, size: CGSize, radius: CGFloat = IslandMetrics.expandedCornerRadius) {
+        if expanded {
+            metalView?.renderer?.islandSizePoints = size
+            metalView?.renderer?.islandRadiusPoints = radius
+        }
         metalView?.renderer?.setIsland(expanded: expanded)
+        metalView?.wake()
+    }
+
+    /// Take the island away at once, for example when the controls open over it.
+    func cancelIsland() {
+        metalView?.renderer?.resetIsland()
         metalView?.wake()
     }
 

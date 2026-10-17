@@ -15,6 +15,8 @@ import SwiftUI
     private var presentationGeneration: UInt = 0
     /// How long the shell waits after the content starts to leave.
     private static let shellContractionDelay: TimeInterval = 0.05
+    /// Called as the controls start to open, so anything else drawn in the island can step aside.
+    var willShow: (() -> Void)?
     /// Draws the island's shell and glow; it tells us when the island is back in the notch.
     weak var glow: GlowWindow? {
         didSet { glow?.onIslandHidden = { [weak self] in self?.islandHidden() } }
@@ -93,6 +95,7 @@ import SwiftUI
     }
 
     func show() {
+        willShow?()
         guard let screen = NotchedScreenFinder.find(),
               let notch = NotchedScreenFinder.notchRect(of: screen) else { return }
 

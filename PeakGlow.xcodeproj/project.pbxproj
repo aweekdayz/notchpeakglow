@@ -12,6 +12,8 @@
 		1258E99142E45C4822D8916A /* NotchedScreenFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD9C61170DDE7370117EE80E /* NotchedScreenFinder.swift */; };
 		20949F3D46C7662AC9E77074 /* CPUSampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0D0C51FB3504597AE05A684 /* CPUSampler.swift */; };
 		2B032AFD630F3D52844285AB /* MachineProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFC475527A2DCCC0F019E87C /* MachineProfile.swift */; };
+		2CF6BD8E55CC074C84A6BA88 /* ChargeIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1188172C0D6B8A5C7F65F4E8 /* ChargeIsland.swift */; };
+		320B825FFA2D50A06A6F5882 /* BatterySettingsContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74C509E244511483DA308189 /* BatterySettingsContent.swift */; };
 		33DEBAD1296BBB9C53D2CC7B /* FirstRunWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE4F84256D3BFB04B82F10C2 /* FirstRunWindow.swift */; };
 		5ADA518D0A58FE3C346AFD29 /* LoadLevel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 041F8511C918A713E5CA7422 /* LoadLevel.swift */; };
 		653F08587B22F1B2917C1D60 /* Updater.swift in Sources */ = {isa = PBXBuildFile; fileRef = C31358000C7B62FFE59BD8B2 /* Updater.swift */; };
@@ -36,9 +38,11 @@
 
 /* Begin PBXFileReference section */
 		041F8511C918A713E5CA7422 /* LoadLevel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadLevel.swift; sourceTree = "<group>"; };
+		1188172C0D6B8A5C7F65F4E8 /* ChargeIsland.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChargeIsland.swift; sourceTree = "<group>"; };
 		20EA2667F8029096F50783C6 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		4D149312326374FC6AAE91C3 /* BubblePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BubblePanel.swift; sourceTree = "<group>"; };
 		5507590C1DD1C460678DA601 /* BubbleContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BubbleContentView.swift; sourceTree = "<group>"; };
+		74C509E244511483DA308189 /* BatterySettingsContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatterySettingsContent.swift; sourceTree = "<group>"; };
 		765566A9E74AE98C9852F586 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		873C19AC9710E7C3E5B33550 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		8BC3B4E0AABB45544D7FD46F /* GlowWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlowWindow.swift; sourceTree = "<group>"; };
@@ -89,6 +93,7 @@
 		3D199B5FDB11DB42438AF189 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				74C509E244511483DA308189 /* BatterySettingsContent.swift */,
 				EE4F84256D3BFB04B82F10C2 /* FirstRunWindow.swift */,
 				765566A9E74AE98C9852F586 /* SettingsView.swift */,
 			);
@@ -155,6 +160,7 @@
 			children = (
 				5507590C1DD1C460678DA601 /* BubbleContentView.swift */,
 				4D149312326374FC6AAE91C3 /* BubblePanel.swift */,
+				1188172C0D6B8A5C7F65F4E8 /* ChargeIsland.swift */,
 				BBC15F8F50226CE5F4139255 /* GamepadDetector.swift */,
 				BEE289D61299F7311EF8C24D /* NotchHoverController.swift */,
 			);
@@ -238,9 +244,11 @@
 				7E4B5EF42BE98B66535685D6 /* AppSettings.swift in Sources */,
 				CA0055BA66B7EF06FA195ED8 /* AppState.swift in Sources */,
 				A8A399367581F4DEF329A532 /* BatteryMonitor.swift in Sources */,
+				320B825FFA2D50A06A6F5882 /* BatterySettingsContent.swift in Sources */,
 				EAB5C494BCEC6905F683DB32 /* BubbleContentView.swift in Sources */,
 				9472BD2A8EE4018D1BE65F4D /* BubblePanel.swift in Sources */,
 				20949F3D46C7662AC9E77074 /* CPUSampler.swift in Sources */,
+				2CF6BD8E55CC074C84A6BA88 /* ChargeIsland.swift in Sources */,
 				33DEBAD1296BBB9C53D2CC7B /* FirstRunWindow.swift in Sources */,
 				0AF6604F3B84447A8D82F12C /* GamepadDetector.swift in Sources */,
 				C85DF53558B1C2147F97FAC4 /* GlowMetalView.swift in Sources */,

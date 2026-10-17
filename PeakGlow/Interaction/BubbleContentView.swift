@@ -241,7 +241,7 @@ struct BubbleContentView: View {
   }
 }
 
-private extension View {
+extension View {
   /// Layers rise out of the notch in turn as the shell opens, and draw back up into it as it closes.
   /// Opening: a spring settles each layer from slightly small, blurred and high; the layers lower
   /// down start later, so the content follows the shell's own bounce. Closing: the lowest layers

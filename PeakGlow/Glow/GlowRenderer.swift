@@ -36,6 +36,18 @@ import QuartzCore
     private var islandAlpha: Float = 0
     private var islandWasActive = false
     var islandActive: Bool { islandTarget > 0.5 || islandProgress > 0.0005 || islandAlpha > 0.002 }
+    /// Lower corner radius of the full island in points. The control panel is a rounded block; the
+    /// charging pill, which is only as tall as the notch, is rounded to its full height.
+    var islandRadiusPoints: CGFloat = IslandMetrics.expandedCornerRadius
+
+    /// Put the island away at once, without the spring and without telling anyone it has gone.
+    func resetIsland() {
+        islandTarget = 0
+        islandProgress = 0
+        islandVelocity = 0
+        islandAlpha = 0
+        islandWasActive = false
+    }
 
     func setIsland(expanded: Bool) {
         islandTarget = expanded ? 1 : 0
@@ -339,7 +351,7 @@ import QuartzCore
                                      Float(islandSizePoints.height * layer.contentsScale)),
             islandProgress: islandProgress,
             islandAlpha: islandAlpha,
-            islandRadius: Float(IslandMetrics.expandedCornerRadius * layer.contentsScale),
+            islandRadius: Float(islandRadiusPoints * layer.contentsScale),
             chargeMix: chargeMix,
             chargePulse: chargePulse,
             chargeMotion: reduceMotion ? 0 : 1)
