@@ -75,20 +75,28 @@ import AppKit
         metalView?.wake()
     }
 
-    /// The power reading moves a little every half second. The glow only follows it once it has moved
-    /// enough to show, so a steady glow can stop drawing instead of redrawing an unchanged picture.
+    /// The power reading moves a little every half second (a watt or so at idle). The glow only follows it
+    /// once it has moved enough to show, about seven percent of the color ramp (or at once if it jumps), so a steady glow can stop
+    /// drawing instead of redrawing a picture that no eye can tell from the last one.
     private var shownPowerFraction: Float?
+    private var shownPowerAt: CFTimeInterval = 0
 
     func setPowerFraction(_ fraction: Float?) {
         pendingPowerFraction = fraction
+        let now = CACurrentMediaTime()
         let changed: Bool
         switch (fraction, shownPowerFraction) {
         case (nil, nil): changed = false
-        case let (new?, old?): changed = abs(new - old) > 0.012
+        case let (new?, old?):
+            // A big move is followed at once; a small one only after a couple of seconds, and only if
+            // it is still there then.
+            let delta = abs(new - old)
+            changed = delta > 0.25 || (delta > 0.07 && now - shownPowerAt > 2.5)
         default: changed = true
         }
         guard changed else { return }
         shownPowerFraction = fraction
+        shownPowerAt = now
         metalView?.renderer?.powerFraction = fraction
         metalView?.nudge()
     }

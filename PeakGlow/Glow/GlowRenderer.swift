@@ -22,6 +22,8 @@ import QuartzCore
     static let calmFrameRate: Double = 30
     /// The charging light alone is slow, so it is drawn at a lower rate.
     static let chargeFrameRate: Double = 20
+    /// While the glow only follows a small change in power, the color shifts slowly.
+    static let followFrameRate: Double = 20
     /// While the island moves the loop asks for the display's best rate (120 Hz on ProMotion).
     static let islandFrameRate: Double = 120
     private var calmSince: CFTimeInterval = 0
@@ -332,7 +334,7 @@ import QuartzCore
         // tint's drift). A steady glow is one still picture, so the loop stops instead of redrawing it.
         let eps: Float = 0.002
         let converging = abs(intensity - targetIntensity) > eps || abs(modeMix - targetMix) > eps
-            || abs(powerMix - targetPower) > eps || abs(lightMix - s.lightTarget) > eps
+            || abs(powerMix - targetPower) > 0.006 || abs(lightMix - s.lightTarget) > eps
             || abs(warningMix - (overheat ? 1 : 0)) > eps
             || abs((smoothedBrightness ?? brightness) - brightness) > eps
             || abs((smoothedScale ?? scale) - scale) > eps || abs((smoothedOpacity ?? opacity) - opacity) > eps
@@ -341,6 +343,11 @@ import QuartzCore
             || (!reduceMotion && (chargeMix > 0.004 || warningMix > 0.003))
         if converging || animating { settledSince = nil } else if settledSince == nil { settledSince = now }
         let sleepAfterFrame = settledSince.map { now - $0 > 0.4 } ?? false
+        // Following a small change in power is a slow shift of color, so it does not need many frames either.
+        if !islandActive, chargePulse < 0, modeMix < 0.003, chargeMix < 0.004, warningMix < 0.003,
+           abs(intensity - targetIntensity) <= eps, abs(lightMix - s.lightTarget) <= eps {
+            preferredFrameRate = min(preferredFrameRate, Self.followFrameRate)
+        }
         // The charging light alone moves slowly (one pass in five seconds), so it does not need many frames.
         if !islandActive, chargePulse < 0, !converging, modeMix < 0.003, chargeMix > 0.004, !reduceMotion, warningMix < 0.003 {
             preferredFrameRate = min(preferredFrameRate, Self.chargeFrameRate)
