@@ -610,7 +610,7 @@ private struct NativeSettingsSlider: View {
     }
 }
 
-/// The Battery entry's icon shows the charge, with a bolt while charging. It watches the battery itself,
+/// The Battery entry's icon follows the charge, as a plain system symbol. It watches the battery itself,
 /// so a new reading redraws only this label and not the whole window.
 private struct SidebarLabel: View {
     let page: SettingsPage
@@ -618,11 +618,9 @@ private struct SidebarLabel: View {
 
     var body: some View {
         if page == .battery, let b = battery.snapshot {
-            Label {
-                Text(page.title)
-            } icon: {
-                BatterySymbolView(snapshot: b)
-            }
+            // A plain Label, like the other entries, so the sidebar colors the icon the same way for all of
+            // them. Charging uses the system's bolt battery; the page itself shows the level.
+            Label(page.title, systemImage: b.isChargingNow ? "battery.100percent.bolt" : BatterySymbol.quarter(b.percent))
         } else {
             Label(page.title, systemImage: page.symbol)
         }
