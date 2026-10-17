@@ -50,11 +50,13 @@ struct ChargeBatteryGlyph: View {
             .font(font)
             .overlay {
                 if charging && percent < 100 {
+                    // Small enough to sit inside the body of the battery, as on iOS.
                     Image(systemName: "bolt.fill")
-                        .font(font.weight(.bold))
+                        .font(font.weight(.semibold))
                         .imageScale(.small)
+                        .scaleEffect(0.62)
                         .foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.4), radius: 0.8)
+                        .shadow(color: .black.opacity(0.35), radius: 0.6)
                         .padding(.trailing, 2)
                 }
             }

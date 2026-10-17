@@ -26,6 +26,8 @@ struct BatterySnapshot: Equatable {
     /// Minutes, nil when the system does not know yet.
     var minutesToFull: Int?
     var minutesToEmpty: Int?
+    /// Power into (positive) or out of (negative) the battery as the system's own power telemetry reports it, in watts.
+    var telemetryBatteryWatts: Double? = nil
 
     /// The battery's health as the share of its design capacity it can still hold.
     var healthPercent: Int? {
@@ -78,10 +80,32 @@ struct BatterySnapshot: Equatable {
         return "Adapter \(adapterWatts) W"
     }
 
-    /// The power flowing into or out of the battery, when it is more than a rounding error.
+    /// Power going into the battery while it charges, in watts: the system's telemetry when it has the figure,
+    /// otherwise voltage times current. The direction is not trusted while the battery is charging, since the
+    /// battery is then taking power in, so only the size counts.
+    var chargingWatts: Double? {
+        guard isChargingNow else { return nil }
+        let w = abs(telemetryBatteryWatts ?? batteryWatts ?? 0)
+        return w >= 0.1 ? w : nil
+    }
+
+    /// "Charging 35.7 W" while charging, "Discharging 6.8 W" while running on the battery, nothing otherwise.
+    /// A Mac that is plugged in is never said to be discharging.
     var powerText: String? {
-        guard let watts = batteryWatts, abs(watts) >= 0.1 else { return nil }
-        return String(format: watts > 0 ? "Charging %.1f W" : "Discharging %.1f W", abs(watts))
+        if let w = chargingWatts { return String(format: "Charging %.1f W", w) }
+        guard !externalConnected else { return nil }
+        let w = abs(telemetryBatteryWatts ?? batteryWatts ?? 0)
+        return w >= 0.1 ? String(format: "Discharging %.1f W", w) : nil
+    }
+
+    /// The estimated time, or, when there is none, what the battery is doing.
+    var panelCaption: String {
+        if let t = timeText { return t }
+        if externalConnected {
+            if fullyCharged { return "Fully charged" }
+            return isCharging ? "Charging" : "Not charging"
+        }
+        return "On battery"
     }
 
     /// "1 h 20 min" for a number of minutes.
@@ -122,6 +146,11 @@ struct BatterySnapshot: Equatable {
         // Some Macs and macOS versions report no battery temperature at all.
         var temperature: Double?
         if let t = int("Temperature"), t > 0 { temperature = Double(t) / 100 }
+        // The system's own power telemetry (the figures System Information shows) is in milliwatts.
+        var telemetryWatts: Double?
+        if let telemetry = p["PowerTelemetryData"] as? [String: Any], let n = telemetry["BatteryPower"] as? NSNumber {
+            telemetryWatts = Double(Int64(bitPattern: n.uint64Value)) / 1000
+        }
         var watts: Int?
         if let adapter = p["AdapterDetails"] as? [String: Any], let w = (adapter["Watts"] as? NSNumber)?.intValue, w > 0 {
             watts = w
@@ -140,7 +169,8 @@ struct BatterySnapshot: Equatable {
             temperature: temperature,
             adapterWatts: watts,
             minutesToFull: minutes("AvgTimeToFull"),
-            minutesToEmpty: minutes("AvgTimeToEmpty"))
+            minutesToEmpty: minutes("AvgTimeToEmpty"),
+            telemetryBatteryWatts: telemetryWatts)
     }
 }
 
@@ -150,6 +180,8 @@ struct BatterySnapshot: Equatable {
     enum Event { case pluggedIn, unplugged, fullyCharged }
 
     @Published private(set) var snapshot: BatterySnapshot?
+    /// True for a couple of seconds after a charger is connected, so the controls can mark it.
+    @Published private(set) var plugFlash = false
     /// Called on the main actor when the power source changes in a way worth showing.
     var onEvent: ((Event) -> Void)?
     /// Called after each read.
@@ -213,6 +245,10 @@ struct BatterySnapshot: Equatable {
         onUpdate?(new)
         guard announce, let old, let new else { return }
         if !old.externalConnected && new.externalConnected {
+            plugFlash = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
+                MainActor.assumeIsolated { self?.plugFlash = false }
+            }
             onEvent?(.pluggedIn)
             settleReads()
         }

@@ -114,8 +114,9 @@ fragment float4 fragmentShader(FragmentInput in [[stage_in]],
     color = mix(color, chargeColor, chargeGlow * 0.90 * (1.0 - warning));
     float pulseA = 0.0;
     if (u.chargePulse >= 0.0) {
-        float radius = u.chargePulse * 60.0 * k;
-        float ring = exp(-pow((d - radius) / (7.0 * k), 2.0));
+        float open = clamp(ip, 0.0, 1.0);                 // wider and farther around the open island
+        float radius = u.chargePulse * mix(60.0, 130.0, open) * k;
+        float ring = exp(-pow((d - radius) / (mix(7.0, 11.0, open) * k), 2.0));
         pulseA = ring * (1.0 - u.chargePulse) * (1.0 - u.chargePulse);
         color = mix(color, chargeColor, clamp(pulseA * 1.6, 0.0, 1.0));
     }

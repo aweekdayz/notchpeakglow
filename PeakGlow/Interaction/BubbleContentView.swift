@@ -14,7 +14,7 @@ import SwiftUI
 enum IslandMetrics {
   static let width: CGFloat = 384
   /// Height below the notch, where the controls sit.
-  static let contentHeight: CGFloat = 236
+  static let contentHeight: CGFloat = 250
   static let expandedCornerRadius: CGFloat = 24
 }
 
@@ -131,6 +131,9 @@ struct BubbleContentView: View {
   @ObservedObject private var power = AppState.shared.power
   @ObservedObject private var settings = AppSettings.shared
   @ObservedObject private var battery = AppState.shared.battery
+  /// The two readings that matter most are shown large: the system font, default design, at a size that
+  /// follows the large title style (the largest text style is only 26 pt).
+  @ScaledMetric(relativeTo: .largeTitle) private var readoutSize: CGFloat = 42
   private let app = AppState.shared
 
   var body: some View {
@@ -155,7 +158,7 @@ struct BubbleContentView: View {
       VStack(alignment: .leading, spacing: 0) {
         // Two readings built from the same piece: a big number with its unit and one line under it.
         HStack(alignment: .top, spacing: 16) {
-          ReadoutColumn(number: powerText, unit: "W", alignment: .leading,
+          ReadoutColumn(number: powerText, unit: "W", size: readoutSize, alignment: .leading,
                         animatesNumber: !reduceMotion, numberID: power.reading.watts) {
             Text(powerDescription)
           }
@@ -164,31 +167,37 @@ struct BubbleContentView: View {
           .accessibilityValue(power.reading.availability == .current ? "\(powerText) watts" : powerDescription)
           if let b = battery.snapshot {
             // The charge and the estimated time; nothing else about the battery's state.
-            ReadoutColumn(number: "\(b.percent)", unit: "%", alignment: .trailing,
-                          animatesNumber: false, numberID: Double(b.percent)) {
-              Text(b.timeText ?? "—")
+            ReadoutColumn(number: "\(b.percent)", unit: "%", size: readoutSize, alignment: .trailing,
+                          animatesNumber: false, numberID: Double(b.percent),
+                          tint: battery.plugFlash ? .green : nil) {
+              Text(b.panelCaption)
                 .monospacedDigit()
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Battery")
-            .accessibilityValue([ "\(b.percent) percent", b.timeText ].compactMap { $0 }.joined(separator: ", "))
+            .accessibilityValue([ "\(b.percent) percent", b.panelCaption ].joined(separator: ", "))
           }
         }
-        .frame(height: 48)
-        .padding(.top, 14)
+        .frame(height: 56)
+        .padding(.top, 12)
         .islandReveal(motion.expanded, delay: 0.16, reduceMotion: reduceMotion)
 
-        if let b = battery.snapshot, b.adapterText != nil || b.powerText != nil {
+        if let b = battery.snapshot {
+          // The line keeps its room whether or not it has anything to say, so connecting a charger fades its
+          // text in without moving anything else.
+          let present = b.adapterText != nil || b.powerText != nil
           HStack {
-            Text(b.adapterText ?? "")
+            Text(b.adapterText ?? " ")
             Spacer(minLength: 8)
-            Text(b.powerText ?? "")
+            Text(b.powerText ?? " ")
           }
           .font(.caption)
           .monospacedDigit()
           .foregroundStyle(.secondary)
           .lineLimit(1)
-          .padding(.top, 6)
+          .padding(.top, 4)
+          .opacity(present ? 1 : 0)
+          .animation(reduceMotion ? nil : .easeOut(duration: 0.35), value: present)
           .accessibilityElement(children: .ignore)
           .accessibilityLabel("Power adapter and battery power")
           .accessibilityValue([ b.adapterText, b.powerText ].compactMap { $0 }.joined(separator: ", "))
@@ -444,17 +453,21 @@ enum AppGlyph {
 private struct ReadoutColumn<Caption: View>: View {
   let number: String
   let unit: String
+  let size: CGFloat
   let alignment: HorizontalAlignment
   let animatesNumber: Bool
   let numberID: Double
+  var tint: Color? = nil
   @ViewBuilder let caption: Caption
 
   var body: some View {
     VStack(alignment: alignment, spacing: 3) {
       HStack(alignment: .lastTextBaseline, spacing: 4) {
         Text(number)
-          .font(.largeTitle.weight(.semibold))
+          .font(.system(size: size, weight: .semibold))
           .monospacedDigit()
+          .foregroundStyle(tint ?? .primary)
+          .animation(.easeInOut(duration: 0.4), value: tint != nil)
           .contentTransition(.numericText())
           .animation(animatesNumber ? .easeOut(duration: 0.18) : nil, value: numberID)
         Text(unit)
