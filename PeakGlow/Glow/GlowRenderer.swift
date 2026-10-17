@@ -20,6 +20,8 @@ import QuartzCore
     /// at most `calmFrameRate` once it has been steady for a couple of seconds.
     private(set) var preferredFrameRate: Double = 60
     static let calmFrameRate: Double = 30
+    /// The charging light alone is slow, so it is drawn at a lower rate.
+    static let chargeFrameRate: Double = 20
     /// While the island moves the loop asks for the display's best rate (120 Hz on ProMotion).
     static let islandFrameRate: Double = 120
     private var calmSince: CFTimeInterval = 0
@@ -167,6 +169,8 @@ import QuartzCore
     private var lightMix: Float = 0
     private var lastRender: CFTimeInterval = 0
     private var animationTime: Float = 0
+    /// Since when every value has been at its target with nothing animating; the loop stops after a moment of that.
+    private var settledSince: CFTimeInterval?
 
     private var smoothedBrightness: Float?
     private var smoothedScale: Float?
@@ -206,15 +210,26 @@ import QuartzCore
         layer.isOpaque = false
     }
 
+    /// Resume for a small change without treating it as a new event: the glow settles at the calm rate.
+    func nudge() {
+        if isIdle { lastRender = 0 }
+        isIdle = false
+        settledSince = nil
+        calmSince = CACurrentMediaTime() - 3
+        preferredFrameRate = min(settings.frameRate, Self.calmFrameRate)
+    }
+
     /// Resume when the target changes or the display returns.
     func wake() {
         settings = RenderingSettings()
+        settledSince = nil
         // A change of state restores the full rate at once.
         calmSince = CACurrentMediaTime()
         preferredFrameRate = islandActive ? Self.islandFrameRate : settings.frameRate
         if isIdle {
+            // A loop that stopped on a steady glow must wake to fade it out as well as to show a new one.
             guard Self.targetIntensity(level: targetLevel, paused: paused, ambient: ambientEnabled) > 0 || islandActive
-                    || (chargeActive && !paused) else { return }
+                    || (chargeActive && !paused) || intensity > 0.004 || chargeMix > 0.004 else { return }
             // Don't integrate the whole time spent idle into the first resumed frame.
             lastRender = 0
         }
@@ -312,6 +327,24 @@ import QuartzCore
         } else {
             preferredFrameRate = now - calmSince > 2 ? min(s.frameRate, Self.calmFrameRate) : s.frameRate
         }
+        // Nothing is moving once every value has reached its target and nothing animates by itself
+        // (the island, the plug-in ripple, the charging light, the breathing at high load, the warning
+        // tint's drift). A steady glow is one still picture, so the loop stops instead of redrawing it.
+        let eps: Float = 0.002
+        let converging = abs(intensity - targetIntensity) > eps || abs(modeMix - targetMix) > eps
+            || abs(powerMix - targetPower) > eps || abs(lightMix - s.lightTarget) > eps
+            || abs(warningMix - (overheat ? 1 : 0)) > eps
+            || abs((smoothedBrightness ?? brightness) - brightness) > eps
+            || abs((smoothedScale ?? scale) - scale) > eps || abs((smoothedOpacity ?? opacity) - opacity) > eps
+            || abs(chargeMix - chargeTarget) > eps
+        let animating = islandActive || chargePulse >= 0 || modeMix > 0.003
+            || (!reduceMotion && (chargeMix > 0.004 || warningMix > 0.003))
+        if converging || animating { settledSince = nil } else if settledSince == nil { settledSince = now }
+        let sleepAfterFrame = settledSince.map { now - $0 > 0.4 } ?? false
+        // The charging light alone moves slowly (one pass in five seconds), so it does not need many frames.
+        if !islandActive, chargePulse < 0, !converging, modeMix < 0.003, chargeMix > 0.004, !reduceMotion, warningMix < 0.003 {
+            preferredFrameRate = min(preferredFrameRate, Self.chargeFrameRate)
+        }
         if !reduceMotion { animationTime += dt }
         lastRender = now
 
@@ -374,7 +407,7 @@ import QuartzCore
         submitted = true
         cmd.commit()
         // Submit a truly transparent final frame before stopping the display link.
-        if finishingFade && !islandActive { isIdle = true }
+        if (finishingFade && !islandActive) || sleepAfterFrame { isIdle = true }
     }
 }
 

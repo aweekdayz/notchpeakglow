@@ -84,7 +84,7 @@ struct BatterySettingsContent: View {
     }
 
     /// Green while charging, red when low on battery, otherwise the standard color.
-    private static func batteryTint(_ b: BatterySnapshot) -> Color {
+    static func batteryTint(_ b: BatterySnapshot) -> Color {
         if b.isChargingNow { return .green }
         if !b.externalConnected && b.percent <= 20 { return .red }
         return .primary
@@ -124,7 +124,7 @@ private struct MeterRow: View {
     }
 }
 
-/// A battery drawn to fill with the charge, with a bolt over it while charging.
+/// A battery drawn to fill with the charge, with a bolt over it while charging. Everything scales with the height.
 struct BatteryGraphic: View {
     let level: Double
     let charging: Bool
@@ -132,29 +132,34 @@ struct BatteryGraphic: View {
 
     var body: some View {
         GeometryReader { geo in
-            let nub: CGFloat = 5
-            let bodyWidth = geo.size.width - nub - 2
-            let inset: CGFloat = 4
-            HStack(spacing: 2) {
+            let h = geo.size.height
+            let line = max(1.5, h * 0.09)
+            let corner = h * 0.30
+            let inset = max(1.8, h * 0.13)
+            let nubWidth = max(2.2, h * 0.14)
+            let gap = max(0.8, h * 0.05)
+            let bodyWidth = geo.size.width - nubWidth - gap
+            HStack(spacing: gap) {
                 ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(Color.secondary.opacity(0.55), lineWidth: 2.5)
-                    RoundedRectangle(cornerRadius: 6.5, style: .continuous)
+                    RoundedRectangle(cornerRadius: corner, style: .continuous)
+                        .strokeBorder(Color.secondary.opacity(0.6), lineWidth: line)
+                    RoundedRectangle(cornerRadius: max(1, corner - inset * 0.6), style: .continuous)
                         .fill(tint)
-                        .frame(width: max(10, (bodyWidth - inset * 2) * min(max(level, 0), 1)))
+                        .frame(width: max(h * 0.25, (bodyWidth - inset * 2) * min(max(level, 0), 1)))
                         .padding(inset)
                     if charging {
                         Image(systemName: "bolt.fill")
-                            .font(.system(size: geo.size.height * 0.5, weight: .bold))
+                            .font(.system(size: h * 0.55, weight: .bold))
                             .foregroundStyle(.white)
-                            .shadow(color: .black.opacity(0.35), radius: 1.5)
+                            .shadow(color: .black.opacity(0.4), radius: max(0.8, h * 0.04))
                             .frame(width: bodyWidth)
                     }
                 }
                 .frame(width: bodyWidth)
-                Capsule()
-                    .fill(Color.secondary.opacity(0.55))
-                    .frame(width: nub, height: geo.size.height * 0.34)
+                UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: 0,
+                                       bottomTrailingRadius: nubWidth, topTrailingRadius: nubWidth)
+                    .fill(Color.secondary.opacity(0.6))
+                    .frame(width: nubWidth, height: h * 0.38)
             }
         }
     }

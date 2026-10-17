@@ -25,8 +25,9 @@ import SwiftUI
         generation &+= 1
         let current = generation
 
-        // As wide as the controls panel and a little taller than the notch, rounded to a pill.
-        let size = CGSize(width: IslandMetrics.width, height: notch.height + 8)
+        // A little wider than the notch on each side and a little taller, rounded to a pill, so the
+        // content sits close to the notch instead of at the ends of a wide bar.
+        let size = CGSize(width: notch.width + 2 * ChargeIslandMetrics.wing, height: notch.height + 8)
         let frame = CGRect(x: notch.midX - size.width / 2, y: screen.frame.maxY - size.height,
                            width: size.width, height: size.height)
         model.percent = percent
@@ -103,14 +104,19 @@ import SwiftUI
     }
 }
 
+enum ChargeIslandMetrics {
+    /// How far the island reaches out beside the notch on each side.
+    static let wing: CGFloat = 78
+}
+
 @MainActor final class ChargeIslandModel: ObservableObject {
     @Published var percent = 0
     @Published var full = false
     @Published var notchSize = CGSize(width: 180, height: 32)
-    @Published var size = CGSize(width: IslandMetrics.width, height: 40)
+    @Published var size = CGSize(width: 180 + 2 * ChargeIslandMetrics.wing, height: 40)
 }
 
-private struct ChargeIslandView: View {
+struct ChargeIslandView: View {
     @ObservedObject var motion: IslandMotion
     @ObservedObject var model: ChargeIslandModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -120,25 +126,17 @@ private struct ChargeIslandView: View {
     var body: some View {
         let wing = max(0, (model.size.width - model.notchSize.width) / 2)
         HStack(spacing: 0) {
-            HStack(spacing: 6) {
-                Image(systemName: "bolt.fill")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.green)
-                    .scaleEffect(motion.expanded || reduceMotion ? 1 : 0.4)
-                    .animation(reduceMotion ? nil : .spring(response: 0.4, dampingFraction: 0.55).delay(0.28), value: motion.expanded)
-                Image(systemName: "battery.100percent", variableValue: shownLevel)
-                    .font(.system(size: 20, weight: .regular))
-                    .foregroundStyle(.green)
-            }
-            .padding(.leading, 18)
-            .frame(width: wing, alignment: .leading)
-            .islandReveal(motion.expanded, delay: 0.14, reduceMotion: reduceMotion, blurs: false)
+            BatteryGraphic(level: shownLevel, charging: !model.full, tint: .green)
+                .frame(width: 38, height: 17)
+                .padding(.leading, 16)
+                .frame(width: wing, alignment: .leading)
+                .islandReveal(motion.expanded, delay: 0.14, reduceMotion: reduceMotion, blurs: false)
             Spacer(minLength: 0)
             Text(model.full ? "Full" : "\(model.percent)%")
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(.white)
-                .padding(.trailing, 18)
+                .padding(.trailing, 16)
                 .frame(width: wing, alignment: .trailing)
                 .islandReveal(motion.expanded, delay: 0.20, reduceMotion: reduceMotion, blurs: false)
         }

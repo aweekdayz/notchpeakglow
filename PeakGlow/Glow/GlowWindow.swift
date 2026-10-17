@@ -75,9 +75,22 @@ import AppKit
         metalView?.wake()
     }
 
+    /// The power reading moves a little every half second. The glow only follows it once it has moved
+    /// enough to show, so a steady glow can stop drawing instead of redrawing an unchanged picture.
+    private var shownPowerFraction: Float?
+
     func setPowerFraction(_ fraction: Float?) {
         pendingPowerFraction = fraction
+        let changed: Bool
+        switch (fraction, shownPowerFraction) {
+        case (nil, nil): changed = false
+        case let (new?, old?): changed = abs(new - old) > 0.012
+        default: changed = true
+        }
+        guard changed else { return }
+        shownPowerFraction = fraction
         metalView?.renderer?.powerFraction = fraction
+        metalView?.nudge()
     }
 
     func setOverheat(_ on: Bool, gainBoost: Float = 1.5) {

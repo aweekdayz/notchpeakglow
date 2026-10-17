@@ -14,7 +14,7 @@ import SwiftUI
 enum IslandMetrics {
   static let width: CGFloat = 384
   /// Height below the notch, where the controls sit.
-  static let contentHeight: CGFloat = 220
+  static let contentHeight: CGFloat = 232
   static let expandedCornerRadius: CGFloat = 24
 }
 
@@ -131,7 +131,7 @@ struct BubbleContentView: View {
   @ObservedObject private var power = AppState.shared.power
   @ObservedObject private var settings = AppSettings.shared
   @ObservedObject private var battery = AppState.shared.battery
-  @ScaledMetric(relativeTo: .largeTitle) private var readoutSize: CGFloat = 40
+  @ScaledMetric(relativeTo: .largeTitle) private var readoutSize: CGFloat = 36
   private let app = AppState.shared
 
   var body: some View {
@@ -153,34 +153,37 @@ struct BubbleContentView: View {
       .islandReveal(motion.expanded, delay: 0.10, reduceMotion: reduceMotion)
 
       VStack(alignment: .leading, spacing: 12) {
-        // The reading is the main thing here, so it is large.
-        HStack(alignment: .lastTextBaseline, spacing: 6) {
-          Text(powerText)
-            .font(.system(size: readoutSize, weight: .semibold, design: .rounded))
-            .monospacedDigit()
-            .contentTransition(.numericText())
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: power.reading.watts)
-          Text("W")
-            .font(.title3.weight(.medium))
-            .foregroundStyle(.secondary)
-          Spacer(minLength: 8)
-          VStack(alignment: .trailing, spacing: 2) {
-            Text(powerDescription)
-              .multilineTextAlignment(.trailing)
-              .lineLimit(2)
-            if let b = battery.snapshot {
-              Text("\(b.percent)% · \(b.shortStatus)")
+        // Two readings side by side: system power, and the battery with its estimated time.
+        HStack(alignment: .top, spacing: 14) {
+          VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .lastTextBaseline, spacing: 5) {
+              Text(powerText)
+                .font(.system(size: readoutSize, weight: .semibold, design: .rounded))
                 .monospacedDigit()
+                .contentTransition(.numericText())
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: power.reading.watts)
+              Text("W")
+                .font(.title3.weight(.medium))
+                .foregroundStyle(.secondary)
             }
+            Text(powerDescription)
+              .font(.caption)
+              .foregroundStyle(.secondary)
+              .lineLimit(1)
           }
-          .font(.caption)
-          .foregroundStyle(.secondary)
-          .frame(maxWidth: 140, alignment: .trailing)
+          .accessibilityElement(children: .ignore)
+          .accessibilityLabel("System power")
+          .accessibilityValue(power.reading.availability == .current ? "\(powerText) watts" : powerDescription)
+          if let b = battery.snapshot {
+            Rectangle()
+              .fill(Color.white.opacity(0.14))
+              .frame(width: 1, height: 52)
+              .accessibilityHidden(true)
+            PanelBatteryColumn(snapshot: b)
+          }
+          Spacer(minLength: 0)
         }
-        .frame(height: 52)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("System power")
-        .accessibilityValue(power.reading.availability == .current ? "\(powerText) watts" : powerDescription)
+        .frame(height: 60)
         .islandReveal(motion.expanded, delay: 0.16, reduceMotion: reduceMotion)
 
         PowerMeter(watts: meterWatts, medium: settings.mediumWatts, high: settings.highWatts,
@@ -424,4 +427,38 @@ enum AppGlyph {
     image.accessibilityDescription = "PeakGlow"
     return image
   }()
+}
+
+
+/// The battery in the controls panel: the drawn battery and the charge, what it is doing, and the time left.
+private struct PanelBatteryColumn: View {
+  let snapshot: BatterySnapshot
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 3) {
+      HStack(spacing: 8) {
+        BatteryGraphic(level: Double(snapshot.percent) / 100, charging: snapshot.isChargingNow,
+                       tint: BatterySettingsContent.batteryTint(snapshot))
+          .frame(width: 36, height: 17)
+        Text("\(snapshot.percent)%")
+          .font(.system(size: 22, weight: .semibold, design: .rounded))
+          .monospacedDigit()
+      }
+      Text(snapshot.statusText)
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+      if let time = snapshot.timeText {
+        Text(time)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .monospacedDigit()
+          .lineLimit(1)
+      }
+    }
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel("Battery")
+    .accessibilityValue([ "\(snapshot.percent) percent", snapshot.statusText, snapshot.timeText ]
+      .compactMap { $0 }.joined(separator: ", "))
+  }
 }
