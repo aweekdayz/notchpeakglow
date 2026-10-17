@@ -178,8 +178,6 @@ struct BatterySnapshot: Equatable {
     enum Event { case pluggedIn, unplugged, fullyCharged }
 
     @Published private(set) var snapshot: BatterySnapshot?
-    /// True for a couple of seconds after a charger is connected, so the controls can mark it.
-    @Published private(set) var plugFlash = false
     /// Called on the main actor when the power source changes in a way worth showing.
     var onEvent: ((Event) -> Void)?
     /// Called after each read.
@@ -253,10 +251,6 @@ struct BatterySnapshot: Equatable {
         onUpdate?(new)
         guard announce, let old, let new else { return }
         if !old.externalConnected && new.externalConnected {
-            plugFlash = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
-                MainActor.assumeIsolated { self?.plugFlash = false }
-            }
             onEvent?(.pluggedIn)
             settleReads()
         }
