@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.9.0 — October 17, 2026 (Build 53)
 
 Battery and charging, and a lighter glow.
 
