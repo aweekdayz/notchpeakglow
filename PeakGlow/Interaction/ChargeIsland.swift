@@ -2,8 +2,8 @@ import AppKit
 import SwiftUI
 
 /// Plugging in the charger opens a small island out of the notch, the way a Dynamic Island shows
-/// charging: it widens to either side of the notch with a battery on the left and the charge on
-/// the right, then draws back in after a few seconds. The renderer draws the black shell and the
+/// charging, with the word "Charging" on the left and the charge and a battery on the right, then draws
+/// back in after a few seconds. The renderer draws the black shell and the
 /// glow around it with the same spring as the controls panel; this window only holds the content,
 /// ignores the pointer, and never takes focus.
 @MainActor final class ChargeIslandController {
@@ -110,7 +110,7 @@ import SwiftUI
 
 enum ChargeIslandMetrics {
     /// How far the island reaches out beside the notch on each side.
-    static let wing: CGFloat = 78
+    static let wing: CGFloat = 110
 }
 
 @MainActor final class ChargeIslandModel: ObservableObject {
@@ -136,18 +136,27 @@ struct ChargeIslandView: View {
         let travel = reduceMotion ? 0 : wing * 0.85
         let shown = motion.expanded
         HStack(spacing: 0) {
-            ChargeBatteryGlyph(percent: model.percent, charging: !model.full, tint: .green, size: 24)
-                .padding(.leading, 16)
+            Text(model.full ? "Charged" : "Charging")
+                .font(.headline)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .padding(.leading, 18)
                 .frame(width: wing, alignment: .leading)
                 .offset(x: shown ? 0 : travel)
             Spacer(minLength: 0)
-            Text(model.full ? "Full" : "\(model.percent)%")
-                .font(.headline)
-                .monospacedDigit()
-                .foregroundStyle(.primary)
-                .padding(.trailing, 16)
-                .frame(width: wing, alignment: .trailing)
-                .offset(x: shown ? 0 : -travel)
+            HStack(spacing: 6) {
+                Text("\(model.percent)%")
+                    .font(.headline)
+                    .monospacedDigit()
+                    .foregroundStyle(.green)
+                    .lineLimit(1)
+                    .fixedSize()
+                ChargeBatteryGlyph(percent: model.percent, charging: !model.full, tint: .green, size: 24)
+            }
+            .padding(.trailing, 14)
+            .frame(width: wing, alignment: .trailing)
+            .offset(x: shown ? 0 : -travel)
         }
         .opacity(shown ? 1 : 0)
         .animation(reduceMotion ? .easeInOut(duration: 0.16) : (shown ? opening : closing), value: shown)
@@ -155,6 +164,6 @@ struct ChargeIslandView: View {
         .frame(width: model.size.width, height: model.size.height)
         .environment(\.colorScheme, .dark)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(model.full ? "Fully charged" : "Charging, \(model.percent) percent")
+        .accessibilityLabel(model.full ? "Fully charged, \(model.percent) percent" : "Charging, \(model.percent) percent")
     }
 }
