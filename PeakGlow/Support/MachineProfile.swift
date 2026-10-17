@@ -143,6 +143,16 @@ import AppKit
         @unknown default: thermalState = "unknown"
         }
 
+        let batteryLine: String
+        if let b = state.battery.snapshot {
+            var parts = ["\(b.percent)%", b.statusText.lowercased()]
+            if let h = b.healthPercent { parts.append("maximum capacity \(h)%") }
+            if let c = b.cycleCount { parts.append("\(c) cycles") }
+            if let w = b.adapterWatts, b.externalConnected { parts.append("charger \(w) W") }
+            batteryLine = parts.joined(separator: ", ")
+        } else {
+            batteryLine = "none"
+        }
         return [
             "PeakGlow \(version) (\(build))",
             "macOS: \(ProcessInfo.processInfo.operatingSystemVersionString)",
@@ -152,6 +162,7 @@ import AppKit
             "Notch display: \(NotchedScreenFinder.find() != nil ? "available" : "unavailable")",
             "Power sensor: \(power)",
             "Temperature sensor: \(temperature)",
+            "Battery: \(batteryLine)",
             "System thermal state: \(thermalState)",
             "Thresholds: \(Int(settings.mediumWatts)) W / \(Int(settings.highWatts)) W",
             "Glow mode: \(settings.preview.label)",

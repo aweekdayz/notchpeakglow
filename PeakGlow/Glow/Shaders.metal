@@ -21,6 +21,9 @@ struct Uniforms {
     float islandProgress;   // 0 is the notch's own shape, 1 the full island (spring overshoot allowed)
     float islandAlpha;      // opacity of the island's black shell
     float islandRadius;     // lower corner radius of the full island in pixels
+    float chargeMix;        // 1 while the battery is charging and the charging glow is on
+    float chargePulse;      // 0...1 through the plug-in ripple, negative when there is none
+    float chargeMotion;     // 1 lets the charging light travel; 0 (Reduce Motion) keeps it still
 };
 
 struct FragmentInput { float4 position [[position]]; };
@@ -100,9 +103,27 @@ fragment float4 fragmentShader(FragmentInput in [[stage_in]],
     float3 warm = mix(float3(1.0, 0.53, 0.22), float3(0.96, 0.28, 0.32), wave * 0.35);
     warm = mix(warm, float3(0.88, 0.32, 0.04), L);
     color = mix(color, warm, warning);
+    // Charging: a soft green light that travels slowly along the notch, on top of the power colour.
+    // A plug-in ripple spreads out from the notch once when the charger is connected.
+    float cm = clamp(u.chargeMix, 0.0, 1.0);
+    float3 chargeColor = mix(float3(0.30, 0.95, 0.52), float3(0.02, 0.58, 0.30), L);
+    float across = 0.5 + p.x / max(u.notchSize.x * 1.5, 1.0);
+    float wrapped = abs(fract(across - fract(u.time * 0.20) + 0.5) - 0.5);
+    float band = mix(0.5, exp(-wrapped * wrapped * 55.0), u.chargeMotion);
+    float chargeGlow = cm * (0.60 + 0.40 * band);
+    color = mix(color, chargeColor, chargeGlow * 0.90 * (1.0 - warning));
+    float pulseA = 0.0;
+    if (u.chargePulse >= 0.0) {
+        float open = clamp(ip, 0.0, 1.0);                 // wider and farther around the open island
+        float radius = u.chargePulse * mix(60.0, 130.0, open) * k;
+        float ring = exp(-pow((d - radius) / (mix(7.0, 11.0, open) * k), 2.0));
+        pulseA = ring * (1.0 - u.chargePulse) * (1.0 - u.chargePulse);
+        color = mix(color, chargeColor, clamp(pulseA * 1.6, 0.0, 1.0));
+    }
     color = mix(color, float3(0.86, 0.93, 1.0), rim * 0.34 * (1.0 - warning) * (1.0 - L));
 
     float envelope = (0.40 * rim + 0.95 * bloom + 0.26 * haze) * mix(0.55, 1.35, t);
+    envelope = envelope * (1.0 + 0.45 * chargeGlow) + pulseA * 1.1;
     float alpha = envelope * mix(u.mediumAlpha, 0.72, u.modeMix) * u.intensity * outside;
     alpha *= mix(1.0, 0.90 + 0.10 * pulse, u.modeMix);
     alpha *= mix(1.0, 1.5, L);

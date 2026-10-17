@@ -6,9 +6,12 @@ import Combine
     static let shared = AppState()
 
     /// Publish streaming power only while controls are visible.
-    var bubbleVisible = false
+    var bubbleVisible = false { didSet { updateBatteryWatching() } }
     /// True while the Settings window is open and shows the live power gauge.
-    var settingsVisible = false
+    var settingsVisible = false { didSet { updateBatteryWatching() } }
+    /// The battery is read faster while something on screen shows its current and time left.
+    let battery = BatteryMonitor()
+    private func updateBatteryWatching() { battery.setWatching(bubbleVisible || settingsVisible) }
     var latestWatts: Double = 0
     private var lastPowerSample: Date?
     /// The readout shows the mean of the last few samples and changes about every second and a half;

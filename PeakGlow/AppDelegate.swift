@@ -9,6 +9,7 @@ import ServiceManagement
     private let hover = NotchHoverController()
     private let gamepad = GamepadDetector()
     private var bubble: BubblePanelController?
+    private lazy var chargeIsland = ChargeIslandController(glow: glow)
     private var statusItem: NSStatusItem?
 
     private var lastAutoLevel: LoadLevel = .low
@@ -31,6 +32,7 @@ import ServiceManagement
         updateStatusItem()
         bubble = BubblePanelController(hover: hover)
         bubble?.glow = glow
+        bubble?.willShow = { [weak self] in self?.chargeIsland.cancel() }
         // Sample power directly; unused CPU readings must not gate this callback.
         var wattWindow: [Double] = []
         powerSampler.onSample = { [weak self] reading in
@@ -121,6 +123,27 @@ import ServiceManagement
 
         glow.start()
         hover.start()
+        let battery = AppState.shared.battery
+        battery.onUpdate = { [weak self] snapshot in
+            self?.glow.setCharging(AppSettings.shared.chargingGlow && snapshot?.isChargingNow == true)
+        }
+        battery.onEvent = { [weak self] event in
+            guard let self, AppSettings.shared.chargingGlow else { return }
+            switch event {
+            case .pluggedIn, .fullyCharged:
+                let snapshot = AppState.shared.battery.snapshot
+                // The island shows the charge; without it, a ripple marks it. With the controls open the glow
+                // briefly turns into its charging light.
+                let shown = AppSettings.shared.chargeIsland && !AppState.shared.bubbleVisible
+                    && self.chargeIsland.present(percent: snapshot?.percent ?? 0, full: event == .fullyCharged)
+                if !shown {
+                    if AppState.shared.bubbleVisible { if event == .pluggedIn { self.glow.flashCharging() } }
+                    else { self.glow.chargePulse() }
+                }
+            case .unplugged: break
+            }
+        }
+        battery.start()
         gamepad.start()
         thermal.start()
         powerSampler.start(interval: AppSettings.shared.sampleInterval)
@@ -133,7 +156,10 @@ import ServiceManagement
         } else {
             // Build Settings while idle, so the first click does not wait for it.
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                MainActor.assumeIsolated { SettingsWindowController.shared.prewarm() }
+                MainActor.assumeIsolated {
+                    SettingsWindowController.shared.prewarm()
+                    self.chargeIsland.prepare()
+                }
             }
         }
     }
@@ -239,6 +265,10 @@ import ServiceManagement
         power.isEnabled = false
         power.tag = Self.powerItemTag
         menu.addItem(power)
+        let batteryItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        batteryItem.isEnabled = false
+        batteryItem.tag = Self.batteryItemTag
+        menu.addItem(batteryItem)
         menu.addItem(.separator())
         let glowHeader = NSMenuItem(title: "Glow", action: nil, keyEquivalent: "")
         glowHeader.isEnabled = false
@@ -261,6 +291,7 @@ import ServiceManagement
     }
 
     private static let powerItemTag = 1000
+    private static let batteryItemTag = 1001
 
     @objc private func selectGlowMode(_ sender: NSMenuItem) {
         guard let mode = PreviewLevel(rawValue: sender.tag) else { return }
@@ -274,6 +305,14 @@ import ServiceManagement
         menu.item(withTag: Self.powerItemTag)?.title = reading.availability == .current
             ? String(format: "System power: %.1f W", reading.watts)
             : "Power data unavailable"
+        if let batteryItem = menu.item(withTag: Self.batteryItemTag) {
+            if let b = state.battery.snapshot {
+                batteryItem.title = "Battery: \(b.percent)%, \(b.shortStatus.lowercased())"
+                batteryItem.isHidden = false
+            } else {
+                batteryItem.isHidden = true
+            }
+        }
         for mode in Self.glowMenuModes {
             menu.item(withTag: mode.rawValue)?.state = state.preview == mode ? .on : .off
         }
@@ -293,6 +332,7 @@ import ServiceManagement
         }
         applyLevel()
         updateStatusItem()
+        glow.setCharging(s.chargingGlow && AppState.shared.battery.snapshot?.isChargingNow == true)
         if samplingInterval != s.sampleInterval {
             samplingInterval = s.sampleInterval
             powerSampler.start(interval: samplingInterval)

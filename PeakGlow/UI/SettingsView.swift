@@ -141,6 +141,8 @@ private final class SettingsWindow: NSWindow {
 
 struct SettingsView: View {
     var onReady: () -> Void = {}
+    /// The page to open on; used by tests to render a given page.
+    var initialPage: String?
     @ObservedObject private var s = AppSettings.shared
     @State private var selection: SettingsPage?
     @State private var initializedSelection = false
@@ -152,7 +154,6 @@ struct SettingsView: View {
     @State private var confirmReset = false
     @State private var diagnosticsCopied = false
     @State private var advancedExpanded = false
-    @ObservedObject private var power = AppState.shared.power
     @ObservedObject private var app = AppState.shared
     @ObservedObject private var updates = UpdateController.shared
     @State private var notchDisplayAvailable = NotchedScreenFinder.find() != nil
@@ -162,7 +163,7 @@ struct SettingsView: View {
             List(selection: $selection) {
                 ForEach(SettingsPage.allCases) { page in
                     NavigationLink(value: page) {
-                        Label(page.title, systemImage: page.symbol)
+                        SidebarLabel(page: page)
                     }
                     .tag(page)
                 }
@@ -178,6 +179,8 @@ struct SettingsView: View {
                     generalPage
                 case .glow:
                     glowPage
+                case .battery:
+                    batteryPage
                 case .about:
                     aboutPage
                 }
@@ -197,7 +200,7 @@ struct SettingsView: View {
         .task {
             guard !initializedSelection else { return }
             initializedSelection = true
-            selection = .general
+            selection = SettingsPage(rawValue: initialPage ?? "") ?? .general
             sidebarFocused = true
             onReady()
         }
@@ -286,26 +289,7 @@ struct SettingsView: View {
             Text("Glow mode")
         }
         Section {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(powerNowText)
-                        .font(.title2.weight(.semibold))
-                        .monospacedDigit()
-                    Spacer()
-                    if power.reading.availability != .current {
-                        Text("Power data unavailable")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                PowerMeter(watts: gaugeWatts, medium: s.mediumWatts, high: s.highWatts,
-                           maximum: gaugeMaximum, gradient: gaugeGradient)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("System power")
-                    .accessibilityValue(power.reading.availability == .current
-                        ? "\(powerNowText). Brighter glow from \(Int(s.mediumWatts)) watts, strongest glow from \(Int(s.highWatts)) watts."
-                        : "Unavailable")
-            }
-            .padding(.vertical, 4)
+            PowerNowCard()
         } header: {
             Text("Power now")
         }
@@ -378,6 +362,10 @@ struct SettingsView: View {
         }
     }
 
+    @ViewBuilder private var batteryPage: some View {
+        BatteryPageView()
+    }
+
     @ViewBuilder private var aboutPage: some View {
         Section {
             LabeledContent("Model") {
@@ -438,17 +426,6 @@ struct SettingsView: View {
         let version = info?["CFBundleShortVersionString"] as? String ?? "?"
         let build = info?["CFBundleVersion"] as? String ?? "?"
         return "\(version) (\(build))"
-    }
-
-    private var gaugeWatts: Double { power.reading.availability == .current ? power.reading.watts : 0 }
-    /// The bar ends where the glow reaches the top of its color ramp.
-    private var gaugeMaximum: Double { max(s.highWatts * 1.4, 1) }
-    private var powerNowText: String {
-        power.reading.availability == .current ? String(format: "%.1f W", power.reading.watts) : "— W"
-    }
-    /// The glow's own ramp (blue, cyan, green, yellow) laid out by power, so the bar matches the glow.
-    private var gaugeGradient: Gradient {
-        PowerRamp.gradient(medium: s.mediumWatts, high: s.highWatts)
     }
 
     private var sidebarToggle: some View {
@@ -512,12 +489,13 @@ struct SettingsView: View {
 
 
 private enum SettingsPage: String, CaseIterable, Identifiable {
-    case general, glow, about
+    case general, glow, battery, about
     var id: Self { self }
     var symbol: String {
         switch self {
         case .general: "gearshape"
         case .glow: "sparkles"
+        case .battery: "battery.100percent"
         case .about: "info.circle"
         }
     }
@@ -525,6 +503,7 @@ private enum SettingsPage: String, CaseIterable, Identifiable {
         switch self {
         case .general: "General"
         case .glow: "Glow"
+        case .battery: "Battery"
         case .about: "About"
         }
     }
@@ -537,7 +516,7 @@ private extension View {
 }
 
 /// One readable secondary text style for inline help and native section footers.
-private struct SettingsNote: View {
+struct SettingsNote: View {
     let text: String
 
     init(_ text: String) { self.text = text }
@@ -628,5 +607,69 @@ private struct NativeSettingsSlider: View {
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .contain)
+    }
+}
+
+/// The Battery entry's icon follows the charge, as a plain system symbol. It watches the battery itself,
+/// so a new reading redraws only this label and not the whole window.
+private struct SidebarLabel: View {
+    let page: SettingsPage
+    @ObservedObject private var battery = AppState.shared.battery
+
+    var body: some View {
+        if page == .battery, let b = battery.snapshot {
+            // A plain Label, like the other entries, so the sidebar colors the icon the same way for all of
+            // them. Charging uses the system's bolt battery; the page itself shows the level.
+            Label(page.title, systemImage: b.isChargingNow ? "battery.100percent.bolt" : BatterySymbol.quarter(b.percent))
+        } else {
+            Label(page.title, systemImage: page.symbol)
+        }
+    }
+}
+
+/// The live power and its meter. The readings change every second or so, so this watches them itself.
+private struct PowerNowCard: View {
+    @ObservedObject private var s = AppSettings.shared
+    @ObservedObject private var power = AppState.shared.power
+
+    private var watts: Double { power.reading.availability == .current ? power.reading.watts : 0 }
+    private var text: String { power.reading.availability == .current ? String(format: "%.1f W", power.reading.watts) : "— W" }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(text)
+                    .font(.title2.weight(.semibold))
+                    .monospacedDigit()
+                Spacer()
+                if power.reading.availability != .current {
+                    Text("Power data unavailable")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            // The bar ends where the glow reaches the top of its color ramp, in the glow's own colors.
+            PowerMeter(watts: watts, medium: s.mediumWatts, high: s.highWatts,
+                       maximum: max(s.highWatts * 1.4, 1),
+                       gradient: PowerRamp.gradient(medium: s.mediumWatts, high: s.highWatts))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("System power")
+                .accessibilityValue(power.reading.availability == .current
+                    ? "\(text). Brighter glow from \(Int(s.mediumWatts)) watts, strongest glow from \(Int(s.highWatts)) watts."
+                    : "Unavailable")
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+/// The Battery page, watching the battery itself.
+private struct BatteryPageView: View {
+    @ObservedObject private var s = AppSettings.shared
+    @ObservedObject private var battery = AppState.shared.battery
+
+    var body: some View {
+        BatterySettingsContent(
+            snapshot: battery.snapshot,
+            chargingGlow: Binding(get: { s.chargingGlow }, set: { s.chargingGlow = $0 }),
+            chargeIsland: Binding(get: { s.chargeIsland }, set: { s.chargeIsland = $0 }))
     }
 }

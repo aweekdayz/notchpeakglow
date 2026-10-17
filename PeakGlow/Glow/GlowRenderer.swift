@@ -20,6 +20,10 @@ import QuartzCore
     /// at most `calmFrameRate` once it has been steady for a couple of seconds.
     private(set) var preferredFrameRate: Double = 60
     static let calmFrameRate: Double = 30
+    /// The charging light alone is slow, so it is drawn at a lower rate.
+    static let chargeFrameRate: Double = 20
+    /// While the glow only follows a small change in power, the color shifts slowly.
+    static let followFrameRate: Double = 20
     /// While the island moves the loop asks for the display's best rate (120 Hz on ProMotion).
     static let islandFrameRate: Double = 120
     private var calmSince: CFTimeInterval = 0
@@ -36,6 +40,18 @@ import QuartzCore
     private var islandAlpha: Float = 0
     private var islandWasActive = false
     var islandActive: Bool { islandTarget > 0.5 || islandProgress > 0.0005 || islandAlpha > 0.002 }
+    /// Lower corner radius of the full island in points. The control panel is a rounded block; the
+    /// charging pill, which is only as tall as the notch, is rounded to its full height.
+    var islandRadiusPoints: CGFloat = IslandMetrics.expandedCornerRadius
+
+    /// Put the island away at once, without the spring and without telling anyone it has gone.
+    func resetIsland() {
+        islandTarget = 0
+        islandProgress = 0
+        islandVelocity = 0
+        islandAlpha = 0
+        islandWasActive = false
+    }
 
     func setIsland(expanded: Bool) {
         islandTarget = expanded ? 1 : 0
@@ -73,6 +89,40 @@ import QuartzCore
         // The shell fades in over the first few percent so it cannot show beside the real notch.
         islandAlpha = min(1, max(0, islandProgress / 0.06))
     }
+    // MARK: - Charging
+    // While the battery charges the glow carries a soft green light that travels along the notch, and
+    // plugging in the charger sends one ripple out from it.
+    private var chargeTarget: Float = 0
+    private var chargeMix: Float = 0
+    private var chargePulseStart: CFTimeInterval = 0
+    private var chargePulse: Float = -1
+    private static let chargePulseDuration: CFTimeInterval = 1.3
+
+    /// Charging is on while the battery takes power in and the setting allows it.
+    /// Returns whether the state changed, so a caller polling the battery does not wake the loop for nothing.
+    @discardableResult
+    func setCharging(_ on: Bool) -> Bool {
+        guard (chargeTarget > 0.5) != on else { return false }
+        chargeTarget = on ? 1 : 0
+        resumeForCharge()
+        return true
+    }
+
+    /// One ripple, for plugging in the charger or for reaching full charge.
+    func triggerChargePulse() {
+        chargePulseStart = CACurrentMediaTime()
+        chargePulse = 0
+        resumeForCharge()
+    }
+
+    private var chargeActive: Bool { chargeTarget > 0.5 || chargeMix > 0.004 || chargePulse >= 0 }
+
+    private func resumeForCharge() {
+        calmSince = CACurrentMediaTime()
+        if isIdle { lastRender = 0 }
+        isIdle = false
+    }
+
     /// True after the final transparent frame; the host stops its display link.
     private(set) var isIdle = true
 
@@ -121,6 +171,8 @@ import QuartzCore
     private var lightMix: Float = 0
     private var lastRender: CFTimeInterval = 0
     private var animationTime: Float = 0
+    /// Since when every value has been at its target with nothing animating; the loop stops after a moment of that.
+    private var settledSince: CFTimeInterval?
 
     private var smoothedBrightness: Float?
     private var smoothedScale: Float?
@@ -135,7 +187,7 @@ import QuartzCore
         self.layer = layer
         guard let device = MTLCreateSystemDefaultDevice() else { return nil }
         // The shader reads this struct byte for byte; refuse to draw rather than draw wrongly.
-        guard MemoryLayout<Uniforms>.stride == 96 else {
+        guard MemoryLayout<Uniforms>.stride == 104 else {
             NSLog("PeakGlow: unexpected uniform layout")
             return nil
         }
@@ -160,14 +212,26 @@ import QuartzCore
         layer.isOpaque = false
     }
 
+    /// Resume for a small change without treating it as a new event: the glow settles at the calm rate.
+    func nudge() {
+        if isIdle { lastRender = 0 }
+        isIdle = false
+        settledSince = nil
+        calmSince = CACurrentMediaTime() - 3
+        preferredFrameRate = min(settings.frameRate, Self.calmFrameRate)
+    }
+
     /// Resume when the target changes or the display returns.
     func wake() {
         settings = RenderingSettings()
+        settledSince = nil
         // A change of state restores the full rate at once.
         calmSince = CACurrentMediaTime()
         preferredFrameRate = islandActive ? Self.islandFrameRate : settings.frameRate
         if isIdle {
-            guard Self.targetIntensity(level: targetLevel, paused: paused, ambient: ambientEnabled) > 0 || islandActive else { return }
+            // A loop that stopped on a steady glow must wake to fade it out as well as to show a new one.
+            guard Self.targetIntensity(level: targetLevel, paused: paused, ambient: ambientEnabled) > 0 || islandActive
+                    || (chargeActive && !paused) || intensity > 0.004 || chargeMix > 0.004 else { return }
             // Don't integrate the whole time spent idle into the first resumed frame.
             lastRender = 0
         }
@@ -218,7 +282,9 @@ import QuartzCore
         let s = settings
         if lastRender != 0, now - lastRender < (1.0 / (islandActive ? Self.islandFrameRate : s.frameRate)) * 0.9 { return }
 
-        let targetIntensity = Self.targetIntensity(level: targetLevel, paused: paused, ambient: ambientEnabled)
+        // Charging keeps a soft glow on even when the load is low.
+        let targetIntensity = paused ? 0 : max(Self.targetIntensity(level: targetLevel, paused: paused, ambient: ambientEnabled),
+                                               chargeTarget * 0.65)
         let targetMix: Float = targetLevel == .high ? 1 : 0
 
         let dt = Float(min(0.1, lastRender == 0 ? 0.033 : now - lastRender))
@@ -236,6 +302,13 @@ import QuartzCore
         modeMix += (targetMix - modeMix) * (reduceMotion ? 1 : 1 - exp(-dt * 3))
         warningMix += ((overheat ? Float(1) : 0) - warningMix) * (reduceMotion ? 1 : 1 - exp(-dt * 2))
         let parameterFade: Float = reduceMotion ? 1 : 1 - exp(-dt * 18)
+        chargeMix += (chargeTarget - chargeMix) * (reduceMotion ? 1 : 1 - exp(-dt * 2.5))
+        if chargeTarget == 0 && chargeMix < 0.004 { chargeMix = 0 }
+        if chargePulse >= 0 {
+            // Reduce Motion drops the ripple; the steady charging tint is enough.
+            let progress = Float((now - chargePulseStart) / Self.chargePulseDuration)
+            chargePulse = (reduceMotion || progress >= 1) ? -1 : progress
+        }
         let brightness = Float(s.glowIntensity)
         let scale = Float(s.glowScale)
         let opacity = Float(s.mediumAlpha)
@@ -249,17 +322,41 @@ import QuartzCore
         let moved = abs(intensity - before.0) + abs(modeMix - before.1) + abs(powerMix - before.2)
             + abs(lightMix - before.3) + abs(warningMix - before.4)
         if moved / max(dt, 0.001) > 0.08 || calmSince == 0 { calmSince = now }
+        if chargePulse >= 0 { calmSince = now }
         if islandActive {
             calmSince = now
             preferredFrameRate = Self.islandFrameRate
         } else {
             preferredFrameRate = now - calmSince > 2 ? min(s.frameRate, Self.calmFrameRate) : s.frameRate
         }
+        // Nothing is moving once every value has reached its target and nothing animates by itself
+        // (the island, the plug-in ripple, the charging light, the breathing at high load, the warning
+        // tint's drift). A steady glow is one still picture, so the loop stops instead of redrawing it.
+        let eps: Float = 0.002
+        let converging = abs(intensity - targetIntensity) > eps || abs(modeMix - targetMix) > eps
+            || abs(powerMix - targetPower) > 0.006 || abs(lightMix - s.lightTarget) > eps
+            || abs(warningMix - (overheat ? 1 : 0)) > eps
+            || abs((smoothedBrightness ?? brightness) - brightness) > eps
+            || abs((smoothedScale ?? scale) - scale) > eps || abs((smoothedOpacity ?? opacity) - opacity) > eps
+            || abs(chargeMix - chargeTarget) > eps
+        let animating = islandActive || chargePulse >= 0 || modeMix > 0.003
+            || (!reduceMotion && (chargeMix > 0.004 || warningMix > 0.003))
+        if converging || animating { settledSince = nil } else if settledSince == nil { settledSince = now }
+        let sleepAfterFrame = settledSince.map { now - $0 > 0.4 } ?? false
+        // Following a small change in power is a slow shift of color, so it does not need many frames either.
+        if !islandActive, chargePulse < 0, modeMix < 0.003, chargeMix < 0.004, warningMix < 0.003,
+           abs(intensity - targetIntensity) <= eps, abs(lightMix - s.lightTarget) <= eps {
+            preferredFrameRate = min(preferredFrameRate, Self.followFrameRate)
+        }
+        // The charging light alone moves slowly (one pass in five seconds), so it does not need many frames.
+        if !islandActive, chargePulse < 0, !converging, modeMix < 0.003, chargeMix > 0.004, !reduceMotion, warningMix < 0.003 {
+            preferredFrameRate = min(preferredFrameRate, Self.chargeFrameRate)
+        }
         if !reduceMotion { animationTime += dt }
         lastRender = now
 
         // Finish with a transparent frame before stopping rendering.
-        let finishingFade = intensity < 0.004 && targetIntensity == 0
+        let finishingFade = intensity < 0.004 && targetIntensity == 0 && !chargeActive
         if finishingFade { intensity = 0 }
         isIdle = false
 
@@ -294,7 +391,10 @@ import QuartzCore
                                      Float(islandSizePoints.height * layer.contentsScale)),
             islandProgress: islandProgress,
             islandAlpha: islandAlpha,
-            islandRadius: Float(IslandMetrics.expandedCornerRadius * layer.contentsScale))
+            islandRadius: Float(islandRadiusPoints * layer.contentsScale),
+            chargeMix: chargeMix,
+            chargePulse: chargePulse,
+            chargeMotion: reduceMotion ? 0 : 1)
 
         let pass = MTLRenderPassDescriptor()
         pass.colorAttachments[0].texture = drawable.texture
@@ -314,7 +414,7 @@ import QuartzCore
         submitted = true
         cmd.commit()
         // Submit a truly transparent final frame before stopping the display link.
-        if finishingFade && !islandActive { isIdle = true }
+        if (finishingFade && !islandActive) || sleepAfterFrame { isIdle = true }
     }
 }
 
@@ -339,5 +439,8 @@ struct Uniforms {
     var islandProgress: Float
     var islandAlpha: Float
     var islandRadius: Float
+    var chargeMix: Float
+    var chargePulse: Float
+    var chargeMotion: Float
 }
 

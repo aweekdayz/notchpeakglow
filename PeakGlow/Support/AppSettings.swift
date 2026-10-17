@@ -92,6 +92,8 @@ enum PreviewLevel: Int, CaseIterable {
         static let overheatAlertEnabled = "overheatAlertEnabled"
         static let menuBarIcon = "menuBarIcon"
         static let haptics = "hapticFeedback"
+        static let chargingGlow = "chargingGlow"
+        static let chargeIsland = "chargeIsland"
         static let glowWallpaper = "glowWallpaper"
         static let migratable = [mediumWatts, highWatts, holdOnSeconds, hysteresisWatts,
             sampleInterval, ambientGlow, glowScale, glowIntensity, mediumAlpha, pulseHz,
@@ -250,6 +252,16 @@ enum PreviewLevel: Int, CaseIterable {
         get { get(Key.haptics, true) }
         set { set(newValue, Key.haptics) }
     }
+    /// Show charging in the glow: a soft green light while charging and a pulse when the charger is plugged in.
+    var chargingGlow: Bool {
+        get { get(Key.chargingGlow, true) }
+        set { set(newValue, Key.chargingGlow) }
+    }
+    /// Open a small island out of the notch with the charge when the charger is plugged in.
+    var chargeIsland: Bool {
+        get { get(Key.chargeIsland, true) }
+        set { set(newValue, Key.chargeIsland) }
+    }
     var menuBarIcon: Bool {
         get { get(Key.menuBarIcon, true) }
         set { set(newValue, Key.menuBarIcon) }
@@ -260,6 +272,8 @@ enum PreviewLevel: Int, CaseIterable {
     /// Apply the new visual defaults without touching power thresholds or behavior.
     func resetAppearance() {
         ambientGlow = true
+        chargingGlow = true
+        chargeIsland = true
         glowWallpaper = 0
         glowScale = Defaults.glowScale
         glowIntensity = Defaults.glowIntensity

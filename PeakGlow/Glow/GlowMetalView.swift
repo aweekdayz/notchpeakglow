@@ -59,6 +59,14 @@ final class GlowMetalView: NSView {
         updateDrawableSize()
     }
 
+    /// Resume for a small change, such as the power reading moving a little.
+    func nudge() {
+        guard let renderer else { return }
+        renderer.nudge()
+        startDisplayLinkIfNeeded()
+        applyLinkRate()
+    }
+
     /// Resume rendering after a level or settings change.
     func wake() {
         renderer?.wake()

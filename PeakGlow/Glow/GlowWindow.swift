@@ -46,9 +46,18 @@ import AppKit
     var canDrawIsland: Bool { metalView?.renderer != nil }
 
     /// Run the shared spring; the window is already large enough for the island.
-    func setIsland(expanded: Bool, size: CGSize) {
-        if expanded { metalView?.renderer?.islandSizePoints = size }
+    func setIsland(expanded: Bool, size: CGSize, radius: CGFloat = IslandMetrics.expandedCornerRadius) {
+        if expanded {
+            metalView?.renderer?.islandSizePoints = size
+            metalView?.renderer?.islandRadiusPoints = radius
+        }
         metalView?.renderer?.setIsland(expanded: expanded)
+        metalView?.wake()
+    }
+
+    /// Take the island away at once, for example when the controls open over it.
+    func cancelIsland() {
+        metalView?.renderer?.resetIsland()
         metalView?.wake()
     }
 
@@ -56,9 +65,59 @@ import AppKit
         onIslandHidden?()
     }
 
+    /// Charging shows in the glow while it lasts; one ripple marks plugging in the charger.
+    func setCharging(_ on: Bool) {
+        reportedCharging = on
+        applyCharging()
+    }
+
+    private var reportedCharging = false
+    private var flashingCharge = false
+
+    private func applyCharging() {
+        if metalView?.renderer?.setCharging(reportedCharging || flashingCharge) == true { metalView?.wake() }
+    }
+
+    /// The glow shows the charging light for a few seconds, whatever the battery reports yet, then follows
+    /// the real state. Used when a charger is connected while the controls are open.
+    func flashCharging() {
+        flashingCharge = true
+        applyCharging()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+            self?.flashingCharge = false
+            self?.applyCharging()
+        }
+    }
+
+    func chargePulse() {
+        metalView?.renderer?.triggerChargePulse()
+        metalView?.wake()
+    }
+
+    /// The power reading moves a little every half second (a watt or so at idle). The glow only follows it
+    /// once it has moved enough to show, about seven percent of the color ramp (or at once if it jumps), so a steady glow can stop
+    /// drawing instead of redrawing a picture that no eye can tell from the last one.
+    private var shownPowerFraction: Float?
+    private var shownPowerAt: CFTimeInterval = 0
+
     func setPowerFraction(_ fraction: Float?) {
         pendingPowerFraction = fraction
+        let now = CACurrentMediaTime()
+        let changed: Bool
+        switch (fraction, shownPowerFraction) {
+        case (nil, nil): changed = false
+        case let (new?, old?):
+            // A big move is followed at once; a small one only after a couple of seconds, and only if
+            // it is still there then.
+            let delta = abs(new - old)
+            changed = delta > 0.25 || (delta > 0.07 && now - shownPowerAt > 2.5)
+        default: changed = true
+        }
+        guard changed else { return }
+        shownPowerFraction = fraction
+        shownPowerAt = now
         metalView?.renderer?.powerFraction = fraction
+        metalView?.nudge()
     }
 
     func setOverheat(_ on: Bool, gainBoost: Float = 1.5) {
@@ -158,7 +217,6 @@ import AppKit
             metalView?.renderer?.targetLevel = lvl
         }
         metalView?.renderer?.powerFraction = pendingPowerFraction
-        metalView?.renderer?.islandSizePoints = islandSize
         metalView?.renderer?.onIslandHidden = { [weak self] in self?.islandFinished() }
         syncPauseState()
 
