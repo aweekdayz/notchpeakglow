@@ -352,3 +352,7 @@ A second pass over what was added for the battery. The principle applied: system
 | Controls panel | Two columns of unequal weight; the battery column left-aligned. | Fixed: one shared readout piece, same size and baseline, right column right-aligned |
 | Charging state | A charging Mac could read "not charging". | Fixed: three signals instead of one flag, and re-reads after a plug |
 | Open | What a native Settings window should look like was not settled; VoiceOver and Full Keyboard Access were not tested. | Open |
+
+### Battery symbols, fourth pass — October 16, 2026
+
+The partly filled charging battery shown for a while was the system's battery symbol with a bolt laid over it by hand, which does not use the symbol as it comes. It was replaced by the system's `battery.100percent.bolt` as it is (full, tinted green) with the percentage beside it. Every other battery in the app is an unmodified system symbol: the five quarter-filled ones (hierarchical rendering and a tint). The system has no partly filled bolt symbol, so a charging Mac shows a full battery and relies on the number. Apple's own battery display uses a glyph that is not available to apps. The HIG text itself could not be read from here; this follows the guidance as generally understood, to use SF Symbols unchanged.
