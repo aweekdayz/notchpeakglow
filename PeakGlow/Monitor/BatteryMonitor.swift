@@ -188,6 +188,7 @@ struct BatterySnapshot: Equatable {
     private var source: CFRunLoopSource?
     private var timer: Timer?
     private var watching = false
+    private var unpluggedAt: Date?
 
     func start() {
         refresh(announce: false)
@@ -239,6 +240,15 @@ struct BatterySnapshot: Equatable {
     /// Takes a reading, publishes it, and reports plugging in or out and reaching full charge.
     func apply(_ new: BatterySnapshot?, announce: Bool) {
         let old = snapshot
+        // Just after the charger is pulled, a read can still carry the old connected state for a moment.
+        // Hold that back and look again, instead of showing "Charging" for an instant.
+        if announce, let new, new.externalConnected, let at = unpluggedAt, Date().timeIntervalSince(at) < 2 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+                MainActor.assumeIsolated { self?.refresh(announce: true) }
+            }
+            return
+        }
+        if let new, !new.externalConnected, old?.externalConnected == true { unpluggedAt = Date() }
         if new != old { snapshot = new }
         onUpdate?(new)
         guard announce, let old, let new else { return }
@@ -266,7 +276,8 @@ struct BatterySnapshot: Equatable {
         let system = systemState()
         // The registry's ExternalConnected can lag behind a plug or unplug by a moment (and keep its old
         // time and charging flag); the power-source API the system's own battery menu uses is current.
-        if let ac = system?.ac { snapshot.externalConnected = ac }
+        // Either source saying "unplugged" is enough; a charger counts as connected only when both agree.
+        if let ac = system?.ac { snapshot.externalConnected = snapshot.externalConnected && ac }
         snapshot.isCharging = BatterySnapshot.charging(
             flag: snapshot.isCharging, systemSays: system?.charging, current: snapshot.current,
             external: snapshot.externalConnected, fullyCharged: snapshot.fullyCharged)

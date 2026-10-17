@@ -152,7 +152,10 @@ struct ChargeIslandView: View {
                     .foregroundStyle(.green)
                     .lineLimit(1)
                     .fixedSize()
-                ChargeBatteryGlyph(percent: model.percent, charging: !model.full, tint: .green, font: .title2)
+                Image(systemName: "battery.100percent.bolt")
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.green)
+                    .font(.title2)
             }
             .padding(.trailing, 14)
             .frame(width: wing, alignment: .trailing)
