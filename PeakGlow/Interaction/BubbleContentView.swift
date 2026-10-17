@@ -130,6 +130,7 @@ struct BubbleContentView: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @ObservedObject private var power = AppState.shared.power
   @ObservedObject private var settings = AppSettings.shared
+  @ObservedObject private var battery = AppState.shared.battery
   @ScaledMetric(relativeTo: .largeTitle) private var readoutSize: CGFloat = 40
   private let app = AppState.shared
 
@@ -163,12 +164,18 @@ struct BubbleContentView: View {
             .font(.title3.weight(.medium))
             .foregroundStyle(.secondary)
           Spacer(minLength: 8)
-          Text(powerDescription)
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .multilineTextAlignment(.trailing)
-            .lineLimit(2)
-            .frame(maxWidth: 120, alignment: .trailing)
+          VStack(alignment: .trailing, spacing: 2) {
+            Text(powerDescription)
+              .multilineTextAlignment(.trailing)
+              .lineLimit(2)
+            if let b = battery.snapshot {
+              Text("\(b.percent)% · \(b.shortStatus)")
+                .monospacedDigit()
+            }
+          }
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .frame(maxWidth: 140, alignment: .trailing)
         }
         .frame(height: 52)
         .accessibilityElement(children: .ignore)

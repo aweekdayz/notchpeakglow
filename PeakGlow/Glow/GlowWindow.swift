@@ -56,6 +56,16 @@ import AppKit
         onIslandHidden?()
     }
 
+    /// Charging shows in the glow while it lasts; one ripple marks plugging in the charger.
+    func setCharging(_ on: Bool) {
+        if metalView?.renderer?.setCharging(on) == true { metalView?.wake() }
+    }
+
+    func chargePulse() {
+        metalView?.renderer?.triggerChargePulse()
+        metalView?.wake()
+    }
+
     func setPowerFraction(_ fraction: Float?) {
         pendingPowerFraction = fraction
         metalView?.renderer?.powerFraction = fraction

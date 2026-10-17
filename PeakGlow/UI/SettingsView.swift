@@ -155,6 +155,7 @@ struct SettingsView: View {
     @ObservedObject private var power = AppState.shared.power
     @ObservedObject private var app = AppState.shared
     @ObservedObject private var updates = UpdateController.shared
+    @ObservedObject private var battery = AppState.shared.battery
     @State private var notchDisplayAvailable = NotchedScreenFinder.find() != nil
 
     var body: some View {
@@ -178,6 +179,8 @@ struct SettingsView: View {
                     generalPage
                 case .glow:
                     glowPage
+                case .battery:
+                    batteryPage
                 case .about:
                     aboutPage
                 }
@@ -330,6 +333,7 @@ struct SettingsView: View {
         }
         Section {
             Toggle("Keep a faint glow when idle", isOn: binding(\.ambientGlow))
+            Toggle("Show charging in the glow", isOn: binding(\.chargingGlow))
             slider("Glow size", binding(\.glowScale), in: 0.4...1.6,
                    value: "\(Int(s.glowScale * 100))%")
             slider("Brightness", binding(\.glowIntensity), in: 0.2...2,
@@ -375,6 +379,64 @@ struct SettingsView: View {
             }
         } header: {
             Text("Advanced")
+        }
+    }
+
+    @ViewBuilder private var batteryPage: some View {
+        if let b = battery.snapshot {
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("\(b.percent)%")
+                            .font(.title2.weight(.semibold))
+                            .monospacedDigit()
+                        Spacer()
+                        Text(b.statusText)
+                            .foregroundStyle(.secondary)
+                    }
+                    ProgressView(value: Double(b.percent), total: 100)
+                        .tint(b.isChargingNow ? .green : .accentColor)
+                        .accessibilityLabel("Charge")
+                        .accessibilityValue("\(b.percent) percent")
+                    if let time = b.timeText {
+                        Text(time)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.vertical, 4)
+            } header: {
+                Text("Charge")
+            }
+            Section {
+                if let health = b.healthPercent {
+                    LabeledContent("Maximum capacity", value: "\(health)%")
+                }
+                if let design = b.designCapacity, let maximum = b.maximumCapacity {
+                    LabeledContent("Capacity", value: "\(maximum) of \(design) mAh")
+                }
+                if let cycles = b.cycleCount {
+                    LabeledContent("Cycle count", value: b.designCycleCount.map { "\(cycles) of \($0)" } ?? "\(cycles)")
+                }
+                if let temperature = b.temperature {
+                    LabeledContent("Temperature", value: String(format: "%.1f °C", temperature))
+                }
+            } header: {
+                Text("Health")
+            }
+            Section {
+                LabeledContent("Power adapter", value: b.externalConnected ? (b.adapterWatts.map { "\($0) W" } ?? "Connected") : "Not connected")
+                if let watts = b.batteryWatts, abs(watts) >= 0.1 {
+                    LabeledContent(watts > 0 ? "Charging power" : "Battery power", value: String(format: "%.1f W", abs(watts)))
+                }
+            } header: {
+                Text("Power")
+            }
+        } else {
+            Section {
+                Text("This Mac has no battery.")
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -512,12 +574,13 @@ struct SettingsView: View {
 
 
 private enum SettingsPage: String, CaseIterable, Identifiable {
-    case general, glow, about
+    case general, glow, battery, about
     var id: Self { self }
     var symbol: String {
         switch self {
         case .general: "gearshape"
         case .glow: "sparkles"
+        case .battery: "battery.100percent"
         case .about: "info.circle"
         }
     }
@@ -525,6 +588,7 @@ private enum SettingsPage: String, CaseIterable, Identifiable {
         switch self {
         case .general: "General"
         case .glow: "Glow"
+        case .battery: "Battery"
         case .about: "About"
         }
     }

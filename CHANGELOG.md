@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Battery and charging. A new Settings → Battery page shows the charge and its state, the battery's maximum capacity (the share of its design capacity it can still hold) and its capacity in mAh, the cycle count, the power adapter's rating, the power flowing into or out of the battery and the time until full or empty, with the temperature when the Mac reports one (this Mac's macOS does not). The panel shows the charge and state under "System power", and the menu bar menu has a battery line. The values come from the system's `AppleSmartBattery` entry; plugging in and out and charge changes arrive as system notifications, and the details are read every two seconds only while the panel or Settings is showing them (otherwise once a minute). Diagnostics include a battery line without any serial number.
+- Charging in the glow. While the Mac charges, a soft green light travels slowly along the notch over the power color, and the glow stays on even at low load; plugging in the charger or reaching full charge sends one ripple out from the notch. With Reduce Motion the light is steady and there is no ripple. It can be turned off in Settings → Glow → Look → Show charging in the glow (also restored by Use Default Look). The shader draws the effect and the renderer's uniform struct grew to 104 bytes (checked against the shader). Checked by rendering the shader offscreen and by testing the parsing and the plug, full and unplug detection with synthetic readings; it has not been seen on screen with a real charger, and the charging light keeps the glow animating, so it uses a little more energy while charging.
+
 ## 1.8.0 — October 16, 2026 (Build 52)
 
 The first stable release with automatic updates, the disk image and macOS 26 support. The automatic update from the 1.8.0 beta to this release has been run successfully on one Mac. It includes everything in the 1.8.0 beta below, plus:
