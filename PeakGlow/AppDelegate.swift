@@ -132,11 +132,14 @@ import ServiceManagement
             switch event {
             case .pluggedIn, .fullyCharged:
                 let snapshot = AppState.shared.battery.snapshot
-                // The island shows the charge; without it, a ripple marks it. With the controls open nothing
-                // more is shown: the panel's own lines already change.
+                // The island shows the charge; without it, a ripple marks it. With the controls open the glow
+                // briefly turns into its charging light.
                 let shown = AppSettings.shared.chargeIsland && !AppState.shared.bubbleVisible
                     && self.chargeIsland.present(percent: snapshot?.percent ?? 0, full: event == .fullyCharged)
-                if !shown && !AppState.shared.bubbleVisible { self.glow.chargePulse() }
+                if !shown {
+                    if AppState.shared.bubbleVisible { if event == .pluggedIn { self.glow.flashCharging() } }
+                    else { self.glow.chargePulse() }
+                }
             case .unplugged: break
             }
         }

@@ -67,7 +67,26 @@ import AppKit
 
     /// Charging shows in the glow while it lasts; one ripple marks plugging in the charger.
     func setCharging(_ on: Bool) {
-        if metalView?.renderer?.setCharging(on) == true { metalView?.wake() }
+        reportedCharging = on
+        applyCharging()
+    }
+
+    private var reportedCharging = false
+    private var flashingCharge = false
+
+    private func applyCharging() {
+        if metalView?.renderer?.setCharging(reportedCharging || flashingCharge) == true { metalView?.wake() }
+    }
+
+    /// The glow shows the charging light for a few seconds, whatever the battery reports yet, then follows
+    /// the real state. Used when a charger is connected while the controls are open.
+    func flashCharging() {
+        flashingCharge = true
+        applyCharging()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+            self?.flashingCharge = false
+            self?.applyCharging()
+        }
     }
 
     func chargePulse() {
