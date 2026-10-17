@@ -198,7 +198,6 @@ import AppKit
             metalView?.renderer?.targetLevel = lvl
         }
         metalView?.renderer?.powerFraction = pendingPowerFraction
-        metalView?.renderer?.islandSizePoints = islandSize
         metalView?.renderer?.onIslandHidden = { [weak self] in self?.islandFinished() }
         syncPauseState()
 

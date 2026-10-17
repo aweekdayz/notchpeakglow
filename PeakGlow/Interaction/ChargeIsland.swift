@@ -55,12 +55,9 @@ import SwiftUI
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.visibleSeconds) { [weak self] in
             guard let self, self.generation == current else { return }
-            // The content leaves first; the shell follows a moment later, as with the controls panel.
+            // The content slides in with the shell, so both start to close together.
             self.motion.expanded = false
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-                guard let self, self.generation == current else { return }
-                self.glow?.setIsland(expanded: false, size: size, radius: size.height / 2)
-            }
+            self.glow?.setIsland(expanded: false, size: size, radius: size.height / 2)
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) { [weak self] in
                 guard let self, self.generation == current else { return }
                 self.panel?.orderOut(nil)
@@ -128,17 +125,21 @@ struct ChargeIslandView: View {
     @ObservedObject var model: ChargeIslandModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    /// The shell widens from the notch with a spring; the two items ride its edges. They start beside the
+    /// notch, where the shell is still narrow, and slide outward with it, fading in as it opens and out
+    /// as it closes. The springs match the renderer's, so the items and the shell move together.
+    private var opening: Animation { .spring(response: 0.46, dampingFraction: 0.74) }
+    private var closing: Animation { .spring(response: 0.34, dampingFraction: 0.9) }
+
     var body: some View {
         let wing = max(0, (model.size.width - model.notchSize.width) / 2)
+        let travel = reduceMotion ? 0 : wing * 0.85
+        let shown = motion.expanded
         HStack(spacing: 0) {
-            Image(systemName: model.full ? "battery.100percent" : "battery.100percent.bolt")
-                .symbolRenderingMode(model.full ? .hierarchical : .palette)
-                .foregroundStyle(model.full ? AnyShapeStyle(.green) : AnyShapeStyle(.primary), .green)
-                .font(.system(size: 22))
-                .symbolEffect(.bounce, options: .nonRepeating, value: motion.expanded)
+            ChargeBatteryGlyph(percent: model.percent, charging: !model.full, tint: .green, size: 24)
                 .padding(.leading, 16)
                 .frame(width: wing, alignment: .leading)
-                .islandReveal(motion.expanded, delay: 0.14, reduceMotion: reduceMotion, blurs: false)
+                .offset(x: shown ? 0 : travel)
             Spacer(minLength: 0)
             Text(model.full ? "Full" : "\(model.percent)%")
                 .font(.headline)
@@ -146,8 +147,11 @@ struct ChargeIslandView: View {
                 .foregroundStyle(.primary)
                 .padding(.trailing, 16)
                 .frame(width: wing, alignment: .trailing)
-                .islandReveal(motion.expanded, delay: 0.20, reduceMotion: reduceMotion, blurs: false)
+                .offset(x: shown ? 0 : -travel)
         }
+        .opacity(shown ? 1 : 0)
+        .animation(reduceMotion ? .easeInOut(duration: 0.16) : (shown ? opening : closing), value: shown)
+        .animation(shown ? .easeOut(duration: 0.18).delay(0.10) : .easeIn(duration: 0.12), value: shown)
         .frame(width: model.size.width, height: model.size.height)
         .environment(\.colorScheme, .dark)
         .accessibilityElement(children: .ignore)

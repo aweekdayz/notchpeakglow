@@ -4,9 +4,12 @@ import SwiftUI
 /// the number beside the symbol gives the exact charge. While charging the symbol is the green battery
 /// with a bolt; on battery it is red at 20% or less.
 enum BatterySymbol {
-    static func name(_ b: BatterySnapshot) -> String {
-        if b.isChargingNow { return "battery.100percent.bolt" }
-        switch b.percent {
+    /// The system has no bolt version of the quarter-filled batteries, only a full one, so while charging
+    /// the quarter symbol keeps showing the level and `BatterySymbolView` lays a bolt over it.
+    static func name(_ b: BatterySnapshot) -> String { quarter(b.percent) }
+
+    static func quarter(_ percent: Int) -> String {
+        switch percent {
         case ..<13: return "battery.0percent"
         case ..<38: return "battery.25percent"
         case ..<63: return "battery.50percent"
@@ -28,19 +31,33 @@ struct BatterySymbolView: View {
     var size: CGFloat = 17
 
     var body: some View {
-        Group {
-            if snapshot.isChargingNow {
-                Image(systemName: BatterySymbol.name(snapshot))
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(.primary, .green)
-            } else {
-                Image(systemName: BatterySymbol.name(snapshot))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(BatterySymbol.tint(snapshot))
+        ChargeBatteryGlyph(percent: snapshot.percent, charging: snapshot.isChargingNow,
+                           tint: BatterySymbol.tint(snapshot), size: size)
+    }
+}
+
+/// The system's battery symbol for a level, green with a bolt over it while charging.
+struct ChargeBatteryGlyph: View {
+    let percent: Int
+    let charging: Bool
+    let tint: Color
+    var size: CGFloat = 17
+
+    var body: some View {
+        Image(systemName: BatterySymbol.quarter(percent))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(charging ? Color.green : tint)
+            .font(.system(size: size))
+            .overlay {
+                if charging {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: size * 0.5, weight: .bold))
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.45), radius: max(0.6, size * 0.04))
+                        .offset(x: -size * 0.04)
+                }
             }
-        }
-        .font(.system(size: size))
-        .accessibilityHidden(true)
+            .accessibilityHidden(true)
     }
 }
 
@@ -86,7 +103,7 @@ struct BatterySettingsContent: View {
                 if let cycles = b.cycleCount {
                     if let limit = b.designCycleCount, limit > 0 {
                         MeterRow(title: "Cycle count", value: "\(cycles) of \(limit)",
-                                 fraction: Double(cycles) / Double(limit), tint: .accentColor)
+                                 fraction: Double(cycles) / Double(limit), tint: .gray)
                     } else {
                         LabeledContent("Cycle count", value: "\(cycles)")
                     }
@@ -135,7 +152,7 @@ struct BatterySettingsContent: View {
     }
 }
 
-/// A title and value with the system's linear gauge underneath.
+/// A measure as one row: the label on the left, then a thin system progress bar and the value.
 private struct MeterRow: View {
     let title: String
     let value: String
@@ -143,14 +160,18 @@ private struct MeterRow: View {
     let tint: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            LabeledContent(title, value: value)
-            Gauge(value: min(max(fraction, 0), 1)) { EmptyView() }
-                .gaugeStyle(.linearCapacity)
-                .tint(tint)
-                .accessibilityHidden(true)
+        LabeledContent(title) {
+            HStack(spacing: 12) {
+                ProgressView(value: min(max(fraction, 0), 1))
+                    .progressViewStyle(.linear)
+                    .tint(tint)
+                    .frame(width: 150)
+                Text(value)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .frame(width: 84, alignment: .trailing)
+            }
         }
-        .padding(.vertical, 2)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
         .accessibilityValue(value)
