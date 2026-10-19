@@ -149,6 +149,7 @@ import AppKit
             if let h = b.healthPercent { parts.append("maximum capacity \(h)%") }
             if let c = b.cycleCount { parts.append("\(c) cycles") }
             if let w = b.adapterWatts, b.externalConnected { parts.append("charger \(w) W") }
+            if b.externalConnected, !b.isCharging, let r = b.notChargingReason, r != 0 { parts.append("not-charging reason \(r)") }
             batteryLine = parts.joined(separator: ", ")
         } else {
             batteryLine = "none"

@@ -158,13 +158,17 @@ struct BubbleContentView: View {
       VStack(alignment: .leading, spacing: 0) {
         // Two readings built from the same piece: a big number with its unit and one line under it.
         HStack(alignment: .top, spacing: 16) {
-          ReadoutColumn(number: powerText, unit: "W", size: readoutSize, alignment: .leading,
-                        animatesNumber: !reduceMotion, numberID: power.reading.watts) {
-            Text(powerDescription)
+          // While the battery charges, the big reading is the power going into it instead of the system power.
+          let charging = battery.snapshot?.chargingWatts
+          ReadoutColumn(number: charging.map { String(format: "%.1f", $0) } ?? powerText, unit: "W", size: readoutSize,
+                        alignment: .leading, animatesNumber: !reduceMotion,
+                        numberID: charging ?? power.reading.watts) {
+            Text(charging != nil ? "Charging power" : powerDescription)
           }
           .accessibilityElement(children: .ignore)
-          .accessibilityLabel("System power")
-          .accessibilityValue(power.reading.availability == .current ? "\(powerText) watts" : powerDescription)
+          .accessibilityLabel(charging != nil ? "Charging power" : "System power")
+          .accessibilityValue(charging.map { String(format: "%.1f watts", $0) }
+                              ?? (power.reading.availability == .current ? "\(powerText) watts" : powerDescription))
           if let b = battery.snapshot {
             // The charge and the estimated time; nothing else about the battery's state.
             ReadoutColumn(number: "\(b.percent)", unit: "%", size: readoutSize, alignment: .trailing,
@@ -183,25 +187,20 @@ struct BubbleContentView: View {
         .islandReveal(motion.expanded, delay: 0.16, reduceMotion: reduceMotion)
 
         if let b = battery.snapshot {
-          // The line keeps its room whether or not it has anything to say, so connecting a charger fades its
-          // text in without moving anything else.
-          let present = b.adapterText != nil || b.powerText != nil
-          HStack {
-            Text(b.adapterText ?? " ")
-            Spacer(minLength: 8)
-            Text(b.powerText ?? " ")
-          }
-          .font(.caption)
-          .monospacedDigit()
-          .foregroundStyle(.secondary)
-          .lineLimit(1)
-          .padding(.top, 4)
-          .opacity(present ? 1 : 0)
-          .animation(reduceMotion ? nil : .easeOut(duration: 0.35), value: present)
-          .accessibilityElement(children: .ignore)
-          .accessibilityLabel("Power adapter and battery power")
-          .accessibilityValue([ b.adapterText, b.powerText ].compactMap { $0 }.joined(separator: ", "))
-          .islandReveal(motion.expanded, delay: 0.18, reduceMotion: reduceMotion)
+          // The line keeps its room whether or not a charger is connected, so connecting one fades its text in
+          // without moving anything else.
+          Text(b.adapterText ?? " ")
+            .font(.caption)
+            .monospacedDigit()
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 4)
+            .opacity(b.adapterText != nil ? 1 : 0)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.35), value: b.adapterText != nil)
+            .accessibilityLabel("Power adapter")
+            .accessibilityValue(b.adapterText ?? "none")
+            .islandReveal(motion.expanded, delay: 0.18, reduceMotion: reduceMotion)
         }
 
         PowerMeter(watts: meterWatts, medium: settings.mediumWatts, high: settings.highWatts,
