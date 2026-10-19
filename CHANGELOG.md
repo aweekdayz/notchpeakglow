@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.9.2 — October 19, 2026 (Build 55)
 
 - Fix: at 100% on a charger the controls could show "Charging power 5.0 W" and "25 min until full", because the registry keeps reporting a trickle charge without setting its fully-charged flag. A battery at 100% on a charger is now full: "Fully charged", the system power as the large reading, no time and no bolt in the menu bar.
 
