@@ -126,6 +126,7 @@ import ServiceManagement
         let battery = AppState.shared.battery
         battery.onUpdate = { [weak self] snapshot in
             self?.glow.setCharging(AppSettings.shared.chargingGlow && snapshot?.isChargingNow == true)
+            self?.refreshStatusButton()
         }
         battery.onEvent = { [weak self] event in
             guard let self, AppSettings.shared.chargingGlow else { return }
@@ -256,9 +257,10 @@ import ServiceManagement
             statusItem = nil
             return
         }
-        guard statusItem == nil else { return }
+        guard statusItem == nil else { refreshStatusButton(); return }
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.image = AppGlyph.image
+        statusItem = item
+        refreshStatusButton()
         let menu = NSMenu(title: "PeakGlow")
         menu.delegate = self
         let power = NSMenuItem(title: "", action: nil, keyEquivalent: "")
@@ -287,7 +289,37 @@ import ServiceManagement
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit PeakGlow", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         item.menu = menu
-        statusItem = item
+    }
+
+    /// The PeakGlow icon, or, when asked for and the Mac has a battery, the charge as plain text in the menu
+    /// bar's own font, with the system's `bolt.fill` before it while the battery is charging.
+    private func refreshStatusButton() {
+        guard let button = statusItem?.button else { return }
+        guard AppSettings.shared.batteryInMenuBar, let b = AppState.shared.battery.snapshot else {
+            button.image = AppGlyph.image
+            button.title = ""
+            button.toolTip = nil
+            return
+        }
+        // The bolt fades in and out when charging starts and stops; the digits just change, as in the system's item.
+        if (button.image != nil) != b.isChargingNow, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            button.wantsLayer = true
+            let fade = CATransition()
+            fade.type = .fade
+            fade.duration = 0.3
+            button.layer?.add(fade, forKey: "chargeFade")
+        }
+        if b.isChargingNow {
+            let bolt = NSImage(systemSymbolName: "bolt.fill", accessibilityDescription: nil)
+            bolt?.isTemplate = true
+            button.image = bolt
+        } else {
+            button.image = nil
+        }
+        button.imagePosition = .imageLeading
+        button.title = "\(b.percent)%"
+        button.setAccessibilityLabel("Battery \(b.percent) percent, \(b.shortStatus.lowercased())")
+        button.toolTip = "Battery \(b.percent)%, \(b.shortStatus.lowercased())"
     }
 
     private static let powerItemTag = 1000

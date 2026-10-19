@@ -28,6 +28,13 @@ struct BatterySnapshot: Equatable {
     var minutesToEmpty: Int?
     /// Power into (positive) or out of (negative) the battery as the system's own power telemetry reports it, in watts.
     var telemetryBatteryWatts: Double? = nil
+    /// The charger's own reason for not charging (`ChargerData.NotChargingReason`; 0 while charging), for diagnostics.
+    var notChargingReason: Int? = nil
+    /// The battery's present and full charge in mAh (`AppleRawCurrentCapacity`, `AppleRawMaxCapacity`).
+    var rawCurrentCapacity: Int? = nil
+    var rawMaxCapacity: Int? = nil
+    /// Minutes until full or empty from `TimeEstimator`; nil until the estimate has settled.
+    var estimatedMinutes: Int? = nil
 
     /// The battery's health as the share of its design capacity it can still hold.
     var healthPercent: Int? {
@@ -51,7 +58,9 @@ struct BatterySnapshot: Equatable {
     static func charging(flag: Bool, systemSays: Bool?, current: Double?, external: Bool, fullyCharged: Bool) -> Bool {
         guard external, !fullyCharged else { return false }
         if flag || systemSays == true { return true }
-        if let current, current > 0.05 { return true }
+        // The direction of the current only decides when the system's power-source API says nothing: while a
+        // charger is being pulled the current is still positive for a moment after both sources say "not charging".
+        if systemSays == nil, let current, current > 0.05 { return true }
         return false
     }
 
@@ -65,11 +74,11 @@ struct BatterySnapshot: Equatable {
         return "On battery"
     }
 
-    /// The same in fewer words, for the panel and the menu.
+    /// The same in the words the panel uses, so the menu bar item, its menu and the panel always agree.
     var shortStatus: String {
         if externalConnected {
-            if fullyCharged { return "Full" }
-            return isCharging ? "Charging" : "Plugged in"
+            if fullyCharged { return "Fully charged" }
+            return isCharging ? "Charging" : "Not charging"
         }
         return "On battery"
     }
@@ -89,21 +98,9 @@ struct BatterySnapshot: Equatable {
         return w >= 0.1 ? w : nil
     }
 
-    /// "Charging 35.7 W" while charging. On battery the system power shown beside the charge already is the
-    /// discharge, so nothing is added; a Mac that is plugged in and not charging has no power going in.
-    var powerText: String? {
-        guard let w = chargingWatts else { return nil }
-        return String(format: "Charging %.1f W", w)
-    }
-
     /// The estimated time, or, when there is none, what the battery is doing.
     var panelCaption: String {
-        if let t = timeText { return t }
-        if externalConnected {
-            if fullyCharged { return "Fully charged" }
-            return isCharging ? "Charging" : "Not charging"
-        }
-        return "On battery"
+        timeText ?? shortStatus
     }
 
     /// "1 h 20 min" for a number of minutes.
@@ -115,8 +112,9 @@ struct BatterySnapshot: Equatable {
 
     /// Time until full while charging, or until empty on battery, when the system knows it.
     var timeText: String? {
-        if isChargingNow, let m = minutesToFull { return "\(Self.duration(m)) until full" }
-        if !externalConnected, let m = minutesToEmpty { return "\(Self.duration(m)) remaining" }
+        guard let m = estimatedMinutes else { return nil }
+        if isChargingNow { return "\(Self.duration(m)) until full" }
+        if !externalConnected { return "\(Self.duration(m)) remaining" }
         return nil
     }
 
@@ -168,7 +166,53 @@ struct BatterySnapshot: Equatable {
             adapterWatts: watts,
             minutesToFull: minutes("AvgTimeToFull"),
             minutesToEmpty: minutes("AvgTimeToEmpty"),
-            telemetryBatteryWatts: telemetryWatts)
+            telemetryBatteryWatts: telemetryWatts,
+            notChargingReason: ((p["ChargerData"] as? [String: Any])?["NotChargingReason"] as? NSNumber)?.intValue,
+            rawCurrentCapacity: int("AppleRawCurrentCapacity"),
+            rawMaxCapacity: int("AppleRawMaxCapacity"))
+    }
+}
+
+/// Time until full or empty from the battery's own figures, instead of the registry's averages, which keep
+/// the history of the last charger or load (after replugging, "51 min" became "1 h 20 min" with nothing
+/// changed). The power is smoothed over about two minutes; the estimate waits 20 s after charging or
+/// discharging begins, so it never shows a number built from the moment of the change.
+struct TimeEstimator {
+    private var mode: Bool?          // true charging, false discharging, nil neither
+    private var since = Date.distantPast
+    private var lastSample = Date.distantPast
+    private var power: Double?       // smoothed watts, always positive
+
+    /// Fraction of the capacity up to which a charger holds its full current; above it the current tapers.
+    static let taperStart = 0.8
+    /// Average power of the tapering part relative to the power below it.
+    static let taperRatio = 0.4
+
+    mutating func minutes(for b: BatterySnapshot, now: Date = Date()) -> Int? {
+        let newMode: Bool? = b.isChargingNow ? true : (!b.externalConnected ? false : nil)
+        if newMode != mode { mode = newMode; since = now; power = nil; lastSample = now }
+        guard let charging = newMode else { return nil }
+        let sample = charging ? b.chargingWatts : abs(b.telemetryBatteryWatts ?? b.batteryWatts ?? 0)
+        guard let sample, sample >= 0.5 else { return nil }
+        let dt = min(max(now.timeIntervalSince(lastSample), 0), 60)
+        lastSample = now
+        let alpha = power == nil ? 1 : 1 - exp(-dt / 120)
+        power = (power ?? sample) * (1 - alpha) + sample * alpha
+        guard now.timeIntervalSince(since) >= 20, let power, let v = b.voltage,
+              let current = b.rawCurrentCapacity, let full = b.rawMaxCapacity, full > 0 else { return nil }
+        let wattHoursPerMilliampHour = v / 1000
+        let hours: Double
+        if charging {
+            let held = max(0, Double(full) * Self.taperStart - Double(current))
+            let tapered = Double(full) - max(Double(current), Double(full) * Self.taperStart)
+            hours = held * wattHoursPerMilliampHour / power + tapered * wattHoursPerMilliampHour / (power * Self.taperRatio)
+        } else {
+            hours = Double(current) * wattHoursPerMilliampHour / power
+        }
+        let m = hours * 60
+        guard m.isFinite, m > 0, m < 24 * 60 else { return nil }
+        // Rounded, so a figure that moves by a minute does not flicker.
+        return m > 20 ? Int((m / 5).rounded()) * 5 : Int(m.rounded())
     }
 }
 
@@ -187,9 +231,14 @@ struct BatterySnapshot: Equatable {
     private var timer: Timer?
     private var watching = false
     private var unpluggedAt: Date?
+    private var estimator = TimeEstimator()
+    /// After a charger is connected (or the app starts with one connected and the battery not yet charging) the
+    /// reading is taken every few seconds for a while: on a MacBook Air the charging flag came on 27 s after plugging in.
+    private var fastUntil = Date.distantPast
 
     func start() {
         refresh(announce: false)
+        if let s = snapshot, s.externalConnected, !s.isCharging, !s.fullyCharged { fastUntil = Date().addingTimeInterval(60) }
         // The callback has no context object of its own, so it is handed `self` unretained;
         // the monitor lives for the whole run of the app.
         let context = Unmanaged.passUnretained(self).toOpaque()
@@ -212,21 +261,17 @@ struct BatterySnapshot: Equatable {
         if on { refresh(announce: false) }
     }
 
-    /// The charging flag can take a few seconds to follow a newly connected charger, so look again soon.
-    private func settleReads() {
-        for delay in [1.0, 3.0, 6.0, 12.0] {
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-                MainActor.assumeIsolated { self?.refresh(announce: true) }
-            }
-        }
-    }
-
     private func scheduleTimer() {
         timer?.invalidate()
-        let t = Timer(timeInterval: watching ? 2 : 60, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refresh(announce: true) }
+        let fast = Date() < fastUntil
+        let t = Timer(timeInterval: watching ? 2 : fast ? 3 : 60, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.refresh(announce: true)
+                if !self.watching, self.timer?.timeInterval == 3, Date() >= self.fastUntil { self.scheduleTimer() }
+            }
         }
-        t.tolerance = watching ? 0.5 : 10
+        t.tolerance = watching ? 0.5 : fast ? 1 : 10
         RunLoop.main.add(t, forMode: .common)
         timer = t
     }
@@ -235,9 +280,16 @@ struct BatterySnapshot: Equatable {
         apply(Self.read(), announce: announce)
     }
 
+    /// Looks every few seconds for the next minute, until the charging flag has caught up with a new charger.
+    private func lookOftenForAMinute() {
+        fastUntil = Date().addingTimeInterval(60)
+        scheduleTimer()
+    }
+
     /// Takes a reading, publishes it, and reports plugging in or out and reaching full charge.
-    func apply(_ new: BatterySnapshot?, announce: Bool) {
+    func apply(_ read: BatterySnapshot?, announce: Bool) {
         let old = snapshot
+        var new = read
         // Just after the charger is pulled, a read can still carry the old connected state for a moment.
         // Hold that back and look again, instead of showing "Charging" for an instant.
         if announce, let new, new.externalConnected, let at = unpluggedAt, Date().timeIntervalSince(at) < 2 {
@@ -247,12 +299,13 @@ struct BatterySnapshot: Equatable {
             return
         }
         if let new, !new.externalConnected, old?.externalConnected == true { unpluggedAt = Date() }
+        if let b = new { new?.estimatedMinutes = estimator.minutes(for: b) } else { estimator = TimeEstimator() }
         if new != old { snapshot = new }
         onUpdate?(new)
         guard announce, let old, let new else { return }
         if !old.externalConnected && new.externalConnected {
             onEvent?(.pluggedIn)
-            settleReads()
+            lookOftenForAMinute()
         }
         else if old.externalConnected && !new.externalConnected { onEvent?(.unplugged) }
         else if new.externalConnected && !old.fullyCharged && new.fullyCharged { onEvent?(.fullyCharged) }

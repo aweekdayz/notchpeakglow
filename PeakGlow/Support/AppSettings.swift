@@ -94,6 +94,7 @@ enum PreviewLevel: Int, CaseIterable {
         static let haptics = "hapticFeedback"
         static let chargingGlow = "chargingGlow"
         static let chargeIsland = "chargeIsland"
+        static let batteryInMenuBar = "batteryInMenuBar"
         static let glowWallpaper = "glowWallpaper"
         static let migratable = [mediumWatts, highWatts, holdOnSeconds, hysteresisWatts,
             sampleInterval, ambientGlow, glowScale, glowIntensity, mediumAlpha, pulseHz,
@@ -261,6 +262,11 @@ enum PreviewLevel: Int, CaseIterable {
     var chargeIsland: Bool {
         get { get(Key.chargeIsland, true) }
         set { set(newValue, Key.chargeIsland) }
+    }
+    /// The menu bar item shows the charge as text instead of the PeakGlow icon.
+    var batteryInMenuBar: Bool {
+        get { get(Key.batteryInMenuBar, false) }
+        set { set(newValue, Key.batteryInMenuBar) }
     }
     var menuBarIcon: Bool {
         get { get(Key.menuBarIcon, true) }

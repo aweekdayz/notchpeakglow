@@ -70,6 +70,8 @@ struct BatterySettingsContent: View {
     let snapshot: BatterySnapshot?
     @Binding var chargingGlow: Bool
     @Binding var chargeIsland: Bool
+    @Binding var batteryInMenuBar: Bool
+    let menuBarIcon: Bool
 
     @ViewBuilder var body: some View {
         if let b = snapshot {
@@ -146,6 +148,16 @@ struct BatterySettingsContent: View {
                     .disabled(!chargingGlow)
             } header: {
                 Text("Charging")
+            }
+            Section {
+                Toggle("Show the charge in the menu bar", isOn: $batteryInMenuBar)
+                    .disabled(!menuBarIcon)
+            } header: {
+                Text("Menu bar")
+            } footer: {
+                SettingsNote(menuBarIcon
+                    ? "PeakGlow's menu bar item then shows the percentage (with a bolt while charging) and keeps its menu. To use only this one, turn off Battery in System Settings → Control Center."
+                    : "Turn on the menu bar icon in General first.")
             }
         } else {
             Section {
