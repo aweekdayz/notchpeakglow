@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Battery in the menu bar: Settings → Battery → Menu bar can make PeakGlow's menu bar item show the battery instead of its icon, like the system's Battery item: the system's battery symbol (its bolt battery while charging) and, optionally, the percentage. The item keeps its menu. It is off by default. PeakGlow cannot turn off the system's own Battery item; that is done in System Settings → Control Center, and the Battery page says so. Not verified on a real menu bar: the item was only built and compiled.
+
 ## 1.9.0 — October 17, 2026 (Build 53)
 
 Battery and charging, and a lighter glow.

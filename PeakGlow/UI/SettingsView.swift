@@ -670,6 +670,9 @@ private struct BatteryPageView: View {
         BatterySettingsContent(
             snapshot: battery.snapshot,
             chargingGlow: Binding(get: { s.chargingGlow }, set: { s.chargingGlow = $0 }),
-            chargeIsland: Binding(get: { s.chargeIsland }, set: { s.chargeIsland = $0 }))
+            chargeIsland: Binding(get: { s.chargeIsland }, set: { s.chargeIsland = $0 }),
+            batteryInMenuBar: Binding(get: { s.batteryInMenuBar }, set: { s.batteryInMenuBar = $0 }),
+            batteryPercentInMenuBar: Binding(get: { s.batteryPercentInMenuBar }, set: { s.batteryPercentInMenuBar = $0 }),
+            menuBarIcon: s.menuBarIcon)
     }
 }

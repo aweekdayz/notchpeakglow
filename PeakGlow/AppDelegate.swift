@@ -126,6 +126,7 @@ import ServiceManagement
         let battery = AppState.shared.battery
         battery.onUpdate = { [weak self] snapshot in
             self?.glow.setCharging(AppSettings.shared.chargingGlow && snapshot?.isChargingNow == true)
+            self?.refreshStatusButton()
         }
         battery.onEvent = { [weak self] event in
             guard let self, AppSettings.shared.chargingGlow else { return }
@@ -256,9 +257,10 @@ import ServiceManagement
             statusItem = nil
             return
         }
-        guard statusItem == nil else { return }
+        guard statusItem == nil else { refreshStatusButton(); return }
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.image = AppGlyph.image
+        statusItem = item
+        refreshStatusButton()
         let menu = NSMenu(title: "PeakGlow")
         menu.delegate = self
         let power = NSMenuItem(title: "", action: nil, keyEquivalent: "")
@@ -287,7 +289,27 @@ import ServiceManagement
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit PeakGlow", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         item.menu = menu
-        statusItem = item
+    }
+
+    /// The PeakGlow icon, or, when asked for and the Mac has a battery, the battery as the system's own
+    /// menu bar item shows it: the system's battery symbol (its bolt battery while charging) and the percentage.
+    private func refreshStatusButton() {
+        guard let button = statusItem?.button else { return }
+        let settings = AppSettings.shared
+        guard settings.batteryInMenuBar, let b = AppState.shared.battery.snapshot else {
+            button.image = AppGlyph.image
+            button.title = ""
+            button.toolTip = nil
+            return
+        }
+        let name = b.isChargingNow ? "battery.100percent.bolt" : BatterySymbol.quarter(b.percent)
+        let image = NSImage(systemSymbolName: name, accessibilityDescription: nil)
+        image?.isTemplate = true
+        button.image = image
+        button.imagePosition = .imageLeading
+        button.title = settings.batteryPercentInMenuBar ? " \(b.percent)%" : ""
+        button.setAccessibilityLabel("Battery \(b.percent) percent, \(b.shortStatus.lowercased())")
+        button.toolTip = "Battery \(b.percent)%, \(b.shortStatus.lowercased())"
     }
 
     private static let powerItemTag = 1000
