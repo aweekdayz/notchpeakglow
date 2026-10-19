@@ -320,6 +320,9 @@ struct TimeEstimator {
         guard IORegistryEntryCreateCFProperties(service, &props, kCFAllocatorDefault, 0) == KERN_SUCCESS,
               let dictionary = props?.takeRetainedValue() as? [String: Any] else { return nil }
         guard var snapshot = BatterySnapshot.parse(dictionary) else { return nil }
+        // At 100% the registry can keep saying "charging" (a trickle) without ever setting FullyCharged, which
+        // showed "Charging power 5.0 W" and "25 min until full" at 100%. A full battery on a charger is full.
+        if snapshot.percent >= 100, snapshot.externalConnected { snapshot.fullyCharged = true }
         let system = systemState()
         // The registry's ExternalConnected can lag behind a plug or unplug by a moment (and keep its old
         // time and charging flag); the power-source API the system's own battery menu uses is current.
