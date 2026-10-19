@@ -301,6 +301,14 @@ import ServiceManagement
             button.toolTip = nil
             return
         }
+        // The bolt fades in and out when charging starts and stops; the digits just change, as in the system's item.
+        if (button.image != nil) != b.isChargingNow, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            button.wantsLayer = true
+            let fade = CATransition()
+            fade.type = .fade
+            fade.duration = 0.3
+            button.layer?.add(fade, forKey: "chargeFade")
+        }
         if b.isChargingNow {
             let bolt = NSImage(systemSymbolName: "bolt.fill", accessibilityDescription: nil)
             bolt?.isTemplate = true
