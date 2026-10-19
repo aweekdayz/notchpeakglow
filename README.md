@@ -28,7 +28,7 @@ macOS screenshots do not include the hardware notch, so the black notch in the g
 
 Quit any running copy, open the **DMG** and drag PeakGlow to Applications. (A ZIP is also provided.) Existing preferences are retained. From 1.7.1 the app is signed with a Developer ID certificate and **notarized by Apple**, so it opens normally. From 1.8.0 it **updates itself**: it checks about once a day, and Settings → About has a switch and a Check for Updates… button. Earlier versions have no updater, so install 1.8.0 by hand once.
 
-The latest published release is **1.9.0 / Build 53**. See [Release audit](docs/Release-Audit.md) for what was checked and what was not.
+The latest published release is **1.9.1 / Build 54**. See [Release audit](docs/Release-Audit.md) for what was checked and what was not.
 
 ## Requirements and compatibility
 

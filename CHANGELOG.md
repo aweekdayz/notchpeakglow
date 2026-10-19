@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.9.1 — October 18, 2026 (Build 54)
 
 - Fix: pulling the charger could show "until full" and "Charging" for about a second before "On battery". Recorded on a MacBook Air: the charger's flag and the system's power-source API both say "not charging" first, while the current is still positive and the connected flag still says yes; the current's direction was being taken as charging. The current now decides only when the power-source API says nothing.
 - The estimated time is calculated from the battery's own capacity and the power, smoothed over about two minutes (charging assumes the usual slowdown above 80%), instead of taken from the registry's averages, which kept the history of the previous charger or load (after replugging, "51 min" became "1 h 20 min" with nothing changed). It waits 20 s after charging or discharging begins and is rounded to 5 minutes above 20. It is an estimate: compared with the system's figure it was only checked against one MacBook Air at one battery level, not against a full charge or discharge.
