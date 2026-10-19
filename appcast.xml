@@ -6,6 +6,22 @@
     <description>Updates for PeakGlow, a notch glow utility for MacBooks.</description>
     <language>en</language>
     <item>
+      <title>PeakGlow 1.9.1</title>
+      <pubDate>Mon, 19 Oct 2026 06:52:44 -0000</pubDate>
+      <sparkle:version>54</sparkle:version>
+      <sparkle:shortVersionString>1.9.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<h3>PeakGlow 1.9.1</h3>
+<ul>
+  <li>Fixed: pulling the charger no longer flashes "Charging" before "On battery".</li>
+  <li>While charging, the large reading in the controls is the charging power.</li>
+  <li>A steadier estimated time, calculated from the battery's capacity and power.</li>
+  <li>Optional: show the charge in the menu bar (Settings → Battery → Menu bar).</li>
+</ul>
+]]></description>
+      <enclosure url="https://github.com/aweekdayz/notchpeakglow/releases/download/v1.9.1/PeakGlow-1.9.1-macOS-arm64.dmg" sparkle:edSignature="avh7xPhnkwbwPAxjR0MDKOx33gpUsip0/42YMzUXEE9TfCG83muvDnErCXPyruREZGHJIS7ByZNzl00/wlQdCg==" length="4080465" type="application/octet-stream"/>
+    </item>
+    <item>
       <title>PeakGlow 1.9.0</title>
       <pubDate>Sat, 17 Oct 2026 08:16:33 -0000</pubDate>
       <sparkle:version>53</sparkle:version>
