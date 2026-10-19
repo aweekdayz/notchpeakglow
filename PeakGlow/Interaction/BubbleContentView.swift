@@ -173,7 +173,7 @@ struct BubbleContentView: View {
             // The charge and the estimated time; nothing else about the battery's state.
             ReadoutColumn(number: "\(b.percent)", unit: "%", size: readoutSize, alignment: .trailing,
                           animatesNumber: false, numberID: Double(b.percent),
-                          tint: b.isChargingNow ? .green : nil) {
+                          tint: (b.isChargingNow || (b.externalConnected && b.fullyCharged)) ? .green : nil) {
               Text(b.panelCaption)
                 .monospacedDigit()
             }
