@@ -291,23 +291,25 @@ import ServiceManagement
         item.menu = menu
     }
 
-    /// The PeakGlow icon, or, when asked for and the Mac has a battery, the battery as the system's own
-    /// menu bar item shows it: the system's battery symbol (its bolt battery while charging) and the percentage.
+    /// The PeakGlow icon, or, when asked for and the Mac has a battery, the charge as plain text in the menu
+    /// bar's own font, with the system's `bolt.fill` before it while the battery is charging.
     private func refreshStatusButton() {
         guard let button = statusItem?.button else { return }
-        let settings = AppSettings.shared
-        guard settings.batteryInMenuBar, let b = AppState.shared.battery.snapshot else {
+        guard AppSettings.shared.batteryInMenuBar, let b = AppState.shared.battery.snapshot else {
             button.image = AppGlyph.image
             button.title = ""
             button.toolTip = nil
             return
         }
-        let name = b.isChargingNow ? "battery.100percent.bolt" : BatterySymbol.quarter(b.percent)
-        let image = NSImage(systemSymbolName: name, accessibilityDescription: nil)
-        image?.isTemplate = true
-        button.image = image
+        if b.isChargingNow {
+            let bolt = NSImage(systemSymbolName: "bolt.fill", accessibilityDescription: nil)
+            bolt?.isTemplate = true
+            button.image = bolt
+        } else {
+            button.image = nil
+        }
         button.imagePosition = .imageLeading
-        button.title = settings.batteryPercentInMenuBar ? " \(b.percent)%" : ""
+        button.title = "\(b.percent)%"
         button.setAccessibilityLabel("Battery \(b.percent) percent, \(b.shortStatus.lowercased())")
         button.toolTip = "Battery \(b.percent)%, \(b.shortStatus.lowercased())"
     }
